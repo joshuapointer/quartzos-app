@@ -1,0 +1,49 @@
+<h2>Wireframe Agent Prompt — Structure Overview</h2>
+<p class="subtitle">Approach 3: Direction-First. Review each section and let me know if anything needs adjusting.</p>
+
+<div class="section">
+  <span class="label">Section 1 — App Context</span>
+  <p>What the app is, who uses it, and the platform (iOS/Android mobile). Sets up the agent with enough background to make informed design decisions without overwhelming detail.</p>
+</div>
+
+<div class="section">
+  <span class="label">Section 2 — Current Screens Inventory</span>
+  <p>A concise description of the 4 main screens (Home, Settings, Presets, History) and key modals (Scan, Color Picker). Includes what each screen does and the current design aesthetic (Frutiger Aero / skeuomorphic).</p>
+</div>
+
+<div class="section">
+  <span class="label">Section 3 — Pain Points to Address</span>
+  <p>The four specific problems: cluttered Home screen, disconnected navigation, Settings/Presets overlap confusion, and the general need for a high-quality design refresh. These are design constraints, not prescriptions.</p>
+</div>
+
+<div class="section">
+  <span class="label">Section 4 — Phase 1 Instructions (Direction Exploration)</span>
+  <p>The agent's first task: propose <strong>2–3 distinct design directions</strong> for the whole app. Each direction gets a brief HTML mood-board — color palette, typography feel, sample component treatment. The agent should name and briefly describe each direction before showing it.</p>
+</div>
+
+<div class="section">
+  <span class="label">Section 5 — Phase 2 Instructions (Full Mockups)</span>
+  <p>After the user picks a direction, the agent builds full-fidelity HTML/CSS mockups for all 4 screens. Each mockup uses a mobile viewport (390px wide), includes realistic content (no lorem ipsum), and shows both idle and active states where relevant.</p>
+</div>
+
+<div class="section">
+  <span class="label">Section 6 — Output Requirements</span>
+  <p>Technical constraints: self-contained HTML files, mobile viewport meta tag, no external dependencies (inline CSS/JS only), one file per screen, a single index.html linking all screens for easy navigation.</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="looks-good" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Looks good — write the full prompt</h3>
+      <p>Proceed with all 6 sections as shown</p>
+    </div>
+  </div>
+  <div class="option" data-choice="needs-changes" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Needs changes</h3>
+      <p>I'll describe what to adjust in the terminal</p>
+    </div>
+  </div>
+</div>

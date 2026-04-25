@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "QuartzOS",
+    "name": "Quartzie",
     "slug": "quartzos",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,14 +10,14 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A1F3D"
+      "backgroundColor": "#120C1F"
     },
     "ios": {
       "bundleIdentifier": "com.quartzos.app",
       "supportsTablet": false,
       "infoPlist": {
-        "NSBluetoothAlwaysUsageDescription": "QuartzOS connects to your Dab Rite to read temperature and sync settings.",
-        "NSBluetoothPeripheralUsageDescription": "QuartzOS connects to your Dab Rite to read temperature and sync settings.",
+        "NSBluetoothAlwaysUsageDescription": "Quartzie connects to your Dab Rite to read temperature and sync settings.",
+        "NSBluetoothPeripheralUsageDescription": "Quartzie connects to your Dab Rite to read temperature and sync settings.",
         "UIBackgroundModes": [
           "bluetooth-central",
           "fetch"
@@ -29,7 +29,7 @@
       "package": "com.quartzos.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A1F3D"
+        "backgroundColor": "#120C1F"
       },
       "permissions": [
         "android.permission.BLUETOOTH_CONNECT",
@@ -52,7 +52,7 @@
           "modes": [
             "central"
           ],
-          "bluetoothAlwaysPermission": "QuartzOS needs Bluetooth to communicate with your Dab Rite."
+          "bluetoothAlwaysPermission": "Quartzie needs Bluetooth to communicate with your Dab Rite."
         }
       ],
       [

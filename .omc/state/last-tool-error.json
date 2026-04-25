@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ls /Users/joshpointer/Developer/quartzos-app/.omc/state/ralph-state.json /Users/joshpointer/Developer/quartzos-app/.omc/state/ultrawork-state.json /Users/joshpointer/Developer/quartzos-app...",
+  "error": "Exit code 2",
+  "timestamp": "2026-04-25T22:39:33.021Z",
+  "retry_count": 1
+}

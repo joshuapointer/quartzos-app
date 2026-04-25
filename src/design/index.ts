@@ -7,5 +7,6 @@ export { CrystalToggle } from './components/CrystalToggle';
 export { SkeuSlider } from './components/SkeuSlider';
 export { TemperatureOrb } from './components/TemperatureOrb';
 export type { OrbState } from './components/TemperatureOrb';
+export { FloatingHeader } from './components/FloatingHeader';
 export { BevelFrame } from './components/BevelFrame';
 export { GlossOverlay } from './components/GlossOverlay';

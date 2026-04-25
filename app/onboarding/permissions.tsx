@@ -90,7 +90,7 @@ export default function PermissionsScreen() {
           </View>
           <Text style={styles.title}>Connect your Dab Rite</Text>
           <Text style={styles.body}>
-            QuartzOS reads your Dab Rite over Bluetooth and fires notifications the
+            Quartzie reads your Dab Rite over Bluetooth and fires notifications the
             instant you hit dab or dunk temp.
           </Text>
 

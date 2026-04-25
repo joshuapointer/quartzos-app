@@ -63,7 +63,7 @@ export default function Index() {
   return (
     <QuartzBackground>
       <View style={styles.center}>
-        <Text style={styles.wordmark}>QuartzOS</Text>
+        <Text style={styles.wordmark}>QUARTZIE</Text>
         <Text style={styles.tagline}>Connecting…</Text>
       </View>
     </QuartzBackground>

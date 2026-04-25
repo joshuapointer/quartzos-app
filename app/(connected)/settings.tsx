@@ -12,12 +12,14 @@ import * as Haptics from 'expo-haptics';
 import {
   ChromeButton,
   CrystalToggle,
+  FloatingHeader,
   GlassCard,
   QuartzBackground,
   SkeuSlider,
 } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
 import { useSettingsStore } from '../../src/state/settingsStore';
+import { useBleStore } from '../../src/state/bleStore';
 import { bleManager } from '../../src/ble/BleManager';
 import { rgb565to888 } from '../../src/ble/DabRiteProtocol';
 import type { DeviceSettings } from '../../src/ble/types';
@@ -45,6 +47,7 @@ function rgb565ToCss(value: number): string {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const connectionState = useBleStore((s) => s.connectionState);
   const settings = useSettingsStore((s) => s.settings);
   const dirty = useSettingsStore((s) => s.dirty);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
@@ -171,18 +174,20 @@ export default function SettingsScreen() {
 
   const statusColor = useMemo(() => {
     if (status === 'synced') return colors.success;
-    if (status === 'pending') return colors.activeAmber;
-    return colors.alertRed;
+    if (status === 'pending') return colors.warning;
+    return colors.error;
   }, [status]);
 
   return (
     <QuartzBackground>
+      <FloatingHeader connectionState={connectionState} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.screenTitle}>Settings</Text>
+        <Text style={styles.screenTitle}>Device Config</Text>
+        <Text style={styles.screenSubtitle}>Calibrate your rig parameters.</Text>
 
         {/* DISPLAY COLORS */}
         <GlassCard style={styles.card} padding={spacing.md}>
@@ -220,6 +225,7 @@ export default function SettingsScreen() {
             onValueChange={onChangeDab}
             unit={useCelsius ? '°C' : '°F'}
             style={styles.slider}
+            variant="primary"
           />
           <SkeuSlider
             label="Dunk Alarm"
@@ -230,6 +236,7 @@ export default function SettingsScreen() {
             onValueChange={onChangeDunk}
             unit={useCelsius ? '°C' : '°F'}
             style={styles.slider}
+            variant="secondary"
           />
           <View style={styles.row}>
             <Text style={styles.rowLabel}>°F / °C</Text>
@@ -405,24 +412,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingTop: 88,
+    paddingBottom: 120,
   },
   screenTitle: {
-    ...fonts.h1,
-    color: colors.textPrimary,
-    fontWeight: '700',
-    marginBottom: spacing.md,
+    fontSize: 48,
+    letterSpacing: -1.92,
+    fontWeight: '300',
+    color: colors.onSurface,
+    marginBottom: 8,
+  },
+  screenSubtitle: {
+    fontSize: 18,
+    color: colors.onSurfaceVariant,
+    marginBottom: 32,
   },
   card: {
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    ...fonts.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: spacing.md,
+    fontSize: 24,
+    fontWeight: '400',
+    color: colors.primaryFixedDim,
+    marginBottom: 12,
   },
   swatchRow: {
     flexDirection: 'row',
@@ -439,12 +451,12 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: colors.glassBorder,
     marginBottom: spacing.sm,
   },
   swatchLabel: {
     ...fonts.caption,
-    color: colors.textPrimary,
+    color: colors.onSurface,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -459,7 +471,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     ...fonts.body,
-    color: colors.textPrimary,
+    color: colors.onSurface,
     fontWeight: '500',
   },
   btnRow: {
@@ -475,7 +487,7 @@ const styles = StyleSheet.create({
   },
   segmentedLabel: {
     ...fonts.caption,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -490,20 +502,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glassFill,
   },
   segmentActive: {
-    backgroundColor: 'rgba(255,169,60,0.35)',
-    borderColor: colors.activeAmber,
+    backgroundColor: 'rgba(207,193,255,0.2)',
+    borderColor: colors.primaryContainer,
   },
   segmentText: {
     ...fonts.caption,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     fontWeight: '600',
   },
   segmentTextActive: {
-    color: colors.textPrimary,
+    color: colors.primary,
   },
   saveRow: {
     flexDirection: 'row',

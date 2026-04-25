@@ -21,7 +21,7 @@ export function BevelFrame({ children, style, borderRadius = radius.lg }: Props)
 const styles = StyleSheet.create({
   outer: {
     borderWidth: 1,
-    borderColor: colors.bezelDark,
+    borderColor: colors.surface1,
     backgroundColor: 'transparent',
     padding: 1,
   },

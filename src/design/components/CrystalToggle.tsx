@@ -57,7 +57,7 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
     borderColor: interpolateColor(
       progress.value,
       [0, 1],
-      [colors.crystalEdge, 'rgba(255,180,80,0.65)'],
+      [colors.crystalEdge, 'rgba(207,193,255,0.65)'],
     ),
   }));
 
@@ -73,11 +73,11 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
       <View style={styles.track}>
         <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
         {/* Base glass tint */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassTint }]} />
-        {/* Amber tint overlay when active */}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassFill }]} />
+        {/* Amethyst tint overlay when active */}
         <Animated.View style={[StyleSheet.absoluteFill, trackTintStyle]}>
           <LinearGradient
-            colors={[colors.activeDark, colors.activeAmber]}
+            colors={['rgba(100,80,200,0.5)', 'rgba(207,193,255,0.3)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
@@ -95,10 +95,10 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
       </View>
       {/* Thumb */}
       <Animated.View style={[styles.thumb, thumbStyle]}>
-        {/* Amber glow halo when on */}
+        {/* Amethyst glow halo when on */}
         <Animated.View style={[styles.glow, thumbGlowStyle]} pointerEvents="none" />
         <LinearGradient
-          colors={gradients.chrome}
+          colors={gradients.primary}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.thumbFill}
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: radius.full,
     overflow: 'hidden',
-    backgroundColor: colors.glassDeep,
+    backgroundColor: colors.glassFill,
   },
   trackBorder: {
     ...StyleSheet.absoluteFillObject,
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
     right: -4,
     bottom: -4,
     borderRadius: (THUMB_SIZE + 8) / 2,
-    backgroundColor: colors.activeGlow,
-    shadowColor: colors.activeAmber,
+    backgroundColor: colors.primaryContainer,
+    shadowColor: 'rgba(181,161,255,0.9)',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 8,

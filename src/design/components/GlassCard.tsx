@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewProps, ViewStyle, StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
-import { colors, gradients, radius, shadow } from '../tokens';
+import { colors, radius, shadow } from '../tokens';
 
 interface Props extends ViewProps {
   children?: React.ReactNode;
@@ -17,37 +15,16 @@ export function GlassCard({
   children,
   padding = 16,
   borderRadius = radius.lg,
-  intensity = 45,
+  intensity = 20,
   style,
   ...rest
 }: Props) {
   return (
     <View style={[styles.shadowWrap, shadow.card, style]} {...rest}>
-      <View style={[styles.clip, { borderRadius }]}>
+      <View style={[styles.clip, { borderRadius, backgroundColor: colors.glassFill }]}>
         <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
-        <LinearGradient
-          colors={gradients.crystal}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient
-          colors={gradients.gloss}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[StyleSheet.absoluteFill, { height: '55%' }]}
-        />
-        {/* Top-edge gloss arc */}
-        <View style={styles.arcWrap} pointerEvents="none">
-          <Svg width="100%" height="100%" viewBox="0 0 200 60" preserveAspectRatio="none">
-            <Path
-              d="M2 32 C 50 6, 150 6, 198 32"
-              stroke="rgba(255,255,255,0.75)"
-              strokeWidth={1.2}
-              fill="none"
-            />
-          </Svg>
-        </View>
+        {/* Subtle inner highlight — top-left 1px border */}
+        <View style={[styles.innerHighlight, { borderRadius }]} pointerEvents="none" />
         <View style={[styles.border, { borderRadius }]} pointerEvents="none" />
         <View style={[styles.inner, { padding }]}>{children}</View>
       </View>
@@ -61,19 +38,19 @@ const styles = StyleSheet.create({
   },
   clip: {
     overflow: 'hidden',
-    backgroundColor: colors.glassDeep,
   },
-  arcWrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
+  innerHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255,255,255,0.03)',
   },
   border: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: colors.glassBorder,
   },
   inner: {
     position: 'relative',

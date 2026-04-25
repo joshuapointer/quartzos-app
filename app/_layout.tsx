@@ -5,6 +5,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
+import {
+  useFonts,
+  SpaceGrotesk_300Light,
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
 
 import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
@@ -24,7 +31,14 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_300Light,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
+  });
+  const [dbReady, setDbReady] = useState(false);
+  const ready = dbReady && (fontsLoaded ?? false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +49,7 @@ export default function RootLayout() {
       } catch {
         /* swallow — app can still proceed without DB/channel bootstrap */
       }
-      if (!cancelled) setReady(true);
+      if (!cancelled) setDbReady(true);
     })();
     return () => {
       cancelled = true;
@@ -56,7 +70,7 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#0A1F3D' },
+          contentStyle: { backgroundColor: '#120C1F' },
         }}
       >
         <Stack.Screen name="index" />
@@ -80,4 +94,4 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#0A1F3D' } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#120C1F' } });

@@ -23,6 +23,7 @@ interface Props {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  variant?: 'primary' | 'secondary';
 }
 
 const THUMB = 32;
@@ -40,6 +41,7 @@ export function SkeuSlider({
   disabled = false,
   style,
   accessibilityLabel,
+  variant = 'primary',
 }: Props) {
   const [trackWidth, setTrackWidth] = useState(0);
   const position = useSharedValue(0);
@@ -119,6 +121,8 @@ export function SkeuSlider({
     transform: [{ translateX: position.value - THUMB / 2 }],
   }));
 
+  const fillColors = variant === 'secondary' ? gradients.secondary : gradients.primary;
+
   return (
     <View style={[styles.root, style]}>
       {label && (
@@ -151,25 +155,19 @@ export function SkeuSlider({
             {/* Inner shadow (bottom highlight) */}
             <View style={styles.innerShadowBottom} pointerEvents="none" />
           </View>
-          {/* Amber fill */}
+          {/* Fill */}
           <Animated.View style={[styles.fillWrap, fillStyle]} pointerEvents="none">
             <LinearGradient
-              colors={gradients.amber}
+              colors={fillColors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
-            />
-            <LinearGradient
-              colors={gradients.gloss}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={[StyleSheet.absoluteFill, { height: '55%' }]}
             />
           </Animated.View>
           {/* Thumb */}
           <Animated.View style={[styles.thumb, thumbStyle]}>
             <LinearGradient
-              colors={gradients.chrome}
+              colors={['#e7deff', '#b5a1ff']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.thumbFill}
@@ -193,14 +191,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     fontSize: 13,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     fontWeight: '600',
   },
   value: {
-    color: colors.textPrimary,
+    color: colors.primary,
     fontSize: 18,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
@@ -217,9 +215,9 @@ const styles = StyleSheet.create({
     top: (THUMB + 8 - TRACK_H) / 2,
     borderRadius: radius.full,
     overflow: 'hidden',
-    backgroundColor: colors.bezelDark,
+    backgroundColor: '#05030A',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.6)',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   innerShadowTop: {
     position: 'absolute',
