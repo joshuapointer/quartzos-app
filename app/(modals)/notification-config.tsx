@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { createMMKV } from 'react-native-mmkv';
+import { MMKV } from 'react-native-mmkv';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -15,7 +15,7 @@ import {
 import { colors, fonts, spacing, radius } from '../../src/design/tokens';
 import { useSettingsStore } from '../../src/state/settingsStore';
 
-const storage = createMMKV({ id: 'quartzos' });
+const storage = new MMKV({ id: 'quartzos' });
 
 const MIN_TEMP_F = 100;
 const MAX_TEMP_F = 900;

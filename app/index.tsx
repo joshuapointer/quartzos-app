@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { useRouter } from 'expo-router';
-import { createMMKV } from 'react-native-mmkv';
+import { useRouter, useRootNavigationState } from 'expo-router';
+import { MMKV } from 'react-native-mmkv';
 
 import { QuartzBackground } from '../src/design';
 import { colors, fonts, spacing } from '../src/design/tokens';
@@ -10,54 +10,55 @@ import { useBleStore } from '../src/state/bleStore';
 
 const AUTO_CONNECT_TIMEOUT_MS = 3000;
 
-const storage = createMMKV({ id: 'quartzos' });
+const storage = new MMKV({ id: 'quartzos' });
 
 export default function Index() {
   const router = useRouter();
+  const navigationState = useRootNavigationState();
   const navigatedRef = useRef(false);
 
   useEffect(() => {
-    const lastDeviceId = storage.getString('lastDeviceId');
+    if (!navigationState?.key) return; // navigator not yet mounted
 
-    // No saved device: go to onboarding.
-    if (!lastDeviceId) {
-      if (!navigatedRef.current) {
+    let connectTimeout: ReturnType<typeof setTimeout> | undefined;
+    let unsub: (() => void) | undefined;
+
+    // Defer one tick so the navigation container is fully ready for dispatch
+    const init = setTimeout(() => {
+      const lastDeviceId = storage.getString('lastDeviceId');
+
+      if (!lastDeviceId) {
+        if (!navigatedRef.current) {
+          navigatedRef.current = true;
+          router.replace('/onboarding/permissions');
+        }
+        return;
+      }
+
+      void bleManager.connectToDevice(lastDeviceId).catch(() => {});
+
+      connectTimeout = setTimeout(() => {
+        if (navigatedRef.current) return;
         navigatedRef.current = true;
-        router.replace('/onboarding/permissions');
-      }
-      return;
-    }
+        const state = useBleStore.getState().connectionState;
+        router.replace(state === 'READY' ? '/(connected)/home' : '/(modals)/scan');
+      }, AUTO_CONNECT_TIMEOUT_MS);
 
-    // Try to auto-connect to last known device.
-    void bleManager.connectToDevice(lastDeviceId).catch(() => {
-      /* swallow — we'll fall through to the scan modal on timeout */
-    });
-
-    const timeout = setTimeout(() => {
-      if (navigatedRef.current) return;
-      navigatedRef.current = true;
-      const state = useBleStore.getState().connectionState;
-      if (state === 'READY') {
-        router.replace('/(connected)/home');
-      } else {
-        router.replace('/(modals)/scan');
-      }
-    }, AUTO_CONNECT_TIMEOUT_MS);
-
-    // If we hit READY before timeout, jump immediately.
-    const unsub = useBleStore.subscribe((s) => {
-      if (s.connectionState === 'READY' && !navigatedRef.current) {
-        navigatedRef.current = true;
-        clearTimeout(timeout);
-        router.replace('/(connected)/home');
-      }
-    });
+      unsub = useBleStore.subscribe((s) => {
+        if (s.connectionState === 'READY' && !navigatedRef.current) {
+          navigatedRef.current = true;
+          clearTimeout(connectTimeout);
+          router.replace('/(connected)/home');
+        }
+      });
+    }, 0);
 
     return () => {
-      clearTimeout(timeout);
-      unsub();
+      clearTimeout(init);
+      clearTimeout(connectTimeout);
+      unsub?.();
     };
-  }, [router]);
+  }, [router, navigationState?.key]);
 
   return (
     <QuartzBackground>

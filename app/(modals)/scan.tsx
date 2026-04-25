@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createMMKV } from 'react-native-mmkv';
+import { MMKV } from 'react-native-mmkv';
 import {
   BleManager as RNBleManager,
   State as BleState,
@@ -27,7 +27,7 @@ import { SERVICE_UUID } from '../../src/ble/constants';
 import { useBleStore } from '../../src/state/bleStore';
 
 const EMPTY_TIMEOUT_MS = 10_000;
-const storage = createMMKV({ id: 'quartzos' });
+const storage = new MMKV({ id: 'quartzos' });
 
 type Found = { id: string; name: string; rssi: number | null };
 
