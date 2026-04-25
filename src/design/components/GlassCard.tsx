@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ViewProps, ViewStyle, StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { colors, radius, shadow } from '../tokens';
+import { radius, shadow } from '../tokens';
+import { useThemeColors } from '../ThemeContext';
 
 interface Props extends ViewProps {
   children?: React.ReactNode;
@@ -19,13 +20,14 @@ export function GlassCard({
   style,
   ...rest
 }: Props) {
+  const tc = useThemeColors();
   return (
     <View style={[styles.shadowWrap, shadow.card, style]} {...rest}>
-      <View style={[styles.clip, { borderRadius, backgroundColor: colors.glassFill }]}>
+      <View style={[styles.clip, { borderRadius, backgroundColor: tc.glassFill }]}>
         <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
         {/* Subtle inner highlight — top-left 1px border */}
         <View style={[styles.innerHighlight, { borderRadius }]} pointerEvents="none" />
-        <View style={[styles.border, { borderRadius }]} pointerEvents="none" />
+        <View style={[styles.border, { borderRadius, borderColor: tc.glassBorder }]} pointerEvents="none" />
         <View style={[styles.inner, { padding }]}>{children}</View>
       </View>
     </View>
@@ -50,7 +52,6 @@ const styles = StyleSheet.create({
   border: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
   },
   inner: {
     position: 'relative',

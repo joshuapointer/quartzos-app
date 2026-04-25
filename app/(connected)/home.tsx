@@ -1,24 +1,33 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
 
-import { QuartzBackground, TemperatureOrb, GlassCard, FloatingHeader } from '../../src/design';
+import { QuartzBackground, TemperatureOrb, FloatingHeader } from '../../src/design';
+import { DataStrip } from '../../src/design/components/DataStrip';
+import { PresetPill } from '../../src/design/components/PresetPill';
+import { MainBottomSheet, MainBottomSheetHandle } from '../../src/design/components/MainBottomSheet';
+import { PresetsSheetContent } from '../../src/design/components/sheet/PresetsSheetContent';
+import { HistorySheetContent } from '../../src/design/components/sheet/HistorySheetContent';
+import { ConfigureSheetContent } from '../../src/design/components/sheet/ConfigureSheetContent';
 import { useBleStore } from '../../src/state/bleStore';
 import { useSettingsStore } from '../../src/state/settingsStore';
 import { useSessionStore } from '../../src/state/sessionStore';
-import { colors, fonts, radius, spacing } from '../../src/design/tokens';
+import { useTheme, useThemeColors } from '../../src/design/ThemeContext';
+import { colors, fonts } from '../../src/design/tokens';
 import { formatTemp } from '../../src/utils/temperature';
 
 export default function HomeScreen() {
   const tempF = useBleStore((s) => s.liveTempF);
   const connectionState = useBleStore((s) => s.connectionState);
   const settings = useSettingsStore((s) => s.settings);
-  const confirmed = useSettingsStore((s) => s.confirmed);
   const sessionActive = useSessionStore((s) => s.active);
   const peakF = useSessionStore((s) => s.peakF);
   const startedAt = useSessionStore((s) => s.startedAt);
-  const useCelsius = settings.useCelsius;
+
+  const { theme } = useTheme();
+  const themeColors = useThemeColors();
+
+  const sheetRef = useRef<MainBottomSheetHandle>(null);
 
   // Session elapsed time display
   const [elapsedSec, setElapsedSec] = React.useState(0);
@@ -34,7 +43,7 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [sessionActive, startedAt]);
 
-  const stateColor =
+  const statusColor =
     connectionState === 'READY'
       ? colors.success
       : connectionState === 'RECONNECTING' ||
@@ -46,91 +55,78 @@ export default function HomeScreen() {
 
   const connectionLabel =
     connectionState === 'READY'
-      ? 'LIVE SYNC'
+      ? 'Live'
       : connectionState === 'RECONNECTING'
-        ? 'RECONNECTING'
+        ? 'Reconnecting'
         : connectionState === 'SCANNING' ||
             connectionState === 'CONNECTING' ||
             connectionState === 'DISCOVERING'
-          ? 'CONNECTING'
-          : 'OFFLINE';
+          ? 'Connecting'
+          : 'Offline';
 
   const elapsedFormatted = sessionActive
     ? `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`
     : '0:00';
 
-  const rangeText = `${formatTemp(settings.dabAlarmF - 20, useCelsius)} – ${formatTemp(settings.dabAlarmF + 20, useCelsius)}`;
+  const targetRangeText = `${formatTemp(settings.dabAlarmF - 20, settings.useCelsius)} – ${formatTemp(settings.dabAlarmF + 20, settings.useCelsius)}`;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: themeColors.bgDeep }]}>
       <QuartzBackground />
 
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Live status pill */}
-          <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: stateColor }]} />
-            <Text style={styles.statusLabel}>{connectionLabel}</Text>
-          </View>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.flex}>
 
-          {/* TemperatureOrb hero */}
-          <View style={styles.orbContainer}>
+          {/* Content area (above bottom sheet peek) */}
+          <View style={styles.contentArea}>
+
+            {/* Status row */}
+            <View style={styles.statusRow}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusLabel, { color: statusColor }]}>
+                {connectionLabel}
+              </Text>
+            </View>
+
+            {/* Temperature Orb */}
             <TemperatureOrb
               tempF={tempF}
               dabAlarmF={settings.dabAlarmF}
               dunkAlarmF={settings.dunkAlarmF}
               sessionActive={sessionActive}
-              useCelsius={useCelsius}
+              useCelsius={settings.useCelsius}
+              size={260}
+            />
+
+            {/* Data strip */}
+            <DataStrip
+              sessionTimeFormatted={elapsedFormatted}
+              peakTempFormatted={formatTemp(peakF, settings.useCelsius)}
+              targetRangeFormatted={targetRangeText}
+              style={styles.dataStrip}
+            />
+
+            {/* Preset pill */}
+            <PresetPill
+              presetName={formatTemp(settings.dabAlarmF, settings.useCelsius)}
+              gemColor={theme.primary}
+              onPress={() => sheetRef.current?.openToPresets()}
+              style={styles.presetPill}
             />
           </View>
 
-          {/* Data cards grid - 2 column */}
-          <View style={styles.cardsRow}>
-            {/* Session Time card */}
-            <GlassCard style={styles.squareCard} padding={16} borderRadius={radius.lg}>
-              <MaterialIcons name="schedule" size={20} color={colors.secondaryContainer} />
-              <View style={styles.cardBottom}>
-                <Text style={styles.cardLabel}>Session</Text>
-                <Text style={styles.cardValue}>{elapsedFormatted}</Text>
-              </View>
-            </GlassCard>
+          {/* MainBottomSheet — absolutely positioned over content */}
+          <MainBottomSheet
+            ref={sheetRef}
+            presetsContent={<PresetsSheetContent />}
+            historyContent={<HistorySheetContent />}
+            configureContent={<ConfigureSheetContent />}
+          />
 
-            {/* Peak Temp card */}
-            <GlassCard style={styles.squareCard} padding={16} borderRadius={radius.lg}>
-              <View style={styles.peakHeader}>
-                <MaterialIcons name="local-fire-department" size={20} color={colors.primaryContainer} />
-                <View style={styles.maxBadge}>
-                  <Text style={styles.maxBadgeText}>Max</Text>
-                </View>
-              </View>
-              <View style={styles.cardBottom}>
-                <Text style={styles.cardLabel}>Peak Temp</Text>
-                <Text style={styles.cardValue}>{formatTemp(peakF, useCelsius)}</Text>
-              </View>
-            </GlassCard>
-          </View>
-
-          {/* Optimal Range card - full width */}
-          <GlassCard padding={16} borderRadius={radius.lg}>
-            <View style={styles.rangeRow}>
-              <View style={styles.rangeLeft}>
-                <View style={styles.rangeIcon}>
-                  <MaterialIcons name="tune" size={20} color={colors.onSurfaceVariant} />
-                </View>
-                <View>
-                  <Text style={styles.cardLabel}>Optimal Range</Text>
-                  <Text style={styles.rangeValue}>{rangeText}</Text>
-                </View>
-              </View>
-            </View>
-          </GlassCard>
-        </ScrollView>
+        </View>
       </SafeAreaView>
 
-      {/* Floating header (absolutely positioned) */}
+      {/* FloatingHeader — sits on top of everything */}
       <FloatingHeader connectionState={connectionState} />
     </View>
   );
@@ -139,96 +135,40 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bgDeep,
   },
   safe: {
     flex: 1,
-    paddingTop: 88,
   },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: 120,
+  flex: {
+    flex: 1,
+  },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 80,
+    alignItems: 'center',
   },
   statusRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.sm,
-    marginBottom: spacing.lg,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   statusLabel: {
     ...fonts.labelCaps,
-    color: colors.primary,
-    letterSpacing: 1.6,
-    marginLeft: spacing.sm,
+    marginLeft: 6,
   },
-  orbContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
+  dataStrip: {
+    width: '100%',
+    marginTop: 20,
   },
-  cardsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  squareCard: {
-    flex: 1,
-    aspectRatio: 1,
-  },
-  peakHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  maxBadge: {
-    backgroundColor: 'rgba(207,193,255,0.10)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-  },
-  maxBadgeText: {
-    ...fonts.labelCaps,
-    color: colors.primary,
-    fontSize: 10,
-  },
-  cardBottom: {
-    marginTop: 'auto' as unknown as number,
-  },
-  cardLabel: {
-    ...fonts.labelCaps,
-    color: colors.onSurfaceVariant,
-    marginBottom: 2,
-  },
-  cardValue: {
-    ...fonts.h1,
-    color: colors.onSurface,
-    fontVariant: ['tabular-nums'],
-  },
-  rangeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  rangeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  rangeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: colors.surface6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rangeValue: {
-    ...fonts.bodyLg,
-    color: colors.onSurface,
+  presetPill: {
+    width: '100%',
+    marginTop: 12,
   },
 });

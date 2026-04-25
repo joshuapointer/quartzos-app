@@ -9,6 +9,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { SCREEN_W, SCREEN_H } from '../tokens';
+import { useTheme, useThemeColors } from '../ThemeContext';
 
 interface Props {
   children?: React.ReactNode;
@@ -17,6 +18,14 @@ interface Props {
 export function QuartzBackground({ children }: Props) {
   const scale = useSharedValue(1);
   const [reduceMotion, setReduceMotion] = React.useState(false);
+  const { themeName } = useTheme();
+  const tc = useThemeColors();
+
+  const blobColors = {
+    'warm-mineral': { tl: 'rgba(140,90,30,0.15)', br: 'rgba(80,55,20,0.10)' },
+    'smoke': { tl: 'rgba(100,80,200,0.15)', br: 'rgba(90,60,93,0.12)' },
+    'cool-shell': { tl: 'rgba(80,80,160,0.12)', br: 'rgba(60,60,120,0.08)' },
+  }[themeName];
 
   useEffect(() => {
     let mounted = true;
@@ -51,11 +60,11 @@ export function QuartzBackground({ children }: Props) {
   }));
 
   return (
-    <View style={styles.root} pointerEvents="box-none">
+    <View style={[styles.root, { backgroundColor: tc.bgDeep }]} pointerEvents="box-none">
       {/* Aura layer — no pointer events */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Animated.View style={[styles.blobTopLeft, blobAnimStyle]} />
-        <Animated.View style={[styles.blobBottomRight, blobAnimStyle]} />
+        <Animated.View style={[styles.blobTopLeft, blobAnimStyle, { backgroundColor: blobColors.tl }]} />
+        <Animated.View style={[styles.blobBottomRight, blobAnimStyle, { backgroundColor: blobColors.br }]} />
       </View>
       {children}
     </View>
@@ -70,7 +79,6 @@ const BLOB_BR_H = SCREEN_W * 0.7;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#120C1F',
     overflow: 'hidden',
   },
   blobTopLeft: {
@@ -80,7 +88,6 @@ const styles = StyleSheet.create({
     width: BLOB_TL_W,
     height: BLOB_TL_H,
     borderRadius: BLOB_TL_W / 2,
-    backgroundColor: 'rgba(100,80,200,0.15)',
     shadowColor: 'rgba(100,80,200,0.5)',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
@@ -93,7 +100,6 @@ const styles = StyleSheet.create({
     width: BLOB_BR_W,
     height: BLOB_BR_H,
     borderRadius: BLOB_BR_W / 2,
-    backgroundColor: 'rgba(90,60,93,0.12)',
     shadowColor: 'rgba(90,60,93,0.4)',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,

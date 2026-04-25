@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../tokens';
+import { useThemeColors } from '../ThemeContext';
 
 export interface FloatingHeaderProps {
   connectionState?: string;
@@ -12,10 +13,11 @@ export interface FloatingHeaderProps {
 
 export function FloatingHeader({ connectionState = '' }: FloatingHeaderProps) {
   const insets = useSafeAreaInsets();
+  const tc = useThemeColors();
   return (
     <View style={[styles.container, { top: 16 + insets.top }]} pointerEvents="none">
       <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={styles.overlay} />
+      <View style={[styles.overlay, { backgroundColor: tc.bgDeep + 'BF' }]} />
       <View style={styles.row}>
         {/* Left: icon */}
         <MaterialIcons name="blur-on" size={24} color={colors.primaryContainer} />
@@ -69,7 +71,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(18,12,31,0.60)',
   },
   row: {
     flex: 1,

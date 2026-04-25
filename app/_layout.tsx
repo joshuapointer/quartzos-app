@@ -15,6 +15,7 @@ import {
 
 import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
+import { ThemeProvider } from '../src/design/ThemeContext';
 
 // Keep the splash screen up until we're ready.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -65,33 +66,35 @@ export default function RootLayout() {
   }, [ready]);
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#120C1F' },
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding/permissions" />
-        <Stack.Screen name="onboarding/pair" />
-        <Stack.Screen name="(connected)" />
-        <Stack.Screen
-          name="(modals)/scan"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="(modals)/color-picker"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="(modals)/notification-config"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-      </Stack>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={styles.root}>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#0E0B08' },
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="onboarding/permissions" />
+          <Stack.Screen name="onboarding/pair" />
+          <Stack.Screen name="(connected)" />
+          <Stack.Screen
+            name="(modals)/scan"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="(modals)/color-picker"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="(modals)/notification-config"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+        </Stack>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#120C1F' } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#0E0B08' } });
