@@ -21,7 +21,8 @@
         "UIBackgroundModes": [
           "bluetooth-central",
           "fetch"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -59,7 +60,7 @@
         {
           "android": {
             "minSdkVersion": 29,
-            "compileSdkVersion": 35,
+            "compileSdkVersion": 36,
             "targetSdkVersion": 35
           },
           "ios": {
