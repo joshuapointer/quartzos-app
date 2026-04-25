@@ -1,4 +1,4 @@
-import { getDb } from './index';
+import { getDb } from './connection';
 import { DEFAULT_SETTINGS } from '../ble/types';
 import type { DeviceSettings } from '../ble/types';
 

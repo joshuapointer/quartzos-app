@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 
-import { getDb } from '../src/db';
+import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
 
 // Keep the splash screen up until we're ready.
@@ -30,7 +30,7 @@ export default function RootLayout() {
     let cancelled = false;
     (async () => {
       try {
-        await getDb();
+        await initDb();
         await setupNotificationChannels();
       } catch {
         /* swallow — app can still proceed without DB/channel bootstrap */

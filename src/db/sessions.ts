@@ -1,4 +1,4 @@
-import { getDb } from './index';
+import { getDb } from './connection';
 
 export interface TempSample { t: number; f: number; }
 export interface AlertRecord { kind: 'dab' | 'dunk'; at: number; }
