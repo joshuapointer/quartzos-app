@@ -3,7 +3,7 @@ import type { ConnectionState } from './types';
 type TransitionListener = (prev: ConnectionState, next: ConnectionState) => void;
 
 const LEGAL_TRANSITIONS: Record<ConnectionState, ConnectionState[]> = {
-  IDLE:         ['SCANNING', 'ERROR'],
+  IDLE:         ['SCANNING', 'CONNECTING', 'ERROR'],
   SCANNING:     ['CONNECTING', 'IDLE'],
   CONNECTING:   ['DISCOVERING', 'RECONNECTING', 'IDLE'],
   DISCOVERING:  ['SUBSCRIBING', 'RECONNECTING'],
