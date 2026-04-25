@@ -18,7 +18,10 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "QuartzOS connects to your Dab Rite to read temperature and sync settings.",
         "NSBluetoothPeripheralUsageDescription": "QuartzOS connects to your Dab Rite to read temperature and sync settings.",
-        "UIBackgroundModes": ["bluetooth-central", "fetch"]
+        "UIBackgroundModes": [
+          "bluetooth-central",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -34,7 +37,9 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"
+        "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN"
       ]
     },
     "plugins": [
@@ -43,7 +48,9 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": true,
-          "modes": ["central"],
+          "modes": [
+            "central"
+          ],
           "bluetoothAlwaysPermission": "QuartzOS needs Bluetooth to communicate with your Dab Rite."
         }
       ],
@@ -63,13 +70,22 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sounds/dab-alarm.wav"]
+          "sounds": [
+            "./assets/sounds/dab-alarm.wav"
+          ]
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "quartzos"
+    "scheme": "quartzos",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bf01e852-e296-4c49-88e8-a9b709c17cab"
+      }
+    },
+    "owner": "joshpointer-dev"
   }
 }
