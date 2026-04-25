@@ -71,7 +71,7 @@
         "expo-notifications",
         {
           "sounds": [
-            "./assets/sounds/dab-alarm.wav"
+            "./assets/sounds/dab_alarm.wav"
           ]
         }
       ]

@@ -62,7 +62,7 @@ export class AlarmService {
       content: {
         title: '🔥 Dab Temp Reached',
         body: 'Your quartz is ready.',
-        sound: 'dab-alarm.wav',
+        sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
       },
@@ -86,7 +86,7 @@ export class AlarmService {
       content: {
         title: '❄️ Dunk Temp Reached',
         body: 'Time to drop your concentrate.',
-        sound: 'dab-alarm.wav',
+        sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
       },

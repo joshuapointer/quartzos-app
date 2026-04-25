@@ -6,7 +6,7 @@ export async function setupNotificationChannels(): Promise<void> {
   await Notifications.setNotificationChannelAsync('alarms', {
     name: 'Temperature Alarms',
     importance: Notifications.AndroidImportance.MAX,
-    sound: 'dab-alarm.wav',
+    sound: 'dab_alarm.wav',
     vibrationPattern: [0, 200, 100, 200],
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     bypassDnd: true,

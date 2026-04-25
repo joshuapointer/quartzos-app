@@ -63,7 +63,7 @@ export default function NotificationConfigModal() {
       content: {
         title: '🔥 Dab Temp Reached',
         body: 'Test: your quartz is ready.',
-        sound: 'dab-alarm.wav',
+        sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
       },
