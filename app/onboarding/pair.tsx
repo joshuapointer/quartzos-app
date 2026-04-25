@@ -105,9 +105,9 @@ export default function PairScreen() {
   const handleConnect = useCallback(
     async (deviceId: string) => {
       setConnecting(deviceId);
-      // Free our scan manager before handing over to the app-wide bleManager.
+      // Stop scanning — do NOT call destroy() here; it resets the shared native
+      // BLE singleton and leaves the global bleManager unable to connect.
       scannerRef.current?.stopDeviceScan();
-      scannerRef.current?.destroy();
       scannerRef.current = null;
 
       try {

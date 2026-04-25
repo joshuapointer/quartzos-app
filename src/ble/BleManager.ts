@@ -210,7 +210,7 @@ export class BleManager {
     }
 
     try {
-      const device = await this.rnBle.connectToDevice(deviceId);
+      const device = await this.rnBle.connectToDevice(deviceId, { timeout: 15000 });
       this.device = device;
       useBleStore.getState().setConnectedDevice(device.id);
 

@@ -103,8 +103,8 @@ export default function ScanModal() {
   const handleConnect = useCallback(
     async (deviceId: string) => {
       setConnecting(deviceId);
+      // Stop scanning only — destroy() resets the shared native BLE singleton.
       scannerRef.current?.stopDeviceScan();
-      scannerRef.current?.destroy();
       scannerRef.current = null;
 
       // Swap device: disconnect current if any, then connect to the new one.
