@@ -25,9 +25,11 @@ import Animated, {
   withTiming,
   withSpring,
   withSequence,
+  withRepeat,
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
+import Svg, { Rect as SvgRect, Path as SvgPath } from 'react-native-svg';
 
 import { QuartzBackground } from '../../../src/design';
 import { colors, radius, spacing } from '../../../src/design/tokens';
@@ -132,6 +134,15 @@ const EXTRACTS: Extract[] = [
 
 const EXTRACT_TYPES: ExtractType[] = ['Solventless', 'Hydrocarbon', 'Isolate'];
 
+function tempColorFor(offset: number): string {
+  const t = offset / TEMP_RANGE;
+  if (t > 0.5) return colors.emberBright;
+  if (t > 0.15) return colors.ember;
+  if (t < -0.5) return colors.quartzBright;
+  if (t < -0.15) return colors.quartz;
+  return colors.bone100;
+}
+
 const GEM_COLORS = [
   colors.sapphire,
   colors.amethyst,
@@ -202,7 +213,11 @@ export default function NewPresetWizardScreen() {
   }, [step, bangerId, extractId, presetName]);
 
   const stepOpacity = useSharedValue(1);
-  const stepStyle = useAnimatedStyle(() => ({ opacity: stepOpacity.value }));
+  const stepSlide = useSharedValue(0);
+  const stepStyle = useAnimatedStyle(() => ({
+    opacity: stepOpacity.value,
+    transform: [{ translateX: stepSlide.value }],
+  }));
 
   const goBack = useCallback(() => {
     if (step === 0) {
@@ -211,9 +226,12 @@ export default function NewPresetWizardScreen() {
     }
     const prevStep = Math.max(0, step - 1);
     stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
-      if (done) runOnJS(setStep)(prevStep);
+      if (done) {
+        stepSlide.value = -36;
+        runOnJS(setStep)(prevStep);
+      }
     });
-  }, [step, stepOpacity]);
+  }, [step, stepOpacity, stepSlide]);
 
   const goClose = useCallback(() => {
     router.back();
@@ -252,13 +270,17 @@ export default function NewPresetWizardScreen() {
     }
     const nextStep = Math.min(STEP_COUNT - 1, step + 1);
     stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
-      if (done) runOnJS(setStep)(nextStep);
+      if (done) {
+        stepSlide.value = 36;
+        runOnJS(setStep)(nextStep);
+      }
     });
-  }, [canAdvance, step, handleSave, stepOpacity]);
+  }, [canAdvance, step, handleSave, stepOpacity, stepSlide]);
 
   useEffect(() => {
-    stepOpacity.value = withTiming(1, { duration: 120, easing: Easing.out(Easing.quad) });
-  }, [step, stepOpacity]);
+    stepOpacity.value = withTiming(1, { duration: 140, easing: Easing.out(Easing.quad) });
+    stepSlide.value = withTiming(0, { duration: 240, easing: Easing.out(Easing.cubic) });
+  }, [step, stepOpacity, stepSlide]);
 
   const stepTitle = ['Pick your hardware', 'What are you dabbing?', 'Tune your window', 'Save your preset'][step];
   const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue →';
@@ -758,6 +780,7 @@ function TuneStep({
 }: TuneStepProps) {
   const startOffsetRef = useRef(0);
   const lastDegRef = useRef(0);
+  const lastHapticBucketRef = useRef(0);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -765,6 +788,7 @@ function TuneStep({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         startOffsetRef.current = lastDegRef.current;
+        lastHapticBucketRef.current = Math.floor(Math.abs(lastDegRef.current) / 5);
       },
       onPanResponderMove: (_, gesture) => {
         // drag up (negative dy) → warmer
@@ -774,6 +798,11 @@ function TuneStep({
           Math.min(TEMP_RANGE, startOffsetRef.current + delta)
         );
         if (next !== lastDegRef.current) {
+          const bucket = Math.floor(Math.abs(next) / 5);
+          if (bucket !== lastHapticBucketRef.current) {
+            lastHapticBucketRef.current = bucket;
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
           lastDegRef.current = next;
           onChangeOffset(next);
         }
@@ -804,8 +833,9 @@ function TuneStep({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.tempBlock} {...panResponder.panHandlers}>
-        <Text style={styles.tempValue}>{finalTemp}°</Text>
+        <Text style={[styles.tempValue, { color: tempColorFor(tempOffset) }]}>{finalTemp}°</Text>
         <Text style={styles.tempHint}>DRAG UP WARMER · DOWN COOLER</Text>
+        <ThermalGauge offset={tempOffset} />
       </View>
 
       <View style={styles.thermalPanel}>
@@ -863,16 +893,31 @@ function SaveStep({
   const iconName = GEM_ICONS[gemColor] ?? 'diamond';
 
   const orbScale = useSharedValue(1);
+  const orbPulse = useSharedValue(1);
   const orbStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: orbScale.value }],
+    transform: [{ scale: orbScale.value * orbPulse.value }],
   }));
 
   useEffect(() => {
     orbScale.value = withSequence(
-      withSpring(1.1, { damping: 10, stiffness: 300, mass: 0.5 }),
-      withSpring(1, { damping: 12, stiffness: 280, mass: 0.5 }),
+      withSpring(1.12, { damping: 8, stiffness: 300, mass: 0.4 }),
+      withSpring(1, { damping: 14, stiffness: 280, mass: 0.5 }),
     );
   }, [gemColor, orbScale]);
+
+  useEffect(() => {
+    orbPulse.value = withRepeat(
+      withSequence(
+        withTiming(1.035, { duration: 2400, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+    return () => {
+      orbPulse.value = 1;
+    };
+  }, [orbPulse]);
 
   return (
     <ScrollView
@@ -939,6 +984,85 @@ function SaveStep({
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Thermal Gauge
+// ──────────────────────────────────────────────────────────────────────────────
+
+const GAUGE_W = 216;
+const GAUGE_PAD = 20;
+const GAUGE_TRACK_Y = 14;
+const GAUGE_PX_PER_DEG = (GAUGE_W - GAUGE_PAD * 2) / (TEMP_RANGE * 2);
+
+function ThermalGauge({ offset }: { offset: number }) {
+  const cx = GAUGE_W / 2;
+  const cursorX = cx + offset * GAUGE_PX_PER_DEG;
+  const fillLeft = Math.min(cx, cursorX);
+  const fillW = Math.abs(offset) * GAUGE_PX_PER_DEG;
+  const isWarm = offset > 0;
+  const fillColor = isWarm ? colors.ember : colors.quartz;
+  const cursorColor = isWarm
+    ? colors.emberBright
+    : offset < 0
+    ? colors.quartzBright
+    : colors.bone35;
+
+  return (
+    <Svg width={GAUGE_W} height={28} style={{ marginTop: 12 }}>
+      {/* Track */}
+      <SvgRect
+        x={GAUGE_PAD}
+        y={GAUGE_TRACK_Y}
+        width={GAUGE_W - GAUGE_PAD * 2}
+        height={2}
+        rx={1}
+        fill={colors.surface5}
+      />
+      {/* Fill */}
+      {fillW > 0.5 && (
+        <SvgRect
+          x={fillLeft}
+          y={GAUGE_TRACK_Y}
+          width={fillW}
+          height={2}
+          rx={1}
+          fill={fillColor}
+          opacity={0.75}
+        />
+      )}
+      {/* Center marker */}
+      <SvgRect
+        x={cx - 0.75}
+        y={GAUGE_TRACK_Y - 4}
+        width={1.5}
+        height={10}
+        rx={0.75}
+        fill={colors.bone35}
+      />
+      {/* Minor ticks at ±10, ±20 */}
+      {[-20, -10, 10, 20].map((d) => (
+        <SvgRect
+          key={d}
+          x={cx + d * GAUGE_PX_PER_DEG - 0.5}
+          y={GAUGE_TRACK_Y - 2}
+          width={1}
+          height={6}
+          rx={0.5}
+          fill={colors.bone20}
+        />
+      ))}
+      {/* Cursor */}
+      <SvgRect
+        x={cursorX - 1}
+        y={GAUGE_TRACK_Y - 6}
+        width={2}
+        height={14}
+        rx={1}
+        fill={cursorColor}
+      />
+    </Svg>
   );
 }
 
