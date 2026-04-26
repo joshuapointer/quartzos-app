@@ -4,9 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  Dimensions,
-  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -43,7 +40,6 @@ import { useSettingsStore } from '../../state/settingsStore';
 import { useSessionStore } from '../../state/sessionStore';
 import { formatTemp } from '../../utils/temperature';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -665,11 +661,6 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   const [stepIndex, setStepIndex] = useState(0);
   const torchDuration = TORCH_DURATION_S;
 
-  // Modal backdrop + content enter/exit animations
-  const backdropOpacity = useSharedValue(0);
-  const contentTranslateY = useSharedValue(60);
-  const contentOpacity = useSharedValue(0);
-
   // Step transition animations
   const stepOpacity = useSharedValue(1);
   const stepTranslateY = useSharedValue(0);
@@ -680,13 +671,6 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
       walkthroughStartedAt.current = Date.now();
       hasHeatedRef.current = false;
       setCapturedPeakF(0);
-      backdropOpacity.value = withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) });
-      contentTranslateY.value = withSpring(0, { damping: 22, stiffness: 200 });
-      contentOpacity.value = withTiming(1, { duration: 300 });
-    } else {
-      backdropOpacity.value = withTiming(0, { duration: 220 });
-      contentTranslateY.value = withTiming(60, { duration: 220 });
-      contentOpacity.value = withTiming(0, { duration: 220 });
     }
   }, [visible]);
 
@@ -713,20 +697,12 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   }, [stepIndex, transitionToStep, peakF]);
 
   const handleClose = useCallback(() => {
-    backdropOpacity.value = withTiming(0, { duration: 220 });
-    contentTranslateY.value = withTiming(80, { duration: 220 });
-    contentOpacity.value = withTiming(0, { duration: 220 }, () => {
-      runOnJS(onClose)();
-    });
+    onClose();
   }, [onClose]);
 
   const handleFinish = useCallback(() => {
     if (sessionActive) endSession();
-    backdropOpacity.value = withTiming(0, { duration: 220 });
-    contentTranslateY.value = withTiming(80, { duration: 220 });
-    contentOpacity.value = withTiming(0, { duration: 220 }, () => {
-      runOnJS(onClose)();
-    });
+    onClose();
   }, [sessionActive, endSession, onClose]);
 
   // Auto-advance: cool step — detect falling edge through dabAlarmF (temp must first rise above alarm + 25)
@@ -748,15 +724,6 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
     }
   }, [dunkAlertFired, step.id, visible, advance]);
 
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
-  }));
-
-  const contentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: contentTranslateY.value }],
-    opacity: contentOpacity.value,
-  }));
-
   const stepStyle = useAnimatedStyle(() => ({
     opacity: stepOpacity.value,
     transform: [{ translateY: stepTranslateY.value }],
@@ -775,149 +742,102 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={handleClose}
-    >
-      {/* Backdrop */}
-      <Animated.View style={[styles.backdrop, backdropStyle]}>
-        <LinearGradient
-          colors={['rgba(5,4,3,0.96)', 'rgba(12,9,8,0.98)']}
-          style={StyleSheet.absoluteFillObject}
+    <View style={styles.container}>
+      {/* Dark fill — this IS the backdrop now */}
+      <LinearGradient
+        colors={['rgba(5,4,3,0.98)', 'rgba(12,9,8,1)']}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      {/* Header */}
+      <View style={[styles.sheetHeader, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.supraLabel}>{step.supra}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={handleClose}
+          style={styles.closeBtn}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Svg width={18} height={18} viewBox="0 0 18 18">
+            <Path d="M3 3 L15 15 M15 3 L3 15" stroke={colors.bone50} strokeWidth={1.5} strokeLinecap="round" />
+          </Svg>
+        </TouchableOpacity>
+      </View>
+
+      {/* Step dots */}
+      <StepDots current={stepIndex} />
+
+      {/* Animated step */}
+      <Animated.View style={[styles.stepArea, stepStyle]}>
+        {/* Title */}
+        <Text style={styles.stepTitle}>{step.title}</Text>
+        {step.body.length > 0 && (
+          <Text style={styles.stepBody}>{step.body}</Text>
+        )}
+
+        {/* Icon / Timer / Live temp area */}
+        <StepBody
+          step={step}
+          stepIndex={stepIndex}
+          torchDuration={torchDuration}
+          onTorchComplete={advance}
+          onCta={handleCta}
+          dabAlarmF={settings.dabAlarmF}
+          dunkAlarmF={settings.dunkAlarmF}
+          useCelsius={settings.useCelsius}
+          peakF={capturedPeakF}
+          walkthroughStartedAt={walkthroughStartedAt.current}
         />
       </Animated.View>
 
-      {/* Content card */}
-      <View style={[styles.sheetOuter, { paddingBottom: insets.bottom + 16 }]} pointerEvents="box-none">
-        <Animated.View style={[styles.sheet, contentStyle]}>
-          <LinearGradient
-            colors={['#1a1410', '#0f0b08']}
-            style={styles.sheetGradient}
+      {/* CTA footer */}
+      {step.ctaLabel && (
+        <View style={[styles.ctaRow, { paddingBottom: insets.bottom + 16 }]}>
+          <TouchableOpacity
+            onPress={handleCta}
+            activeOpacity={0.8}
+            style={[styles.ctaBtn, isFinalStep && styles.ctaBtnFinal]}
           >
-            {/* Crystal border */}
-            <View style={[StyleSheet.absoluteFillObject, styles.sheetBorder]} pointerEvents="none" />
+            <LinearGradient
+              colors={isFinalStep ? [colors.success, '#5aaa7a'] : [colors.emberBright, colors.ember]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaBtnGradient}
+            >
+              <Text style={styles.ctaBtnText}>{step.ctaLabel}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
-            {/* Header */}
-            <View style={[styles.sheetHeader, { paddingTop: insets.top > 0 ? insets.top + 8 : 24 }]}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.supraLabel}>{step.supra}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={handleClose}
-                style={styles.closeBtn}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Svg width={18} height={18} viewBox="0 0 18 18">
-                  <Path d="M3 3 L15 15 M15 3 L3 15" stroke={colors.bone50} strokeWidth={1.5} strokeLinecap="round" />
-                </Svg>
-              </TouchableOpacity>
-            </View>
-
-            {/* Step dots */}
-            <StepDots current={stepIndex} />
-
-            {/* Animated step */}
-            <Animated.View style={[styles.stepArea, stepStyle]}>
-              {/* Title */}
-              <Text style={styles.stepTitle}>{step.title}</Text>
-              {step.body.length > 0 && (
-                <Text style={styles.stepBody}>{step.body}</Text>
-              )}
-
-              {/* Icon / Timer / Live temp area */}
-              <StepBody
-                step={step}
-                stepIndex={stepIndex}
-                torchDuration={torchDuration}
-                onTorchComplete={advance}
-                onCta={handleCta}
-                dabAlarmF={settings.dabAlarmF}
-                dunkAlarmF={settings.dunkAlarmF}
-                useCelsius={settings.useCelsius}
-                peakF={capturedPeakF}
-                walkthroughStartedAt={walkthroughStartedAt.current}
-              />
-            </Animated.View>
-
-            {/* CTA footer */}
-            {step.ctaLabel && (
-              <View style={styles.ctaRow}>
-                <TouchableOpacity
-                  onPress={handleCta}
-                  activeOpacity={0.8}
-                  style={[styles.ctaBtn, isFinalStep && styles.ctaBtnFinal]}
-                >
-                  <LinearGradient
-                    colors={isFinalStep ? [colors.success, '#5aaa7a'] : [colors.emberBright, colors.ember]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.ctaBtnGradient}
-                  >
-                    <Text style={styles.ctaBtnText}>{step.ctaLabel}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Auto-advance indicator */}
-            {step.autoAdvance && !step.ctaLabel && step.id === 'heat' && (
-              <View style={styles.autoAdvanceHint}>
-                <Text style={styles.autoAdvanceText}>Advances automatically when timer ends</Text>
-              </View>
-            )}
-            {step.id === 'cool' && (
-              <View style={styles.autoAdvanceHint}>
-                <Text style={styles.autoAdvanceText}>Advances automatically when target is reached</Text>
-              </View>
-            )}
-          </LinearGradient>
-        </Animated.View>
-      </View>
-    </Modal>
+      {/* Auto-advance indicator */}
+      {step.autoAdvance && !step.ctaLabel && step.id === 'heat' && (
+        <View style={[styles.autoAdvanceHint, { paddingBottom: insets.bottom + 20 }]}>
+          <Text style={styles.autoAdvanceText}>Advances automatically when timer ends</Text>
+        </View>
+      )}
+      {step.id === 'cool' && (
+        <View style={[styles.autoAdvanceHint, { paddingBottom: insets.bottom + 20 }]}>
+          <Text style={styles.autoAdvanceText}>Advances automatically when target is reached</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  backdrop: {
+  container: {
     ...StyleSheet.absoluteFillObject,
-  },
-
-  sheetOuter: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 0,
-  },
-
-  sheet: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    overflow: 'hidden',
-    minHeight: SCREEN_H * 0.82,
-  },
-
-  sheetGradient: {
-    flex: 1,
-    minHeight: SCREEN_H * 0.82,
-  },
-
-  sheetBorder: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderTopWidth: 0.5,
-    borderLeftWidth: 0.5,
-    borderRightWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.10)',
   },
 
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingTop: 0,
     paddingBottom: 12,
   },
 
