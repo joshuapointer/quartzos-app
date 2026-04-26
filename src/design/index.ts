@@ -17,3 +17,5 @@ export { PresetPill } from './components/PresetPill';
 export { ThemePicker } from './components/ThemePicker';
 export { MainBottomSheet } from './components/MainBottomSheet';
 export type { MainBottomSheetHandle } from './components/MainBottomSheet';
+export { SurfaceCard } from './components/SurfaceCard';
+export type { SurfaceCardVariant } from './components/SurfaceCard';
