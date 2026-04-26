@@ -74,7 +74,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0E0B08' },
+            contentStyle: { backgroundColor: '#050403' },
           }}
         >
           <Stack.Screen name="index" />
@@ -99,4 +99,4 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#0E0B08' } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#050403' } });
