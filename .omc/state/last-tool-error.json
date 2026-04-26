@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git add app/(connected)/home.tsx src/design/components/SessionWalkthrough.tsx src/design/components/NewPresetWizard.tsx && git commit -m \\\"$(cat <<'EOF'\\nfeat: immersive scene takeover for...",
-  "error": "Exit code 1\n(eval):1: no matches found: app/(connected)/home.tsx",
-  "timestamp": "2026-04-26T20:55:08.069Z",
-  "retry_count": 1
-}
