@@ -3,8 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import { MMKV } from 'react-native-mmkv';
 
-import { QuartzBackground } from '../src/design';
-import { colors, fonts, spacing } from '../src/design/tokens';
+import { spacing } from '../src/design/tokens';
 import { bleManager } from '../src/ble/BleManager';
 import { useBleStore } from '../src/state/bleStore';
 
@@ -61,16 +60,20 @@ export default function Index() {
   }, [router, navigationState?.key]);
 
   return (
-    <QuartzBackground>
+    <View style={styles.root}>
       <View style={styles.center}>
-        <Text style={styles.wordmark}>QUARTZIE</Text>
+        <Text style={styles.wordmark}>quartzie</Text>
         <Text style={styles.tagline}>Connecting…</Text>
       </View>
-    </QuartzBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#050403',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -78,16 +81,20 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   wordmark: {
-    ...fonts.display,
-    fontSize: 52,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    letterSpacing: -1,
+    fontFamily: 'Georgia',
+    fontStyle: 'italic',
+    fontSize: 42,
+    fontWeight: '400',
+    color: '#e8dfd2',
+    letterSpacing: -0.5,
   },
   tagline: {
-    ...fonts.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 2.2,
     textTransform: 'uppercase',
+    color: '#9e907e',
+    marginTop: 12,
+    fontFamily: 'Menlo',
   },
 });
