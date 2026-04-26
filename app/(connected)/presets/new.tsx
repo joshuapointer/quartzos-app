@@ -19,6 +19,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withSequence,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
 
 import { QuartzBackground } from '../../../src/design';
 import { colors, radius, spacing } from '../../../src/design/tokens';
@@ -192,13 +201,19 @@ export default function NewPresetWizardScreen() {
     return false;
   }, [step, bangerId, extractId, presetName]);
 
+  const stepOpacity = useSharedValue(1);
+  const stepStyle = useAnimatedStyle(() => ({ opacity: stepOpacity.value }));
+
   const goBack = useCallback(() => {
     if (step === 0) {
       router.back();
       return;
     }
-    setStep((s) => Math.max(0, s - 1));
-  }, [step]);
+    const prevStep = Math.max(0, step - 1);
+    stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
+      if (done) runOnJS(setStep)(prevStep);
+    });
+  }, [step, stepOpacity]);
 
   const goClose = useCallback(() => {
     router.back();
@@ -220,6 +235,7 @@ export default function NewPresetWizardScreen() {
       if (gemIdx >= 0) {
         await presetsDb.update(saved.id, { iconSlot: gemIdx });
       }
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch {
       Alert.alert('Save failed', 'Could not save preset. Please try again.');
@@ -234,8 +250,15 @@ export default function NewPresetWizardScreen() {
       void handleSave();
       return;
     }
-    setStep((s) => Math.min(STEP_COUNT - 1, s + 1));
-  }, [canAdvance, step, handleSave]);
+    const nextStep = Math.min(STEP_COUNT - 1, step + 1);
+    stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
+      if (done) runOnJS(setStep)(nextStep);
+    });
+  }, [canAdvance, step, handleSave, stepOpacity]);
+
+  useEffect(() => {
+    stepOpacity.value = withTiming(1, { duration: 120, easing: Easing.out(Easing.quad) });
+  }, [step, stepOpacity]);
 
   const stepTitle = ['Pick your hardware', 'What are you dabbing?', 'Tune your window', 'Save your preset'][step];
   const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue →';
@@ -254,7 +277,7 @@ export default function NewPresetWizardScreen() {
           />
           <StepIndicator step={step} />
 
-          <View style={styles.body}>
+          <Animated.View style={[styles.body, stepStyle]}>
             {step === 0 && (
               <BangerStep bangerId={bangerId} onSelect={setBangerId} />
             )}
@@ -282,7 +305,7 @@ export default function NewPresetWizardScreen() {
                 onSelectGem={setGemColor}
               />
             )}
-          </View>
+          </Animated.View>
 
           <WizardFooter
             label={ctaLabel}
@@ -365,6 +388,7 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
           styles.cta,
           disabled && styles.ctaDisabled,
           pressed && !disabled && styles.ctaPressed,
+          { transform: [{ scale: pressed && !disabled ? 0.97 : 1 }] },
         ]}
       >
         {!disabled ? (
@@ -381,7 +405,7 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
             disabled && styles.ctaLabelDisabled,
           ]}
         >
-          {loading ? 'Saving…' : label}
+          {loading ? 'Saving preset…' : label}
         </Text>
       </Pressable>
     </View>
@@ -837,6 +861,19 @@ function SaveStep({
   onSelectGem,
 }: SaveStepProps) {
   const iconName = GEM_ICONS[gemColor] ?? 'diamond';
+
+  const orbScale = useSharedValue(1);
+  const orbStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: orbScale.value }],
+  }));
+
+  useEffect(() => {
+    orbScale.value = withSequence(
+      withSpring(1.1, { damping: 10, stiffness: 300, mass: 0.5 }),
+      withSpring(1, { damping: 12, stiffness: 280, mass: 0.5 }),
+    );
+  }, [gemColor, orbScale]);
+
   return (
     <ScrollView
       style={styles.stepRoot}
@@ -849,9 +886,9 @@ function SaveStep({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.heroSection}>
-        <View style={[styles.heroOrb, { backgroundColor: gemColor, shadowColor: gemColor }]}>
+        <Animated.View style={[styles.heroOrb, { backgroundColor: gemColor, shadowColor: gemColor }, orbStyle]}>
           <MaterialIcons name={iconName} size={36} color={colors.bgDeep} />
-        </View>
+        </Animated.View>
         <Text style={styles.heroSummary}>
           {extract?.name ?? '—'} · {banger?.name ?? '—'}
         </Text>
