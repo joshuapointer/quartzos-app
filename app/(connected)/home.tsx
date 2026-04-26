@@ -36,6 +36,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { colors } from '../../src/design/tokens';
+import { SessionWalkthrough } from '../../src/design/components/SessionWalkthrough';
 import { QBackground } from '../../src/design/components/QBackground';
 import { TempDial } from '../../src/design/components/TempDial';
 import { QWordmark } from '../../src/design/components/QWordmark';
@@ -344,7 +345,7 @@ function ToggleRow({
 
 // ─── SessionPanel ─────────────────────────────────────────────────────────────
 
-function SessionPanel({ onOpenPresets }: { onOpenPresets?: () => void }) {
+function SessionPanel({ onOpenPresets, onStartSession }: { onOpenPresets?: () => void; onStartSession?: () => void }) {
   const { width: screenW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -453,6 +454,30 @@ function SessionPanel({ onOpenPresets }: { onOpenPresets?: () => void }) {
               <Text style={styles.presetChangeBtnText}>Change</Text>
             </TouchableOpacity>
           </LinearGradient>
+        </View>
+
+        {/* Start Session button */}
+        <View style={styles.startSessionOuter}>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onStartSession?.();
+            }}
+            activeOpacity={0.82}
+            style={styles.startSessionBtn}
+          >
+            <LinearGradient
+              colors={[colors.emberBright, colors.ember]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.startSessionGradient}
+            >
+              <Svg width={14} height={14} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
+                <Path d="M3 2 L12 7 L3 12 Z" fill="#fff" opacity={0.9} />
+              </Svg>
+              <Text style={styles.startSessionText}>Start Session</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -933,6 +958,7 @@ function ConfigurePanel() {
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<TabId>('session');
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
   const panelOpacity = useSharedValue(1);
 
   const panelStyle = useAnimatedStyle(() => ({
@@ -956,13 +982,18 @@ export default function HomeScreen() {
       <QBackground />
 
       <Animated.View style={panelStyle}>
-        {activeTab === 'session' && <SessionPanel onOpenPresets={() => handleTabChange('presets')} />}
+        {activeTab === 'session' && <SessionPanel onOpenPresets={() => handleTabChange('presets')} onStartSession={() => setShowWalkthrough(true)} />}
         {activeTab === 'presets' && <PresetsPanel />}
         {activeTab === 'history' && <HistoryPanel />}
         {activeTab === 'configure' && <ConfigurePanel />}
       </Animated.View>
 
       <QTabBar active={activeTab} onChange={handleTabChange} />
+
+      <SessionWalkthrough
+        visible={showWalkthrough}
+        onClose={() => setShowWalkthrough(false)}
+      />
     </View>
   );
 }
@@ -1080,6 +1111,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.bone50,
     letterSpacing: 0.88,
+  },
+
+  // Start Session button
+  startSessionOuter: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 8,
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: colors.emberBright,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  startSessionBtn: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  startSessionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 18,
+  },
+  startSessionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    letterSpacing: 0.3,
   },
 
   // Shared panel
