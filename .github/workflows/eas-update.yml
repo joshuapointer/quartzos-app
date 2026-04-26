@@ -4,6 +4,9 @@ on:
   push:
     branches: ['**']
 
+permissions:
+  contents: read
+
 jobs:
   update:
     name: Publish EAS Update
@@ -29,10 +32,13 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish update
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           eas update \
-            --branch "${{ github.ref_name }}" \
-            --message "${{ github.event.head_commit.message }}" \
+            --branch "$BRANCH_NAME" \
+            --message "$COMMIT_MESSAGE" \
             --non-interactive
 
       - name: Point production channel at main
