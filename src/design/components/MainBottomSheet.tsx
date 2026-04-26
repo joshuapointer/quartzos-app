@@ -47,8 +47,8 @@ export const MainBottomSheet = React.forwardRef<
   const theme = useThemeColors();
   const insets = useSafeAreaInsets();
 
-  const SHEET_HEIGHT = SCREEN_H - insets.top - 8;
-  const PEEK_OFFSET = SHEET_HEIGHT - 180;
+  const SHEET_HEIGHT = SCREEN_H - insets.top - 100;
+  const PEEK_OFFSET = SHEET_HEIGHT - 120;
   const FULL_OFFSET = 0;
 
   const translateY = useSharedValue(PEEK_OFFSET);

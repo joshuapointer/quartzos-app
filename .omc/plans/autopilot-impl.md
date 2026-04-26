@@ -1,4 +1,5 @@
-# Quartzie Redesign — Implementation Plan
+# Quartzos Redesign v2 — Implementation Plan (2026-04-25)
+# SUPERSEDES previous plan — new architecture: single screen + bottom sheet
 
 ## Phase 1: Foundation (sequential)
 

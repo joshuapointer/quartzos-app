@@ -215,7 +215,7 @@ export function ConfigureSheetContent() {
           variant="secondary"
         />
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>°F / °C</Text>
+          <Text style={[styles.rowLabel, { color: theme.onSurface }]}>°F / °C</Text>
           <CrystalToggle value={settings.useCelsius} onValueChange={onToggleCelsius} />
         </View>
         <View style={styles.btnRow}>
@@ -252,7 +252,7 @@ export function ConfigureSheetContent() {
                   { backgroundColor: rgb565ToCss(settings.colors[idx]) },
                 ]}
               />
-              <Text style={styles.swatchLabel}>{label}</Text>
+              <Text style={[styles.swatchLabel, { color: theme.onSurface }]}>{label}</Text>
             </Pressable>
           ))}
         </View>
@@ -363,9 +363,10 @@ function ToggleRow({
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const theme = useThemeColors();
   return (
     <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={[styles.rowLabel, { color: theme.onSurface }]}>{label}</Text>
       <CrystalToggle value={value} onValueChange={onChange} />
     </View>
   );
@@ -382,9 +383,10 @@ function SegmentedPicker({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const theme = useThemeColors();
   return (
     <View style={styles.segmentedWrap}>
-      <Text style={styles.segmentedLabel}>{label}</Text>
+      <Text style={[styles.segmentedLabel, { color: theme.onSurfaceVariant }]}>{label}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -399,11 +401,19 @@ function SegmentedPicker({
                 Haptics.selectionAsync().catch(() => {});
                 onChange(idx);
               }}
-              style={[styles.segment, active && styles.segmentActive]}
+              style={[
+                styles.segment,
+                { borderColor: theme.glassBorder, backgroundColor: theme.glassFill },
+                active && { backgroundColor: theme.primary + '33', borderColor: theme.primaryContainer },
+              ]}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
             >
-              <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+              <Text style={[
+                styles.segmentText,
+                { color: theme.onSurfaceVariant },
+                active && { color: theme.primary },
+              ]}>
                 {opt}
               </Text>
             </Pressable>
@@ -452,7 +462,6 @@ const styles = StyleSheet.create({
   },
   swatchLabel: {
     ...fonts.caption,
-    color: colors.onSurface,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -467,7 +476,6 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     ...fonts.body,
-    color: colors.onSurface,
     fontWeight: '500',
   },
   btnRow: {
@@ -483,7 +491,6 @@ const styles = StyleSheet.create({
   },
   segmentedLabel: {
     ...fonts.caption,
-    color: colors.onSurfaceVariant,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -498,21 +505,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
-    backgroundColor: colors.glassFill,
   },
-  segmentActive: {
-    backgroundColor: 'rgba(207,193,255,0.2)',
-    borderColor: colors.primaryContainer,
-  },
+  segmentActive: {},
   segmentText: {
     ...fonts.caption,
-    color: colors.onSurfaceVariant,
     fontWeight: '600',
   },
-  segmentTextActive: {
-    color: colors.primary,
-  },
+  segmentTextActive: {},
   saveRow: {
     flexDirection: 'row',
     alignItems: 'center',

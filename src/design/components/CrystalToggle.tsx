@@ -11,6 +11,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { colors, gradients, radius, animation } from '../tokens';
+import { useThemeColors } from '../ThemeContext';
 
 interface Props {
   value: boolean;
@@ -26,6 +27,7 @@ const THUMB_SIZE = 26;
 const PADDING = 3;
 
 export function CrystalToggle({ value, onValueChange, disabled = false, style, accessibilityLabel }: Props) {
+  const tc = useThemeColors();
   const progress = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
     borderColor: interpolateColor(
       progress.value,
       [0, 1],
-      [colors.crystalEdge, 'rgba(207,193,255,0.65)'],
+      [tc.glassBorder, tc.primaryContainer + 'A6'],
     ),
   }));
 
@@ -73,11 +75,11 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
       <View style={styles.track}>
         <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
         {/* Base glass tint */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassFill }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: tc.glassFill }]} />
         {/* Amethyst tint overlay when active */}
         <Animated.View style={[StyleSheet.absoluteFill, trackTintStyle]}>
           <LinearGradient
-            colors={['rgba(100,80,200,0.5)', 'rgba(207,193,255,0.3)']}
+            colors={[tc.primary + '80', tc.primaryContainer + '4D']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
@@ -96,9 +98,9 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
       {/* Thumb */}
       <Animated.View style={[styles.thumb, thumbStyle]}>
         {/* Amethyst glow halo when on */}
-        <Animated.View style={[styles.glow, thumbGlowStyle]} pointerEvents="none" />
+        <Animated.View style={[styles.glow, { backgroundColor: tc.primaryContainer }, thumbGlowStyle]} pointerEvents="none" />
         <LinearGradient
-          colors={gradients.primary}
+          colors={[tc.primaryContainer, tc.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.thumbFill}
@@ -123,7 +125,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: radius.full,
     overflow: 'hidden',
-    backgroundColor: colors.glassFill,
   },
   trackBorder: {
     ...StyleSheet.absoluteFillObject,
@@ -157,7 +158,6 @@ const styles = StyleSheet.create({
     right: -4,
     bottom: -4,
     borderRadius: (THUMB_SIZE + 8) / 2,
-    backgroundColor: colors.primaryContainer,
     shadowColor: 'rgba(181,161,255,0.9)',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,

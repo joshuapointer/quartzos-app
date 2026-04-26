@@ -17,6 +17,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { colors, radius, shadow, animation } from '../tokens';
+import { useThemeColors } from '../ThemeContext';
 
 export type ChromeButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -45,6 +46,7 @@ export function ChromeButton({
   haptic = true,
   accessibilityLabel,
 }: Props) {
+  const tc = useThemeColors();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -70,23 +72,29 @@ export function ChromeButton({
     [disabled, loading, haptic, onPress],
   );
 
+  const dynamicPrimaryStyles = variant === 'primary' ? {
+    bg: { backgroundColor: tc.primary + '4D' },
+    border: { borderColor: tc.primary + '59' },
+    shadow: { shadowColor: tc.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
+  } : null;
+
   const bgStyle =
     variant === 'primary'
-      ? styles.bgPrimary
+      ? dynamicPrimaryStyles!.bg
       : variant === 'secondary'
         ? styles.bgSecondary
         : styles.bgGhost;
 
   const borderStyle =
     variant === 'primary'
-      ? styles.borderPrimary
+      ? dynamicPrimaryStyles!.border
       : variant === 'secondary'
         ? styles.borderSecondary
         : styles.borderGhost;
 
   const shadowStyle =
     variant === 'primary'
-      ? styles.shadowPrimary
+      ? dynamicPrimaryStyles!.shadow
       : shadow.button;
 
   return (
@@ -114,7 +122,7 @@ export function ChromeButton({
         {loading ? (
           <ActivityIndicator color={colors.onSurface} />
         ) : (
-          <Text style={[styles.label, labelStyle]}>{label}</Text>
+          <Text style={[styles.label, { color: tc.onSurface }, labelStyle]}>{label}</Text>
         )}
       </View>
     </AnimatedPressable>
@@ -135,9 +143,6 @@ const styles = StyleSheet.create({
   bg: {
     borderRadius: radius.md,
   },
-  bgPrimary: {
-    backgroundColor: 'rgba(207,193,255,0.3)',
-  },
   bgSecondary: {
     backgroundColor: 'rgba(22,16,35,0.6)',
   },
@@ -148,21 +153,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
   },
-  borderPrimary: {
-    borderColor: 'rgba(204,189,255,0.35)',
-  },
   borderSecondary: {
     borderColor: 'rgba(255,255,255,0.10)',
   },
   borderGhost: {
     borderColor: 'rgba(255,255,255,0.15)',
-  },
-  shadowPrimary: {
-    shadowColor: '#b5a1ff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
   },
   content: {
     paddingVertical: 14,
@@ -174,6 +169,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.3,
-    color: colors.onSurface,
   },
 });
