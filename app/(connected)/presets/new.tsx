@@ -19,6 +19,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withSequence,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
 
 import { QuartzBackground } from '../../../src/design';
 import { colors, radius, spacing } from '../../../src/design/tokens';
@@ -123,36 +132,6 @@ const EXTRACTS: Extract[] = [
 
 const EXTRACT_TYPES: ExtractType[] = ['Solventless', 'Hydrocarbon', 'Isolate'];
 
-const TERPENES = [
-  'Limonene',
-  'Caryophyllene',
-  'Myrcene',
-  'Pinene',
-  'Linalool',
-  'Terpinolene',
-  'Humulene',
-  'Ocimene',
-];
-
-const STRAIN_LIBRARY = [
-  'GMO Cookies',
-  'Tropicana Cherry',
-  'Zkittlez',
-  'Rainbow Belts',
-  'Apples & Bananas',
-  'Gelato 41',
-  'Wedding Cake',
-  'Runtz',
-  'Blueberry Muffin',
-  'Sour Diesel',
-  'Chemdog',
-  'Papaya Punch',
-  'Lemon Cherry Gelato',
-  'Mac 1',
-  'Garlic Cocktail',
-  'Cereal Milk',
-];
-
 const GEM_COLORS = [
   colors.sapphire,
   colors.amethyst,
@@ -189,8 +168,6 @@ export default function NewPresetWizardScreen() {
   const [bangerId, setBangerId] = useState<BangerId | null>(null);
   const [extractId, setExtractId] = useState<string | null>(null);
   const [tempOffset, setTempOffset] = useState(0);
-  const [strain, setStrain] = useState('');
-  const [terpenes, setTerpenes] = useState<string[]>([]);
   const [presetName, setPresetName] = useState('');
   const [gemColor, setGemColor] = useState<string>(GEM_COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -224,13 +201,19 @@ export default function NewPresetWizardScreen() {
     return false;
   }, [step, bangerId, extractId, presetName]);
 
+  const stepOpacity = useSharedValue(1);
+  const stepStyle = useAnimatedStyle(() => ({ opacity: stepOpacity.value }));
+
   const goBack = useCallback(() => {
     if (step === 0) {
       router.back();
       return;
     }
-    setStep((s) => Math.max(0, s - 1));
-  }, [step]);
+    const prevStep = Math.max(0, step - 1);
+    stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
+      if (done) runOnJS(setStep)(prevStep);
+    });
+  }, [step, stepOpacity]);
 
   const goClose = useCallback(() => {
     router.back();
@@ -252,6 +235,7 @@ export default function NewPresetWizardScreen() {
       if (gemIdx >= 0) {
         await presetsDb.update(saved.id, { iconSlot: gemIdx });
       }
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch {
       Alert.alert('Save failed', 'Could not save preset. Please try again.');
@@ -266,8 +250,15 @@ export default function NewPresetWizardScreen() {
       void handleSave();
       return;
     }
-    setStep((s) => Math.min(STEP_COUNT - 1, s + 1));
-  }, [canAdvance, step, handleSave]);
+    const nextStep = Math.min(STEP_COUNT - 1, step + 1);
+    stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
+      if (done) runOnJS(setStep)(nextStep);
+    });
+  }, [canAdvance, step, handleSave, stepOpacity]);
+
+  useEffect(() => {
+    stepOpacity.value = withTiming(1, { duration: 120, easing: Easing.out(Easing.quad) });
+  }, [step, stepOpacity]);
 
   const stepTitle = ['Pick your hardware', 'What are you dabbing?', 'Tune your window', 'Save your preset'][step];
   const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue →';
@@ -280,14 +271,13 @@ export default function NewPresetWizardScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <WizardHeader
-            step={step}
             title={stepTitle}
             onBack={goBack}
             onClose={goClose}
           />
           <StepIndicator step={step} />
 
-          <View style={styles.body}>
+          <Animated.View style={[styles.body, stepStyle]}>
             {step === 0 && (
               <BangerStep bangerId={bangerId} onSelect={setBangerId} />
             )}
@@ -301,14 +291,6 @@ export default function NewPresetWizardScreen() {
                 tempOffset={tempOffset}
                 onChangeOffset={setTempOffset}
                 finalTemp={finalTemp}
-                strain={strain}
-                onChangeStrain={setStrain}
-                terpenes={terpenes}
-                onToggleTerpene={(t) =>
-                  setTerpenes((prev) =>
-                    prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
-                  )
-                }
               />
             )}
             {step === 3 && (
@@ -323,7 +305,7 @@ export default function NewPresetWizardScreen() {
                 onSelectGem={setGemColor}
               />
             )}
-          </View>
+          </Animated.View>
 
           <WizardFooter
             label={ctaLabel}
@@ -342,20 +324,18 @@ export default function NewPresetWizardScreen() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface WizardHeaderProps {
-  step: number;
   title: string;
   onBack: () => void;
   onClose: () => void;
 }
 
-function WizardHeader({ step, title, onBack, onClose }: WizardHeaderProps) {
+function WizardHeader({ title, onBack, onClose }: WizardHeaderProps) {
   return (
     <View style={styles.header}>
       <Pressable hitSlop={14} onPress={onBack} style={styles.headerIcon}>
         <MaterialIcons name="chevron-left" size={28} color={colors.bone70} />
       </Pressable>
       <View style={styles.headerCenter}>
-        <Text style={styles.eyebrow}>{`STEP ${step + 1} OF ${STEP_COUNT}`}</Text>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
       <Pressable hitSlop={14} onPress={onClose} style={styles.headerIcon}>
@@ -408,6 +388,7 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
           styles.cta,
           disabled && styles.ctaDisabled,
           pressed && !disabled && styles.ctaPressed,
+          { transform: [{ scale: pressed && !disabled ? 0.97 : 1 }] },
         ]}
       >
         {!disabled ? (
@@ -424,7 +405,7 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
             disabled && styles.ctaLabelDisabled,
           ]}
         >
-          {loading ? 'Saving…' : label}
+          {loading ? 'Saving preset…' : label}
         </Text>
       </Pressable>
     </View>
@@ -711,10 +692,6 @@ function ExtractStep({ extractId, onSelect }: ExtractStepProps) {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.intro}>
-        Each material has a different volatility window.
-      </Text>
-
       {EXTRACT_TYPES.map((type) => {
         const items = EXTRACTS.filter((e) => e.type === type);
         return (
@@ -770,10 +747,6 @@ interface TuneStepProps {
   tempOffset: number;
   onChangeOffset: (n: number) => void;
   finalTemp: number;
-  strain: string;
-  onChangeStrain: (s: string) => void;
-  terpenes: string[];
-  onToggleTerpene: (t: string) => void;
 }
 
 function TuneStep({
@@ -782,10 +755,6 @@ function TuneStep({
   tempOffset,
   onChangeOffset,
   finalTemp,
-  strain,
-  onChangeStrain,
-  terpenes,
-  onToggleTerpene,
 }: TuneStepProps) {
   const startOffsetRef = useRef(0);
   const lastDegRef = useRef(0);
@@ -822,13 +791,6 @@ function TuneStep({
   }, [tempOffset]);
 
   const baseTemp = banger && extract ? extract.baseTemp + banger.modifier : 0;
-  const filteredStrains = useMemo(() => {
-    const q = strain.trim().toLowerCase();
-    if (!q) return [];
-    return STRAIN_LIBRARY.filter(
-      (s) => s.toLowerCase().includes(q) && s.toLowerCase() !== q
-    ).slice(0, 5);
-  }, [strain]);
 
   return (
     <ScrollView
@@ -869,52 +831,6 @@ function TuneStep({
           <Text style={styles.logicSub}>Computed base before tune: {baseTemp}°F</Text>
         ) : null}
       </View>
-
-      <View style={{ gap: spacing.sm }}>
-        <Text style={styles.labelCaps}>Strain (optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={strain}
-          onChangeText={onChangeStrain}
-          placeholder="e.g. Garlic Cocktail"
-          placeholderTextColor={colors.bone35}
-          autoCapitalize="words"
-          returnKeyType="done"
-        />
-        {filteredStrains.length > 0 ? (
-          <View style={styles.suggestions}>
-            {filteredStrains.map((s) => (
-              <Pressable
-                key={s}
-                onPress={() => onChangeStrain(s)}
-                style={styles.suggestionRow}
-              >
-                <Text style={styles.suggestionText}>{s}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </View>
-
-      <View style={{ gap: spacing.sm }}>
-        <Text style={styles.labelCaps}>Terpenes (optional)</Text>
-        <View style={styles.chipRow}>
-          {TERPENES.map((t) => {
-            const active = terpenes.includes(t);
-            return (
-              <Pressable
-                key={t}
-                onPress={() => onToggleTerpene(t)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {t}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
     </ScrollView>
   );
 }
@@ -945,6 +861,19 @@ function SaveStep({
   onSelectGem,
 }: SaveStepProps) {
   const iconName = GEM_ICONS[gemColor] ?? 'diamond';
+
+  const orbScale = useSharedValue(1);
+  const orbStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: orbScale.value }],
+  }));
+
+  useEffect(() => {
+    orbScale.value = withSequence(
+      withSpring(1.1, { damping: 10, stiffness: 300, mass: 0.5 }),
+      withSpring(1, { damping: 12, stiffness: 280, mass: 0.5 }),
+    );
+  }, [gemColor, orbScale]);
+
   return (
     <ScrollView
       style={styles.stepRoot}
@@ -956,39 +885,24 @@ function SaveStep({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.heroCard}>
-        <View
-          style={[
-            styles.heroOrb,
-            {
-              backgroundColor: gemColor,
-              shadowColor: gemColor,
-            },
-          ]}
-        >
+      <View style={styles.heroSection}>
+        <Animated.View style={[styles.heroOrb, { backgroundColor: gemColor, shadowColor: gemColor }, orbStyle]}>
           <MaterialIcons name={iconName} size={36} color={colors.bgDeep} />
-        </View>
-        <Text style={styles.heroName} numberOfLines={1}>
-          {presetName.trim() || 'Untitled preset'}
+        </Animated.View>
+        <Text style={styles.heroSummary}>
+          {extract?.name ?? '—'} · {banger?.name ?? '—'}
         </Text>
         <View style={styles.heroTempRow}>
           <View style={{ alignItems: 'center' }}>
             <Text style={styles.labelCaps}>Dab</Text>
-            <Text style={[styles.heroTemp, { color: colors.emberBright }]}>
-              {finalTemp}°
-            </Text>
+            <Text style={[styles.heroTemp, { color: colors.emberBright }]}>{finalTemp}°</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={{ alignItems: 'center' }}>
             <Text style={styles.labelCaps}>Dunk</Text>
-            <Text style={[styles.heroTemp, { color: colors.quartzBright }]}>
-              {dunkTemp}°
-            </Text>
+            <Text style={[styles.heroTemp, { color: colors.quartzBright }]}>{dunkTemp}°</Text>
           </View>
         </View>
-        <Text style={styles.heroSummary}>
-          {extract?.name ?? '—'} · {banger?.name ?? '—'}
-        </Text>
       </View>
 
       <View style={{ gap: spacing.sm }}>
@@ -1060,9 +974,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  eyebrow: {
-    ...labelCaps,
-  },
   headerTitle: {
     color: colors.bone100,
     fontSize: 18,
@@ -1206,11 +1117,6 @@ const styles = StyleSheet.create({
   },
 
   // Extract step
-  intro: {
-    color: colors.bone70,
-    fontSize: 14,
-    lineHeight: 20,
-  },
   labelCaps: {
     ...labelCaps,
   },
@@ -1312,58 +1218,10 @@ const styles = StyleSheet.create({
     color: colors.bone100,
     fontSize: 15,
   },
-  suggestions: {
-    backgroundColor: colors.surface2,
-    borderRadius: radius.sm,
-    borderWidth: 0.5,
-    borderColor: colors.bone20,
-    overflow: 'hidden',
-  },
-  suggestionRow: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.bone20,
-  },
-  suggestionText: {
-    color: colors.bone90,
-    fontSize: 14,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    height: 32,
-    borderRadius: radius.full,
-    borderWidth: 0.5,
-    borderColor: colors.bone35,
-    backgroundColor: colors.surface3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipActive: {
-    borderColor: colors.emberBright,
-    backgroundColor: 'rgba(232,146,64,0.10)',
-  },
-  chipText: {
-    color: colors.bone70,
-    fontSize: 12,
-  },
-  chipTextActive: {
-    color: colors.emberBright,
-  },
-
   // Save step
-  heroCard: {
-    backgroundColor: colors.surface3,
-    borderRadius: radius.lg,
-    borderWidth: 0.5,
-    borderColor: colors.bone35,
-    padding: spacing.lg,
+  heroSection: {
     alignItems: 'center',
+    paddingVertical: spacing.lg,
     gap: spacing.sm,
   },
   heroOrb: {
@@ -1375,12 +1233,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 22,
-  },
-  heroName: {
-    color: colors.bone100,
-    fontSize: 22,
-    fontWeight: '500',
-    marginTop: spacing.sm,
   },
   heroTempRow: {
     flexDirection: 'row',
@@ -1401,7 +1253,7 @@ const styles = StyleSheet.create({
   heroSummary: {
     color: colors.bone70,
     fontSize: 13,
-    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   gemRow: {
     flexDirection: 'row',
