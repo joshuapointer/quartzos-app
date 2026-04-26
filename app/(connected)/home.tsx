@@ -22,7 +22,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, {
@@ -38,6 +37,7 @@ import Svg, {
 
 import { colors } from '../../src/design/tokens';
 import { SessionWalkthrough } from '../../src/design/components/SessionWalkthrough';
+import { NewPresetWizard } from '../../src/design/components/NewPresetWizard';
 import { QBackground } from '../../src/design/components/QBackground';
 import { TempDial } from '../../src/design/components/TempDial';
 import { QWordmark } from '../../src/design/components/QWordmark';
@@ -64,7 +64,7 @@ import {
 
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
-type SceneId = 'session' | 'presets' | 'history' | 'configure';
+type SceneId = 'session' | 'presets' | 'history' | 'configure' | 'walkthrough' | 'new-preset';
 type HistoryFilter = 'all' | 'high' | 'mid' | 'low';
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
@@ -72,6 +72,11 @@ type HistoryFilter = 'all' | 'high' | 'mid' | 'low';
 const DIAL_MINI_SCALE = 0.42;
 const WORDMARK_H = 40;  // QWordmark intrinsic height (paddingTop:8 + text~24 + paddingBottom:4 + lineHeight)
 const NAV_HEIGHT = 72;
+
+// ─── Spring constants (smooth, DR ≈ 0.90–1.0) ──────────────────────────────
+
+const SPRING_DIAL = { damping: 28, stiffness: 200, mass: 1 } as const;
+const SPRING_PANEL = { damping: 24, stiffness: 180, mass: 1 } as const;
 
 // ─── Heat-level color ─────────────────────────────────────────────────────────
 
@@ -163,7 +168,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   const translateX = useSharedValue(value ? 16 : 0);
 
   useEffect(() => {
-    translateX.value = withSpring(value ? 16 : 0, { damping: 14, stiffness: 220, mass: 0.6 });
+    translateX.value = withSpring(value ? 16 : 0, { damping: 22, stiffness: 200, mass: 1 });
   }, [value]);
 
   const thumbStyle = useAnimatedStyle(() => ({
@@ -425,7 +430,7 @@ function NavNode({ sceneId, active, onPress }: { sceneId: SceneId; active: boole
   const glow = useSharedValue(active ? 1 : 0);
 
   useEffect(() => {
-    glow.value = withSpring(active ? 1 : 0, { damping: 14, stiffness: 200 });
+    glow.value = withSpring(active ? 1 : 0, { damping: 22, stiffness: 180 });
   }, [active]);
 
   const iconAnim = useAnimatedStyle(() => ({
@@ -454,11 +459,13 @@ function PresetsContent({
   presets,
   onApply,
   listProgress,
+  onNewPreset,
 }: {
   settings: ReturnType<typeof useSettingsStore.getState>['settings'];
   presets: Preset[];
   onApply: (preset: Preset) => void;
   listProgress: SharedValue<number>;
+  onNewPreset: () => void;
 }) {
   const floatY = useSharedValue(0);
   const floatStyle = useAnimatedStyle(() => ({
@@ -492,7 +499,7 @@ function PresetsContent({
         <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/(connected)/presets/new');
+            onNewPreset();
           }}
           style={styles.newBtn}
         >
@@ -814,7 +821,6 @@ export default function HomeScreen() {
   // ── State ──────────────────────────────────────────────────────────────────
   const [scene, setScene] = useState<SceneId>('session');
   const sceneRef = useRef<SceneId>('session');
-  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   // ── BLE / Store ────────────────────────────────────────────────────────────
   const tempF = useBleStore((s) => s.liveTempF) ?? 72;
@@ -863,12 +869,17 @@ export default function HomeScreen() {
   const panelAlpha = useSharedValue(0);
   const panelTranslateY = useSharedValue(52);
   const listProgress = useSharedValue(0);
+  const dialOpacity = useSharedValue(1);
+  const navAlpha = useSharedValue(1);
+  const immersiveAlpha = useSharedValue(0);
+  const immersiveTranslateY = useSharedValue(60);
 
   // ── Scene navigation ───────────────────────────────────────────────────────
   const applyScene = useCallback((nextScene: SceneId) => {
     sceneRef.current = nextScene;
     setScene(nextScene);
-    if (nextScene !== 'session') {
+    const isPanelScene = nextScene === 'presets' || nextScene === 'history' || nextScene === 'configure';
+    if (isPanelScene) {
       listProgress.value = 0;
       listProgress.value = withDelay(200, withTiming(1, { duration: 480, easing: Easing.out(Easing.quad) }));
     }
@@ -879,42 +890,87 @@ export default function HomeScreen() {
     if (nextScene === current) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    if (nextScene === 'session') {
-      // Panel → session: fade panel, restore dial, then reveal session
+    const isImmersive = (s: SceneId) => s === 'walkthrough' || s === 'new-preset';
+
+    if (isImmersive(nextScene)) {
+      // Everything hides; immersive surface blooms up from below
+      if (current === 'session') {
+        sessionAlpha.value = withTiming(0, { duration: 140 });
+      } else {
+        panelAlpha.value = withTiming(0, { duration: 140 });
+      }
+      dialOpacity.value = withTiming(0, { duration: 160 });
+      navAlpha.value = withTiming(0, { duration: 120 });
+      immersiveAlpha.value = 0;
+      immersiveTranslateY.value = 60;
+      applyScene(nextScene);
+      immersiveAlpha.value = withDelay(100, withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }));
+      immersiveTranslateY.value = withDelay(80, withSpring(0, SPRING_PANEL));
+
+    } else if (isImmersive(current)) {
+      // Leaving immersive — surface recedes, rest restores
+      immersiveAlpha.value = withTiming(0, { duration: 180, easing: Easing.in(Easing.quad) }, (done) => {
+        'worklet';
+        if (done) {
+          runOnJS(applyScene)(nextScene);
+          immersiveTranslateY.value = 60;
+          dialOpacity.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) });
+          navAlpha.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
+          if (nextScene === 'session') {
+            dialScale.value = 1;
+            dialTranslateY.value = 0;
+            sessionAlpha.value = withDelay(80, withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) }));
+          } else {
+            dialScale.value = DIAL_MINI_SCALE;
+            dialTranslateY.value = -DIAL_DELTA_Y;
+            panelAlpha.value = 0;
+            panelTranslateY.value = 52;
+            panelAlpha.value = withDelay(60, withTiming(1, { duration: 240, easing: Easing.out(Easing.quad) }));
+            panelTranslateY.value = withDelay(40, withSpring(0, SPRING_PANEL));
+            listProgress.value = 0;
+            listProgress.value = withDelay(160, withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) }));
+          }
+        }
+      });
+      immersiveTranslateY.value = withTiming(40, { duration: 180 });
+
+    } else if (nextScene === 'session') {
+      // Panel → session
       panelAlpha.value = withTiming(0, { duration: 130 }, (done) => {
         'worklet';
         if (done) runOnJS(applyScene)('session');
       });
       panelTranslateY.value = withTiming(28, { duration: 130 });
-      dialScale.value = withDelay(50, withSpring(1, { damping: 16, stiffness: 200 }));
-      dialTranslateY.value = withDelay(50, withSpring(0, { damping: 16, stiffness: 200 }));
-      sessionAlpha.value = withDelay(180, withTiming(1, { duration: 240, easing: Easing.out(Easing.quad) }));
+      dialScale.value = withDelay(50, withSpring(1, SPRING_DIAL));
+      dialTranslateY.value = withDelay(50, withSpring(0, SPRING_DIAL));
+      dialOpacity.value = withDelay(50, withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) }));
+      sessionAlpha.value = withDelay(180, withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }));
 
     } else if (current === 'session') {
-      // Session → panel: shrink dial, fade session, bloom panel
+      // Session → panel
       sessionAlpha.value = withTiming(0, { duration: 160, easing: Easing.in(Easing.quad) });
-      dialScale.value = withDelay(60, withSpring(DIAL_MINI_SCALE, { damping: 18, stiffness: 220 }));
-      dialTranslateY.value = withDelay(60, withSpring(-DIAL_DELTA_Y, { damping: 18, stiffness: 220 }));
+      dialScale.value = withDelay(60, withSpring(DIAL_MINI_SCALE, SPRING_DIAL));
+      dialTranslateY.value = withDelay(60, withSpring(-DIAL_DELTA_Y, SPRING_DIAL));
       panelAlpha.value = 0;
       panelTranslateY.value = 52;
       panelAlpha.value = withDelay(150, withTiming(1, { duration: 230, easing: Easing.out(Easing.quad) }));
-      panelTranslateY.value = withDelay(130, withSpring(0, { damping: 16, stiffness: 180 }));
+      panelTranslateY.value = withDelay(130, withSpring(0, SPRING_PANEL));
       applyScene(nextScene);
 
     } else {
-      // Panel → panel: cross-fade content, dial stays mini
+      // Panel → panel cross-fade
       panelAlpha.value = withTiming(0, { duration: 110 }, (done) => {
         'worklet';
         if (done) {
           runOnJS(applyScene)(nextScene);
           panelTranslateY.value = 28;
           panelAlpha.value = withTiming(1, { duration: 210, easing: Easing.out(Easing.quad) });
-          panelTranslateY.value = withSpring(0, { damping: 16, stiffness: 180 });
+          panelTranslateY.value = withSpring(0, SPRING_PANEL);
         }
       });
       panelTranslateY.value = withTiming(16, { duration: 110 });
     }
-  }, [DIAL_DELTA_Y, applyScene, dialScale, dialTranslateY, sessionAlpha, panelAlpha, panelTranslateY]);
+  }, [DIAL_DELTA_Y, applyScene, dialScale, dialTranslateY, dialOpacity, sessionAlpha, panelAlpha, panelTranslateY, navAlpha, immersiveAlpha, immersiveTranslateY, listProgress]);
 
   // ── Preset apply ───────────────────────────────────────────────────────────
   const handleApplyPreset = useCallback(async (preset: Preset) => {
@@ -928,6 +984,7 @@ export default function HomeScreen() {
 
   // ── Animated styles ────────────────────────────────────────────────────────
   const dialAnimStyle = useAnimatedStyle(() => ({
+    opacity: dialOpacity.value,
     transform: [{ translateY: dialTranslateY.value }, { scale: dialScale.value }],
   }));
 
@@ -938,6 +995,15 @@ export default function HomeScreen() {
   const panelContentStyle = useAnimatedStyle(() => ({
     opacity: panelAlpha.value,
     transform: [{ translateY: panelTranslateY.value }],
+  }));
+
+  const navAlphaStyle = useAnimatedStyle(() => ({
+    opacity: navAlpha.value,
+  }));
+
+  const immersiveContentStyle = useAnimatedStyle(() => ({
+    opacity: immersiveAlpha.value,
+    transform: [{ translateY: immersiveTranslateY.value }],
   }));
 
   // ── Derived ────────────────────────────────────────────────────────────────
@@ -1033,7 +1099,7 @@ export default function HomeScreen() {
         {/* Start session button */}
         <View style={styles.startSessionOuter}>
           <TouchableOpacity
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowWalkthrough(true); }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigateTo('walkthrough'); }}
             activeOpacity={0.82}
             style={styles.startSessionBtn}
           >
@@ -1066,6 +1132,7 @@ export default function HomeScreen() {
             presets={presets}
             onApply={handleApplyPreset}
             listProgress={listProgress}
+            onNewPreset={() => navigateTo('new-preset')}
           />
         )}
         {scene === 'history' && (
@@ -1087,13 +1154,33 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* ── Ambient navigation nodes ── */}
-      <View style={[styles.navBar, { paddingBottom: insets.bottom }]}>
+      <Animated.View style={[styles.navBar, { paddingBottom: insets.bottom }, navAlphaStyle]}>
         <NavNode sceneId="presets" active={scene === 'presets'} onPress={() => navigateTo('presets')} />
         <NavNode sceneId="history" active={scene === 'history'} onPress={() => navigateTo('history')} />
         <NavNode sceneId="configure" active={scene === 'configure'} onPress={() => navigateTo('configure')} />
-      </View>
+      </Animated.View>
 
-      <SessionWalkthrough visible={showWalkthrough} onClose={() => setShowWalkthrough(false)} />
+      {/* ── Immersive overlay: walkthrough / new-preset ── */}
+      <Animated.View
+        style={[styles.immersiveOverlay, immersiveContentStyle]}
+        pointerEvents={(scene === 'walkthrough' || scene === 'new-preset') ? 'auto' : 'none'}
+      >
+        {scene === 'walkthrough' && (
+          <SessionWalkthrough
+            visible={true}
+            onClose={() => navigateTo('session')}
+          />
+        )}
+        {scene === 'new-preset' && (
+          <NewPresetWizard
+            onClose={() => navigateTo('presets')}
+            onSaved={() => {
+              presetsDb.getAll().then(setPresets).catch(() => {});
+              navigateTo('presets');
+            }}
+          />
+        )}
+      </Animated.View>
     </View>
   );
 }
@@ -1726,5 +1813,10 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // ── Immersive overlay ──────────────────────────────────────────────────────
+  immersiveOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 });
