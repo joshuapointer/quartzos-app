@@ -123,36 +123,6 @@ const EXTRACTS: Extract[] = [
 
 const EXTRACT_TYPES: ExtractType[] = ['Solventless', 'Hydrocarbon', 'Isolate'];
 
-const TERPENES = [
-  'Limonene',
-  'Caryophyllene',
-  'Myrcene',
-  'Pinene',
-  'Linalool',
-  'Terpinolene',
-  'Humulene',
-  'Ocimene',
-];
-
-const STRAIN_LIBRARY = [
-  'GMO Cookies',
-  'Tropicana Cherry',
-  'Zkittlez',
-  'Rainbow Belts',
-  'Apples & Bananas',
-  'Gelato 41',
-  'Wedding Cake',
-  'Runtz',
-  'Blueberry Muffin',
-  'Sour Diesel',
-  'Chemdog',
-  'Papaya Punch',
-  'Lemon Cherry Gelato',
-  'Mac 1',
-  'Garlic Cocktail',
-  'Cereal Milk',
-];
-
 const GEM_COLORS = [
   colors.sapphire,
   colors.amethyst,
@@ -189,8 +159,6 @@ export default function NewPresetWizardScreen() {
   const [bangerId, setBangerId] = useState<BangerId | null>(null);
   const [extractId, setExtractId] = useState<string | null>(null);
   const [tempOffset, setTempOffset] = useState(0);
-  const [strain, setStrain] = useState('');
-  const [terpenes, setTerpenes] = useState<string[]>([]);
   const [presetName, setPresetName] = useState('');
   const [gemColor, setGemColor] = useState<string>(GEM_COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -280,7 +248,6 @@ export default function NewPresetWizardScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <WizardHeader
-            step={step}
             title={stepTitle}
             onBack={goBack}
             onClose={goClose}
@@ -301,14 +268,6 @@ export default function NewPresetWizardScreen() {
                 tempOffset={tempOffset}
                 onChangeOffset={setTempOffset}
                 finalTemp={finalTemp}
-                strain={strain}
-                onChangeStrain={setStrain}
-                terpenes={terpenes}
-                onToggleTerpene={(t) =>
-                  setTerpenes((prev) =>
-                    prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
-                  )
-                }
               />
             )}
             {step === 3 && (
@@ -342,20 +301,18 @@ export default function NewPresetWizardScreen() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface WizardHeaderProps {
-  step: number;
   title: string;
   onBack: () => void;
   onClose: () => void;
 }
 
-function WizardHeader({ step, title, onBack, onClose }: WizardHeaderProps) {
+function WizardHeader({ title, onBack, onClose }: WizardHeaderProps) {
   return (
     <View style={styles.header}>
       <Pressable hitSlop={14} onPress={onBack} style={styles.headerIcon}>
         <MaterialIcons name="chevron-left" size={28} color={colors.bone70} />
       </Pressable>
       <View style={styles.headerCenter}>
-        <Text style={styles.eyebrow}>{`STEP ${step + 1} OF ${STEP_COUNT}`}</Text>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
       <Pressable hitSlop={14} onPress={onClose} style={styles.headerIcon}>
@@ -711,10 +668,6 @@ function ExtractStep({ extractId, onSelect }: ExtractStepProps) {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.intro}>
-        Each material has a different volatility window.
-      </Text>
-
       {EXTRACT_TYPES.map((type) => {
         const items = EXTRACTS.filter((e) => e.type === type);
         return (
@@ -770,10 +723,6 @@ interface TuneStepProps {
   tempOffset: number;
   onChangeOffset: (n: number) => void;
   finalTemp: number;
-  strain: string;
-  onChangeStrain: (s: string) => void;
-  terpenes: string[];
-  onToggleTerpene: (t: string) => void;
 }
 
 function TuneStep({
@@ -782,10 +731,6 @@ function TuneStep({
   tempOffset,
   onChangeOffset,
   finalTemp,
-  strain,
-  onChangeStrain,
-  terpenes,
-  onToggleTerpene,
 }: TuneStepProps) {
   const startOffsetRef = useRef(0);
   const lastDegRef = useRef(0);
@@ -822,13 +767,6 @@ function TuneStep({
   }, [tempOffset]);
 
   const baseTemp = banger && extract ? extract.baseTemp + banger.modifier : 0;
-  const filteredStrains = useMemo(() => {
-    const q = strain.trim().toLowerCase();
-    if (!q) return [];
-    return STRAIN_LIBRARY.filter(
-      (s) => s.toLowerCase().includes(q) && s.toLowerCase() !== q
-    ).slice(0, 5);
-  }, [strain]);
 
   return (
     <ScrollView
@@ -868,52 +806,6 @@ function TuneStep({
         {baseTemp > 0 ? (
           <Text style={styles.logicSub}>Computed base before tune: {baseTemp}°F</Text>
         ) : null}
-      </View>
-
-      <View style={{ gap: spacing.sm }}>
-        <Text style={styles.labelCaps}>Strain (optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={strain}
-          onChangeText={onChangeStrain}
-          placeholder="e.g. Garlic Cocktail"
-          placeholderTextColor={colors.bone35}
-          autoCapitalize="words"
-          returnKeyType="done"
-        />
-        {filteredStrains.length > 0 ? (
-          <View style={styles.suggestions}>
-            {filteredStrains.map((s) => (
-              <Pressable
-                key={s}
-                onPress={() => onChangeStrain(s)}
-                style={styles.suggestionRow}
-              >
-                <Text style={styles.suggestionText}>{s}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </View>
-
-      <View style={{ gap: spacing.sm }}>
-        <Text style={styles.labelCaps}>Terpenes (optional)</Text>
-        <View style={styles.chipRow}>
-          {TERPENES.map((t) => {
-            const active = terpenes.includes(t);
-            return (
-              <Pressable
-                key={t}
-                onPress={() => onToggleTerpene(t)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {t}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
       </View>
     </ScrollView>
   );
@@ -956,39 +848,24 @@ function SaveStep({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.heroCard}>
-        <View
-          style={[
-            styles.heroOrb,
-            {
-              backgroundColor: gemColor,
-              shadowColor: gemColor,
-            },
-          ]}
-        >
+      <View style={styles.heroSection}>
+        <View style={[styles.heroOrb, { backgroundColor: gemColor, shadowColor: gemColor }]}>
           <MaterialIcons name={iconName} size={36} color={colors.bgDeep} />
-        </View>
-        <Text style={styles.heroName} numberOfLines={1}>
-          {presetName.trim() || 'Untitled preset'}
-        </Text>
-        <View style={styles.heroTempRow}>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={styles.labelCaps}>Dab</Text>
-            <Text style={[styles.heroTemp, { color: colors.emberBright }]}>
-              {finalTemp}°
-            </Text>
-          </View>
-          <View style={styles.heroDivider} />
-          <View style={{ alignItems: 'center' }}>
-            <Text style={styles.labelCaps}>Dunk</Text>
-            <Text style={[styles.heroTemp, { color: colors.quartzBright }]}>
-              {dunkTemp}°
-            </Text>
-          </View>
         </View>
         <Text style={styles.heroSummary}>
           {extract?.name ?? '—'} · {banger?.name ?? '—'}
         </Text>
+        <View style={styles.heroTempRow}>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.labelCaps}>Dab</Text>
+            <Text style={[styles.heroTemp, { color: colors.emberBright }]}>{finalTemp}°</Text>
+          </View>
+          <View style={styles.heroDivider} />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.labelCaps}>Dunk</Text>
+            <Text style={[styles.heroTemp, { color: colors.quartzBright }]}>{dunkTemp}°</Text>
+          </View>
+        </View>
       </View>
 
       <View style={{ gap: spacing.sm }}>
@@ -1060,9 +937,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  eyebrow: {
-    ...labelCaps,
-  },
   headerTitle: {
     color: colors.bone100,
     fontSize: 18,
@@ -1206,11 +1080,6 @@ const styles = StyleSheet.create({
   },
 
   // Extract step
-  intro: {
-    color: colors.bone70,
-    fontSize: 14,
-    lineHeight: 20,
-  },
   labelCaps: {
     ...labelCaps,
   },
@@ -1312,58 +1181,10 @@ const styles = StyleSheet.create({
     color: colors.bone100,
     fontSize: 15,
   },
-  suggestions: {
-    backgroundColor: colors.surface2,
-    borderRadius: radius.sm,
-    borderWidth: 0.5,
-    borderColor: colors.bone20,
-    overflow: 'hidden',
-  },
-  suggestionRow: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.bone20,
-  },
-  suggestionText: {
-    color: colors.bone90,
-    fontSize: 14,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    height: 32,
-    borderRadius: radius.full,
-    borderWidth: 0.5,
-    borderColor: colors.bone35,
-    backgroundColor: colors.surface3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipActive: {
-    borderColor: colors.emberBright,
-    backgroundColor: 'rgba(232,146,64,0.10)',
-  },
-  chipText: {
-    color: colors.bone70,
-    fontSize: 12,
-  },
-  chipTextActive: {
-    color: colors.emberBright,
-  },
-
   // Save step
-  heroCard: {
-    backgroundColor: colors.surface3,
-    borderRadius: radius.lg,
-    borderWidth: 0.5,
-    borderColor: colors.bone35,
-    padding: spacing.lg,
+  heroSection: {
     alignItems: 'center',
+    paddingVertical: spacing.lg,
     gap: spacing.sm,
   },
   heroOrb: {
@@ -1375,12 +1196,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 22,
-  },
-  heroName: {
-    color: colors.bone100,
-    fontSize: 22,
-    fontWeight: '500',
-    marginTop: spacing.sm,
   },
   heroTempRow: {
     flexDirection: 'row',
@@ -1401,7 +1216,7 @@ const styles = StyleSheet.create({
   heroSummary: {
     color: colors.bone70,
     fontSize: 13,
-    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   gemRow: {
     flexDirection: 'row',

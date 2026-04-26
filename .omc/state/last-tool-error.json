@@ -1,1 +1,7 @@
-{}
+{
+  "tool_name": "mcp__github__push_files",
+  "tool_input_preview": "{\"owner\":\"joshuapointer\",\"repo\":\"eas-workflows\",\"branch\":\"main\",\"message\":\"feat: initial reusable EAS workflows (update, build, submit, channel-edit)\\n\\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anth...",
+  "error": "MCP error -32603: Authentication Failed: Bad credentials",
+  "timestamp": "2026-04-26T06:37:49.060Z",
+  "retry_count": 1
+}

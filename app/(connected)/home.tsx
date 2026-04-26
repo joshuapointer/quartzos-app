@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   Alert,
   useWindowDimensions,
 } from 'react-native';
@@ -66,57 +65,31 @@ function peakTempColor(peakF: number): string {
   return '#9ABDD8';
 }
 
-// ─── Preset kind helper ──────────────────────────────────────────────────────
-
-function presetKind(p: Preset): 'quartz' | 'opaque' | 'custom' | 'low' {
-  let hash = 0;
-  for (const ch of p.name) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
-  const kinds = ['quartz', 'opaque', 'custom', 'low'] as const;
-  return kinds[Math.abs(hash) % 4];
-}
-
 // ─── Preset Glyph SVG ────────────────────────────────────────────────────────
 
-const KIND_COLORS = {
-  quartz: '#E89240',
-  opaque: '#9ABDD8',
-  custom: '#C4AC54',
-  low: '#4A7490',
-} as const;
+const GEM_COLORS_ORDERED = ['#7BA8C4', '#9ABDD8', '#C4AC54', '#7EC8A0', '#E07070'];
+const GEM_SHAPES = ['diamond', 'circle', 'triangle', 'hexagon', 'diamond'] as const;
 
-function PresetGlyph({ kind }: { kind: 'quartz' | 'opaque' | 'custom' | 'low' }) {
-  const color = KIND_COLORS[kind];
+function PresetGlyph({ preset }: { preset: Preset }) {
+  const idx = preset.iconSlot ?? 0;
+  const color = GEM_COLORS_ORDERED[idx % GEM_COLORS_ORDERED.length] ?? GEM_COLORS_ORDERED[0];
+  const shape = GEM_SHAPES[idx % 4];
   return (
     <Svg width={40} height={40} viewBox="0 0 40 40">
-      {kind === 'quartz' && (
-        <Path
-          d="M20 4 L36 20 L20 36 L4 20 Z"
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-        />
+      {shape === 'diamond' && (
+        <Path d="M20 4 L36 20 L20 36 L4 20 Z" fill="none" stroke={color} strokeWidth={1.5} />
       )}
-      {kind === 'opaque' && (
+      {shape === 'circle' && (
         <>
           <SvgCircle cx={20} cy={20} r={14} fill="none" stroke={color} strokeWidth={1.5} />
           <SvgCircle cx={20} cy={20} r={6} fill={color} opacity={0.5} />
         </>
       )}
-      {kind === 'custom' && (
-        <Path
-          d="M20 6 L34 32 L6 32 Z"
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-        />
+      {shape === 'triangle' && (
+        <Path d="M20 6 L34 32 L6 32 Z" fill="none" stroke={color} strokeWidth={1.5} />
       )}
-      {kind === 'low' && (
-        <Path
-          d="M20 8 L28 12 L32 20 L28 28 L20 32 L12 28 L8 20 L12 12 Z"
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-        />
+      {shape === 'hexagon' && (
+        <Path d="M20 8 L28 12 L32 20 L28 28 L20 32 L12 28 L8 20 L12 12 Z" fill="none" stroke={color} strokeWidth={1.5} />
       )}
     </Svg>
   );
@@ -365,14 +338,6 @@ function ToggleRow({
   );
 }
 
-// ─── Theme swatch ─────────────────────────────────────────────────────────────
-
-const THEME_SWATCHES = [
-  { id: 'warm-mineral' as const, label: 'Warm Mineral', colors: ['#3D1E0A', '#9B6030'] as const },
-  { id: 'smoke' as const, label: 'Smoke', colors: ['#1a1a1a', '#4a4a4a'] as const },
-  { id: 'cool-shell' as const, label: 'Cool Shell', colors: ['#0a1a28', '#2A3C52'] as const },
-];
-
 // ─── SessionPanel ─────────────────────────────────────────────────────────────
 
 function SessionPanel({ onOpenPresets }: { onOpenPresets?: () => void }) {
@@ -539,7 +504,6 @@ function PresetsPanel() {
         </View>
 
         {presets.map((preset) => {
-          const kind = presetKind(preset);
           const active = isActive(preset);
           return (
             <View key={preset.id} style={styles.presetCardOuter}>
@@ -549,7 +513,7 @@ function PresetsPanel() {
               >
                 <View style={[StyleSheet.absoluteFillObject, styles.presetCardBorder]} pointerEvents="none" />
                 <View style={styles.presetCardLeft}>
-                  <PresetGlyph kind={kind} />
+                  <PresetGlyph preset={preset} />
                 </View>
                 <View style={styles.presetCardMid}>
                   <Text style={styles.presetCardName}>{preset.name}</Text>
@@ -743,8 +707,6 @@ function ConfigurePanel() {
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const dirty = useSettingsStore((s) => s.dirty);
   const markConfirmed = useSettingsStore((s) => s.markConfirmed);
-  const setTheme = useSettingsStore((s) => s.setTheme);
-  const theme = useSettingsStore((s) => s.theme);
 
   const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -880,26 +842,6 @@ function ConfigurePanel() {
           />
         </ConfigSection>
 
-        {/* Appearance */}
-        <ConfigSection title="Appearance">
-          <View style={styles.swatchRow}>
-            {THEME_SWATCHES.map((swatch) => (
-              <TouchableOpacity
-                key={swatch.id}
-                onPress={() => { setTheme(swatch.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                style={[styles.swatchItem, theme === swatch.id && styles.swatchItemActive]}
-              >
-                <LinearGradient
-                  colors={[...swatch.colors]}
-                  style={styles.swatchGradient}
-                />
-                <Text style={[styles.swatchLabel, theme === swatch.id && styles.swatchLabelActive]}>
-                  {swatch.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ConfigSection>
       </ScrollView>
 
       {/* Save bar — sits above the tab bar */}
@@ -1486,34 +1428,6 @@ const styles = StyleSheet.create({
   },
   soundPillTextActive: {
     color: '#E89240',
-    fontWeight: '500',
-  },
-  swatchRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 14,
-  },
-  swatchItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  swatchItemActive: {},
-  swatchGradient: {
-    width: '100%',
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.06)',
-  },
-  swatchLabel: {
-    fontSize: 10,
-    color: '#9e907e',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-  },
-  swatchLabelActive: {
-    color: '#e8dfd2',
     fontWeight: '500',
   },
   saveBarOuter: {
