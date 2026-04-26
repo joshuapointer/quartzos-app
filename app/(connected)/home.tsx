@@ -9,6 +9,14 @@ import {
   Alert,
   useWindowDimensions,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -48,6 +56,15 @@ import {
   DUNK_SOUND_LABELS,
   KEY_TONE_LABELS,
 } from '../../src/ble/constants';
+
+// ─── Heat-level color ────────────────────────────────────────────────────────
+
+function peakTempColor(peakF: number): string {
+  if (peakF >= 540) return '#E89240';
+  if (peakF >= 500) return '#C97326';
+  if (peakF >= 460) return '#9B6030';
+  return '#9ABDD8';
+}
 
 // ─── Preset kind helper ──────────────────────────────────────────────────────
 
@@ -160,16 +177,28 @@ function Waveform({ data, target }: { data: number[]; target: number }) {
 // ─── Toggle component ─────────────────────────────────────────────────────────
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  const translateX = useSharedValue(value ? 16 : 0);
+
+  useEffect(() => {
+    translateX.value = withSpring(value ? 16 : 0, { damping: 14, stiffness: 220, mass: 0.6 });
+  }, [value]);
+
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   return (
     <TouchableOpacity
       onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onChange(!value); }}
       activeOpacity={0.8}
       style={[styles.toggleTrack, value && styles.toggleTrackOn]}
     >
-      <LinearGradient
-        colors={value ? ['#f4ede4', '#d8cfc2'] : ['#2a2320', '#1c1714']}
-        style={[styles.toggleThumb, value ? styles.toggleThumbOn : styles.toggleThumbOff]}
-      />
+      <Animated.View style={[styles.toggleThumbWrap, thumbStyle]}>
+        <LinearGradient
+          colors={value ? ['#f4ede4', '#d8cfc2'] : ['#2a2320', '#1c1714']}
+          style={styles.toggleThumb}
+        />
+      </Animated.View>
     </TouchableOpacity>
   );
 }
@@ -552,8 +581,13 @@ function PresetsPanel() {
 
         {presets.length === 0 && (
           <View style={styles.emptyState}>
+            <Svg width={44} height={44} viewBox="0 0 44 44" style={styles.emptyGlyph}>
+              <Path d="M22 4 L40 22 L22 40 L4 22 Z" stroke="#E89240" strokeWidth={1} fill="none" />
+              <Path d="M22 13 L31 22 L22 31 L13 22 Z" stroke="#E89240" strokeWidth={0.5} fill="none" opacity={0.5} />
+              <SvgCircle cx={22} cy={22} r={2} fill="#E89240" opacity={0.6} />
+            </Svg>
             <Text style={styles.emptyStateText}>No presets yet</Text>
-            <Text style={styles.emptyStateSub}>Tap + New to create your first preset</Text>
+            <Text style={styles.emptyStateSub}>Tap + New to save a session configuration</Text>
           </View>
         )}
       </ScrollView>
@@ -659,7 +693,7 @@ function HistoryPanel() {
                   <Text style={styles.sessionCardDate}>{formatDate(session.startedAt)} · {formatTime(session.startedAt)}</Text>
                   <Text style={styles.sessionCardDur}>{dur}</Text>
                 </View>
-                <Text style={styles.sessionPeakTemp}>{formatTemp(session.peakTempF, settings.useCelsius)}</Text>
+                <Text style={[styles.sessionPeakTemp, { color: peakTempColor(session.peakTempF) }]}>{formatTemp(session.peakTempF, settings.useCelsius)}</Text>
                 <View style={styles.waveformWrap}>
                   <Waveform data={waveData} target={session.dabAlarmF} />
                 </View>
@@ -674,8 +708,19 @@ function HistoryPanel() {
 
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
+            <Svg width={44} height={44} viewBox="0 0 44 44" style={styles.emptyGlyph}>
+              <SvgCircle cx={22} cy={22} r={16} stroke="#9ABDD8" strokeWidth={1} fill="none" />
+              <Polyline
+                points="6,22 12,22 15,30 19,10 23,26 27,18 30,22 38,22"
+                stroke="#9ABDD8"
+                strokeWidth={1}
+                fill="none"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            </Svg>
             <Text style={styles.emptyStateText}>No sessions yet</Text>
-            <Text style={styles.emptyStateSub}>Start a session to see it here</Text>
+            <Text style={styles.emptyStateSub}>Connect your device to begin</Text>
           </View>
         )}
       </ScrollView>
@@ -881,24 +926,35 @@ function ConfigurePanel() {
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<TabId>('session');
-  const insets = useSafeAreaInsets();
+  const panelOpacity = useSharedValue(1);
+
+  const panelStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    opacity: panelOpacity.value,
+  }));
+
+  useEffect(() => {
+    panelOpacity.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) });
+  }, [activeTab]);
 
   const handleTabChange = useCallback((tab: TabId) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(tab);
+    panelOpacity.value = withTiming(0, { duration: 70, easing: Easing.in(Easing.quad) }, () => {
+      runOnJS(setActiveTab)(tab);
+    });
   }, []);
 
   return (
     <View style={styles.root}>
       <QBackground />
 
-      {/* Tab panels */}
-      {activeTab === 'session' && <SessionPanel />}
-      {activeTab === 'presets' && <PresetsPanel />}
-      {activeTab === 'history' && <HistoryPanel />}
-      {activeTab === 'configure' && <ConfigurePanel />}
+      <Animated.View style={panelStyle}>
+        {activeTab === 'session' && <SessionPanel />}
+        {activeTab === 'presets' && <PresetsPanel />}
+        {activeTab === 'history' && <HistoryPanel />}
+        {activeTab === 'configure' && <ConfigurePanel />}
+      </Animated.View>
 
-      {/* Tab bar — absolute overlay */}
       <QTabBar active={activeTab} onChange={handleTabChange} />
     </View>
   );
@@ -1334,7 +1390,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,146,64,0.20)',
     borderColor: 'rgba(232,146,64,0.30)',
   },
-  toggleThumb: {
+  toggleThumbWrap: {
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -1344,11 +1400,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  toggleThumbOff: {
-    alignSelf: 'flex-start',
-  },
-  toggleThumbOn: {
-    alignSelf: 'flex-end',
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
   },
   defaultsRow: {
     flexDirection: 'row',
@@ -1497,6 +1552,10 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
+  },
+  emptyGlyph: {
+    opacity: 0.28,
+    marginBottom: 18,
   },
   emptyStateText: {
     fontFamily: 'Georgia',

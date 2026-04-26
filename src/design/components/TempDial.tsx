@@ -16,11 +16,11 @@ import Animated, {
   withTiming,
   withSequence,
   interpolate,
+  interpolateColor,
   cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -41,6 +41,13 @@ const STATE_LABELS: Record<DialState, string> = {
   cooling: 'DAB WINDOW',
   dunk:    'DUNK READY',
 };
+
+const STATE_INDICES: Record<DialState, number> = {
+  idle: 0, heating: 1, target: 2, cooling: 3, dunk: 4,
+};
+
+const RING_COLOR_STOPS = [0, 0.25, 0.5, 0.75, 1];
+const RING_COLORS = ['#4A7490', '#9B6030', '#E89240', '#AD7040', '#9ABDD8'];
 
 function deriveState(
   tempF: number,
@@ -82,7 +89,6 @@ export function TempDial({
   const targetMin = useCelsius ? Math.round(((dabAlarmF - 20 - 32) * 5) / 9) : dabAlarmF - 20;
   const targetMax = useCelsius ? Math.round(((dabAlarmF + 20 - 32) * 5) / 9) : dabAlarmF + 20;
 
-  // Progress arc: 0..1 based on temp / 700°F
   const MAX_TEMP = 700;
   const progress = Math.max(0, Math.min(1, tempF / MAX_TEMP));
 
@@ -91,15 +97,24 @@ export function TempDial({
   const cy = size / 2;
   const circumference = 2 * Math.PI * r;
 
-  // Animated dash for the progress arc
+  // Progress arc animation
   const animProgress = useSharedValue(0);
-
   React.useEffect(() => {
     animProgress.value = withSpring(progress, { damping: 22, stiffness: 80, mass: 1 });
   }, [progress]);
 
+  // Ring color animation
+  const colorProgress = useSharedValue(STATE_INDICES[state] / 4);
+  React.useEffect(() => {
+    colorProgress.value = withTiming(STATE_INDICES[state] / 4, {
+      duration: 800,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [state]);
+
   const animatedArcProps = useAnimatedProps(() => ({
     strokeDasharray: `${animProgress.value * circumference} ${circumference}`,
+    stroke: interpolateColor(colorProgress.value, RING_COLOR_STOPS, RING_COLORS),
   }));
 
   // Pulse for target/dunk states
@@ -108,13 +123,13 @@ export function TempDial({
     const shouldPulse = state === 'target' || state === 'dunk';
     if (!shouldPulse) {
       cancelAnimation(pulse);
-      pulse.value = withTiming(0, { duration: 300 });
+      pulse.value = withTiming(0, { duration: 400 });
       return;
     }
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 700, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: 700, easing: Easing.in(Easing.quad) }),
+        withTiming(1, { duration: 800, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 800, easing: Easing.in(Easing.quad) }),
       ),
       -1,
       false,
@@ -122,17 +137,59 @@ export function TempDial({
   }, [state]);
 
   const pulseStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulse.value, [0, 1], [0.15, 0.45]),
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.08]) }],
+    opacity: interpolate(pulse.value, [0, 1], [0.1, 0.5]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.1]) }],
   }));
 
-  // Numeric font size: larger for fewer digits
-  const numFontSize = tempStr.length >= 3 ? size * 0.30 : size * 0.36;
+  // Outer glow based on alert state
+  const glowOpacity = useSharedValue(0);
+  React.useEffect(() => {
+    glowOpacity.value = withTiming(
+      state === 'target' || state === 'dunk' ? 1 : 0,
+      { duration: 700, easing: Easing.out(Easing.quad) },
+    );
+  }, [state]);
 
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: 0.15 + glowOpacity.value * 0.35,
+    shadowRadius: 20 + glowOpacity.value * 16,
+    shadowColor: interpolateColor(colorProgress.value, RING_COLOR_STOPS, RING_COLORS),
+  }));
+
+  const numFontSize = tempStr.length >= 3 ? size * 0.30 : size * 0.36;
   const lensSize = size * 0.78;
 
+  // Build tick marks: 24 total, major at multiples of 6
+  const TICK_COUNT = 24;
+  const ticks = Array.from({ length: TICK_COUNT }, (_, i) => {
+    const isMajor = i % 6 === 0;
+    const deg = (i * 360) / TICK_COUNT;
+    const rad = ((deg - 90) * Math.PI) / 180;
+    const innerR = size * (isMajor ? 0.452 : 0.460);
+    const outerR = size * 0.476;
+    return {
+      x1: cx + Math.cos(rad) * innerR,
+      y1: cy + Math.sin(rad) * innerR,
+      x2: cx + Math.cos(rad) * outerR,
+      y2: cy + Math.sin(rad) * outerR,
+      isMajor,
+    };
+  });
+
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <Animated.View
+      style={[
+        {
+          width: size,
+          height: size,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 16,
+        },
+        glowStyle,
+      ]}
+    >
       {/* Pulse ring behind dial */}
       <Animated.View
         style={[
@@ -151,7 +208,6 @@ export function TempDial({
       <View
         style={{
           position: 'absolute',
-          inset: 0,
           width: size,
           height: size,
           borderRadius: size / 2,
@@ -164,14 +220,13 @@ export function TempDial({
         }}
       />
 
-      {/* SVG layer: progress arc + tick marks */}
+      {/* SVG: progress arc */}
       <Svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         style={{ position: 'absolute', top: 0, left: 0, transform: [{ rotate: '-90deg' }] }}
       >
-        {/* Track */}
         <Circle
           cx={cx}
           cy={cy}
@@ -180,20 +235,18 @@ export function TempDial({
           strokeWidth={1}
           fill="none"
         />
-        {/* Progress arc */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
           r={r}
-          stroke={pal.ring}
-          strokeWidth={2}
+          strokeWidth={2.5}
           strokeLinecap="round"
           fill="none"
           animatedProps={animatedArcProps}
         />
       </Svg>
 
-      {/* Tick marks at cardinal points (separate SVG, no rotation) */}
+      {/* SVG: tick marks (no rotation) */}
       <Svg
         width={size}
         height={size}
@@ -201,26 +254,17 @@ export function TempDial({
         style={{ position: 'absolute', top: 0, left: 0 }}
         pointerEvents="none"
       >
-        {[0, 90, 180, 270].map((deg) => {
-          const rad = ((deg - 90) * Math.PI) / 180;
-          const r1 = size * 0.46;
-          const r2 = size * 0.48;
-          const x1 = cx + Math.cos(rad) * r1;
-          const y1 = cy + Math.sin(rad) * r1;
-          const x2 = cx + Math.cos(rad) * r2;
-          const y2 = cy + Math.sin(rad) * r2;
-          return (
-            <Line
-              key={deg}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="rgba(244,237,228,0.18)"
-              strokeWidth={0.5}
-            />
-          );
-        })}
+        {ticks.map((tick, i) => (
+          <Line
+            key={i}
+            x1={tick.x1}
+            y1={tick.y1}
+            x2={tick.x2}
+            y2={tick.y2}
+            stroke={tick.isMajor ? 'rgba(244,237,228,0.28)' : 'rgba(244,237,228,0.09)'}
+            strokeWidth={tick.isMajor ? 1 : 0.5}
+          />
+        ))}
       </Svg>
 
       {/* Inner lens */}
@@ -246,14 +290,12 @@ export function TempDial({
           end={{ x: 0.65, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        {/* Refraction highlight at top */}
         <LinearGradient
           colors={['rgba(255,240,220,0.07)', 'rgba(255,240,220,0)']}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 0.5 }}
           style={[StyleSheet.absoluteFill, { borderRadius: lensSize / 2 }]}
         />
-        {/* Horizon line */}
         <View
           style={{
             position: 'absolute',
@@ -320,6 +362,6 @@ export function TempDial({
           </Text>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
