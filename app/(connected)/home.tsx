@@ -16,7 +16,7 @@ import { useTheme, useThemeColors } from '../../src/design/ThemeContext';
 import { formatTemp } from '../../src/utils/temperature';
 
 // Bottom sheet peeks 180pt above the bottom of the screen
-const SHEET_PEEK = 180;
+const SHEET_PEEK = 120;
 
 export default function HomeScreen() {
   const tempF = useBleStore((s) => s.liveTempF);
@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const themeColors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const { height: screenH } = useWindowDimensions();
+  const { width: screenW, height: screenH } = useWindowDimensions();
 
   const sheetRef = useRef<MainBottomSheetHandle>(null);
 
@@ -53,21 +53,42 @@ export default function HomeScreen() {
 
   const targetRangeText = `${formatTemp(settings.dabAlarmF - 20, settings.useCelsius)} – ${formatTemp(settings.dabAlarmF + 20, settings.useCelsius)}`;
 
-  // Calculate exact pixel positions from the top of the screen
   // FloatingHeader: positioned at insets.top + 16, height 64
-  const headerBottom = insets.top + 16 + 64 + 12; // 12pt gap below header
-  // Bottom sheet peek: 180pt up from screen bottom
-  const sheetTop = screenH - SHEET_PEEK;
+  const headerBottom = insets.top + 16 + 64 + 8;
+
+  // The orb should be as large as possible while fitting the available space.
+  // Available vertical space: from header bottom to the controls above the sheet.
+  // DataStrip (56pt) + gap (8pt) + PresetPill (48pt) + gap (8pt) = 120pt above sheet peek.
+  const controlsHeight = 56 + 8 + 48 + 8;
+  const availableHeight = screenH - headerBottom - SHEET_PEEK - controlsHeight;
+
+  // Orb size fills up to 90% of available height (or screen width - 40, whichever is smaller)
+  const orbSize = Math.min(
+    Math.floor(availableHeight * 0.85),
+    screenW - 40,
+    340, // cap for very large screens
+  );
+
+  // Center the orb between header and controls
+  const orbCenterY = headerBottom + availableHeight / 2;
+  // The orb container is ring2Size = orbSize + 96
+  const orbContainerSize = orbSize + 96;
+  const orbTop = orbCenterY - orbContainerSize / 2;
 
   return (
     <View style={[styles.root, { backgroundColor: themeColors.bgDeep }]}>
       <QuartzBackground />
 
-      {/* ORB LAYER — centered between header and sheet peek */}
+      {/* ORB LAYER — the hero, centered in the visible space */}
       <View
         style={[
           styles.orbLayer,
-          { top: headerBottom, bottom: SHEET_PEEK },
+          {
+            top: orbTop,
+            left: (screenW - orbContainerSize) / 2,
+            width: orbContainerSize,
+            height: orbContainerSize,
+          },
         ]}
         pointerEvents="none"
       >
@@ -77,11 +98,11 @@ export default function HomeScreen() {
           dunkAlarmF={settings.dunkAlarmF}
           sessionActive={sessionActive}
           useCelsius={settings.useCelsius}
-          size={280}
+          size={orbSize}
         />
       </View>
 
-      {/* CONTROLS LAYER — DataStrip + PresetPill pinned just above sheet */}
+      {/* CONTROLS — pinned just above the bottom sheet */}
       <View
         style={[
           styles.controlsLayer,
@@ -124,8 +145,6 @@ const styles = StyleSheet.create({
   },
   orbLayer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },

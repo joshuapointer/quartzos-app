@@ -66,11 +66,7 @@ export class AlarmService {
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: new Date(),
-        channelId: 'alarms',
-      },
+      trigger: null,
     }).catch(console.warn);
   }
 
@@ -90,11 +86,7 @@ export class AlarmService {
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: new Date(),
-        channelId: 'alarms',
-      },
+      trigger: null,
     }).catch(console.warn);
   }
 }

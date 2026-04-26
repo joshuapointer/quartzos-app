@@ -11,6 +11,7 @@ import Animated, {
   Easing,
   cancelAnimation,
   interpolate,
+  interpolateColor,
 } from 'react-native-reanimated';
 import { colors, gradients, animation, shadow } from '../tokens';
 
@@ -58,6 +59,21 @@ function ringColorFor(state: OrbState): string {
   }
 }
 
+function glowColorFor(state: OrbState): string {
+  switch (state) {
+    case 'IDLE':
+      return '#b5a1ff';
+    case 'HEATING_UP':
+      return '#FFA93C';
+    case 'DAB_READY':
+      return '#FFD27A';
+    case 'DUNK_READY':
+      return '#5AD9FF';
+    case 'COOLING':
+      return '#D46A0B';
+  }
+}
+
 export function TemperatureOrb({
   tempF,
   dabAlarmF,
@@ -92,6 +108,7 @@ export function TemperatureOrb({
   const pulse = useSharedValue(0);
   const refractRotation1 = useSharedValue(0);
   const refractRotation2 = useSharedValue(0);
+  const breathe = useSharedValue(0);
 
   useEffect(() => {
     const normalized = Math.max(
@@ -119,6 +136,21 @@ export function TemperatureOrb({
     );
   }, [state, pulse]);
 
+  // Slow breathing animation for the ambient glow
+  useEffect(() => {
+    if (reduceMotion) {
+      cancelAnimation(breathe);
+      breathe.value = 0;
+      return;
+    }
+    breathe.value = 0;
+    breathe.value = withRepeat(
+      withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+  }, [reduceMotion, breathe]);
+
   useEffect(() => {
     if (reduceMotion) {
       cancelAnimation(refractRotation1);
@@ -131,7 +163,7 @@ export function TemperatureOrb({
       false,
     );
     refractRotation2.value = withRepeat(
-      withTiming(1, { duration: 20000, easing: Easing.linear }),
+      withTiming(1, { duration: 28000, easing: Easing.linear }),
       -1,
       false,
     );
@@ -158,14 +190,20 @@ export function TemperatureOrb({
     ],
   }));
 
+  // Breathing ambient glow — shadow radius oscillates gently
+  const ambientGlowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: interpolate(breathe.value, [0, 1], [0.25, 0.5]),
+    shadowRadius: interpolate(breathe.value, [0, 1], [40, 60]),
+  }));
+
   const displayTemp = useCelsius ? Math.round(((tempF - 32) * 5) / 9) : Math.round(tempF);
-  const displayTarget = useCelsius ? Math.round(((dabAlarmF - 32) * 5) / 9) : Math.round(dabAlarmF);
-  const unit = useCelsius ? 'C' : 'F';
+  const unit = useCelsius ? '°C' : '°F';
   const ringColor = ringColorFor(state);
+  const glowColor = glowColorFor(state);
 
   const containerSize = size + 8;
-  const ring1Size = size + 40;
-  const ring2Size = size + 80;
+  const ring1Size = size + 48;
+  const ring2Size = size + 96;
 
   return (
     <View
@@ -183,8 +221,8 @@ export function TemperatureOrb({
             height: ring2Size,
             borderRadius: ring2Size / 2,
             borderWidth: 1,
-            borderColor: 'rgba(181,161,255,0.08)',
-            borderBottomColor: 'rgba(181,161,255,0.25)',
+            borderColor: 'rgba(181,161,255,0.06)',
+            borderBottomColor: 'rgba(181,161,255,0.20)',
           },
           refractRing2Style,
         ]}
@@ -200,8 +238,8 @@ export function TemperatureOrb({
             height: ring1Size,
             borderRadius: ring1Size / 2,
             borderWidth: 1,
-            borderColor: 'rgba(207,193,255,0.15)',
-            borderTopColor: 'rgba(207,193,255,0.45)',
+            borderColor: 'rgba(207,193,255,0.10)',
+            borderTopColor: 'rgba(207,193,255,0.35)',
           },
           refractRing1Style,
         ]}
@@ -237,28 +275,40 @@ export function TemperatureOrb({
         pointerEvents="none"
       />
 
-      {/* Orb sphere */}
-      <View
+      {/* Orb sphere with ambient glow */}
+      <Animated.View
         style={[
           styles.sphere,
-          shadow.orb,
           {
             width: size,
             height: size,
             borderRadius: size / 2,
+            shadowColor: glowColor,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: 24,
           },
+          ambientGlowStyle,
         ]}
       >
+        {/* Inner depth gradient — gives the sphere dimensionality */}
+        <LinearGradient
+          colors={['rgba(30,24,44,0.0)', 'rgba(18,12,31,0.6)']}
+          start={{ x: 0.5, y: 0.15 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[StyleSheet.absoluteFill, { borderRadius: size / 2 }]}
+          pointerEvents="none"
+        />
+
         {/* Inner amethyst glow approximation */}
         <View
           style={[
             styles.innerGlow,
             {
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom: 20,
-              borderRadius: (size - 40) / 2,
+              top: 24,
+              left: 24,
+              right: 24,
+              bottom: 24,
+              borderRadius: (size - 48) / 2,
             },
           ]}
           pointerEvents="none"
@@ -281,16 +331,16 @@ export function TemperatureOrb({
           />
         </Animated.View>
 
-        {/* Top gloss (specular) */}
+        {/* Top gloss (specular highlight) */}
         <LinearGradient
-          colors={gradients.gloss}
+          colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.0)']}
           start={{ x: 0.3, y: 0 }}
-          end={{ x: 0.7, y: 0.9 }}
+          end={{ x: 0.7, y: 0.7 }}
           style={[
             styles.gloss,
             {
               width: size,
-              height: size * 0.55,
+              height: size * 0.5,
               borderTopLeftRadius: size / 2,
               borderTopRightRadius: size / 2,
             },
@@ -301,13 +351,9 @@ export function TemperatureOrb({
         {/* Temperature readout */}
         <View style={styles.readout} pointerEvents="none">
           <Text style={styles.label}>Current Temp</Text>
-          <View style={styles.tempRow}>
-            <Text style={styles.temp}>{displayTemp}</Text>
-            <Text style={styles.unit}>°{unit}</Text>
-          </View>
-          <Text style={styles.target}>Target: {displayTarget}°</Text>
+          <Text style={styles.temp}>{displayTemp}<Text style={styles.unit}>{unit}</Text></Text>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -327,11 +373,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface2,
     borderWidth: 1,
-    borderColor: 'rgba(207,193,255,0.25)',
+    borderColor: 'rgba(207,193,255,0.20)',
   },
   innerGlow: {
     position: 'absolute',
-    backgroundColor: 'rgba(207,193,255,0.08)',
+    backgroundColor: 'rgba(207,193,255,0.06)',
   },
   gloss: {
     position: 'absolute',
@@ -344,36 +390,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 10,
-    letterSpacing: 1.2,
+    fontSize: 11,
+    letterSpacing: 2,
     fontWeight: '500',
     textTransform: 'uppercase',
     color: colors.onSurfaceVariant,
-    marginBottom: 4,
-  },
-  tempRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start', // Align to start (top) so the baseline difference is handled by padding/margins, or we can keep flex-end if lineHeight is set properly
+    marginBottom: 2,
   },
   temp: {
     color: colors.onSurface,
-    fontSize: 72,
-    lineHeight: 80,
+    fontSize: 88,
+    lineHeight: 96,
     fontWeight: '200',
-    letterSpacing: -2,
+    letterSpacing: -3,
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
   },
   unit: {
     color: colors.primary,
-    fontSize: 16,
-    fontWeight: '500',
-    marginTop: 12, // Since we changed to flex-start, we add top margin to push it down
-    marginLeft: 2,
-  },
-  target: {
-    color: colors.primary,
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 24,
+    fontWeight: '300',
+    letterSpacing: 0,
   },
 });
