@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   Alert,
   useWindowDimensions,
 } from 'react-native';
@@ -14,9 +13,12 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSpring,
+  withSequence,
+  withRepeat,
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -33,6 +35,8 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
+import { colors } from '../../src/design/tokens';
+import { SessionWalkthrough } from '../../src/design/components/SessionWalkthrough';
 import { QBackground } from '../../src/design/components/QBackground';
 import { TempDial } from '../../src/design/components/TempDial';
 import { QWordmark } from '../../src/design/components/QWordmark';
@@ -60,63 +64,37 @@ import {
 // ─── Heat-level color ────────────────────────────────────────────────────────
 
 function peakTempColor(peakF: number): string {
-  if (peakF >= 540) return '#E89240';
-  if (peakF >= 500) return '#C97326';
+  if (peakF >= 540) return colors.emberBright;
+  if (peakF >= 500) return colors.ember;
   if (peakF >= 460) return '#9B6030';
-  return '#9ABDD8';
-}
-
-// ─── Preset kind helper ──────────────────────────────────────────────────────
-
-function presetKind(p: Preset): 'quartz' | 'opaque' | 'custom' | 'low' {
-  let hash = 0;
-  for (const ch of p.name) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
-  const kinds = ['quartz', 'opaque', 'custom', 'low'] as const;
-  return kinds[Math.abs(hash) % 4];
+  return colors.quartzBright;
 }
 
 // ─── Preset Glyph SVG ────────────────────────────────────────────────────────
 
-const KIND_COLORS = {
-  quartz: '#E89240',
-  opaque: '#9ABDD8',
-  custom: '#C4AC54',
-  low: '#4A7490',
-} as const;
+const GEM_COLORS_ORDERED = ['#7BA8C4', '#9ABDD8', '#C4AC54', '#7EC8A0', '#E07070'];
+const GEM_SHAPES = ['diamond', 'circle', 'triangle', 'hexagon', 'diamond'] as const;
 
-function PresetGlyph({ kind }: { kind: 'quartz' | 'opaque' | 'custom' | 'low' }) {
-  const color = KIND_COLORS[kind];
+function PresetGlyph({ preset }: { preset: Preset }) {
+  const idx = preset.iconSlot ?? 0;
+  const color = GEM_COLORS_ORDERED[idx % GEM_COLORS_ORDERED.length] ?? GEM_COLORS_ORDERED[0];
+  const shape = GEM_SHAPES[idx % 4];
   return (
     <Svg width={40} height={40} viewBox="0 0 40 40">
-      {kind === 'quartz' && (
-        <Path
-          d="M20 4 L36 20 L20 36 L4 20 Z"
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-        />
+      {shape === 'diamond' && (
+        <Path d="M20 4 L36 20 L20 36 L4 20 Z" fill="none" stroke={color} strokeWidth={1.5} />
       )}
-      {kind === 'opaque' && (
+      {shape === 'circle' && (
         <>
           <SvgCircle cx={20} cy={20} r={14} fill="none" stroke={color} strokeWidth={1.5} />
           <SvgCircle cx={20} cy={20} r={6} fill={color} opacity={0.5} />
         </>
       )}
-      {kind === 'custom' && (
-        <Path
-          d="M20 6 L34 32 L6 32 Z"
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-        />
+      {shape === 'triangle' && (
+        <Path d="M20 6 L34 32 L6 32 Z" fill="none" stroke={color} strokeWidth={1.5} />
       )}
-      {kind === 'low' && (
-        <Path
-          d="M20 8 L28 12 L32 20 L28 28 L20 32 L12 28 L8 20 L12 12 Z"
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-        />
+      {shape === 'hexagon' && (
+        <Path d="M20 8 L28 12 L32 20 L28 28 L20 32 L12 28 L8 20 L12 12 Z" fill="none" stroke={color} strokeWidth={1.5} />
       )}
     </Svg>
   );
@@ -149,7 +127,7 @@ function Waveform({ data, target }: { data: number[]; target: number }) {
 
   // Determine stroke color: ember bright if any reading within 5° of target
   const near = data.some((v) => Math.abs(v - target) <= 5);
-  const strokeColor = near ? '#E89240' : '#C97326';
+  const strokeColor = near ? colors.emberBright : colors.ember;
 
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
@@ -195,7 +173,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
     >
       <Animated.View style={[styles.toggleThumbWrap, thumbStyle]}>
         <LinearGradient
-          colors={value ? ['#f4ede4', '#d8cfc2'] : ['#2a2320', '#1c1714']}
+          colors={value ? [colors.bone100, '#d8cfc2'] : ['#2a2320', colors.surface3]}
           style={styles.toggleThumb}
         />
       </Animated.View>
@@ -365,17 +343,9 @@ function ToggleRow({
   );
 }
 
-// ─── Theme swatch ─────────────────────────────────────────────────────────────
-
-const THEME_SWATCHES = [
-  { id: 'warm-mineral' as const, label: 'Warm Mineral', colors: ['#3D1E0A', '#9B6030'] as const },
-  { id: 'smoke' as const, label: 'Smoke', colors: ['#1a1a1a', '#4a4a4a'] as const },
-  { id: 'cool-shell' as const, label: 'Cool Shell', colors: ['#0a1a28', '#2A3C52'] as const },
-];
-
 // ─── SessionPanel ─────────────────────────────────────────────────────────────
 
-function SessionPanel() {
+function SessionPanel({ onOpenPresets, onStartSession }: { onOpenPresets?: () => void; onStartSession?: () => void }) {
   const { width: screenW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -464,7 +434,7 @@ function SessionPanel() {
             <View style={styles.presetBarLeft}>
               <View style={styles.presetGemWrap}>
                 <Svg width={12} height={12} viewBox="0 0 12 12">
-                  <Path d="M6 1 L11 6 L6 11 L1 6 Z" fill="#E89240" />
+                  <Path d="M6 1 L11 6 L6 11 L1 6 Z" fill={colors.emberBright} />
                 </Svg>
               </View>
               <View style={{ marginLeft: 10 }}>
@@ -475,15 +445,104 @@ function SessionPanel() {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onOpenPresets?.();
+              }}
               style={styles.presetChangeBtn}
             >
               <Text style={styles.presetChangeBtnText}>Change</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
+
+        {/* Start Session button */}
+        <View style={styles.startSessionOuter}>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onStartSession?.();
+            }}
+            activeOpacity={0.82}
+            style={styles.startSessionBtn}
+          >
+            <LinearGradient
+              colors={[colors.emberBright, colors.ember]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.startSessionGradient}
+            >
+              <Svg width={14} height={14} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
+                <Path d="M3 2 L12 7 L3 12 Z" fill="#fff" opacity={0.9} />
+              </Svg>
+              <Text style={styles.startSessionText}>Start Session</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
+  );
+}
+
+// ─── PresetCard ───────────────────────────────────────────────────────────────
+
+interface PresetCardProps {
+  preset: Preset;
+  index: number;
+  listProgress: SharedValue<number>;
+  settings: ReturnType<typeof useSettingsStore.getState>['settings'];
+  isActive: boolean;
+  onApply: (preset: Preset) => void;
+}
+
+function PresetCard({ preset, index, listProgress, settings, isActive, onApply }: PresetCardProps) {
+  const delay = Math.min(index * 0.1, 0.4);
+  const cardStyle = useAnimatedStyle(() => {
+    const progress = Math.max(0, Math.min(1, (listProgress.value - delay) / (1 - delay || 0.001)));
+    return {
+      opacity: progress,
+      transform: [{ translateY: (1 - progress) * 10 }],
+    };
+  });
+
+  return (
+    <Animated.View key={preset.id} style={[styles.presetCardOuter, cardStyle]}>
+      <LinearGradient
+        colors={isActive ? ['#1e170e', '#0f0b06'] : ['#110d0a', '#0a0806']}
+        style={styles.presetCard}
+      >
+        <View style={[StyleSheet.absoluteFillObject, styles.presetCardBorder]} pointerEvents="none" />
+        <View style={styles.presetCardLeft}>
+          <PresetGlyph preset={preset} />
+        </View>
+        <View style={styles.presetCardMid}>
+          <Text style={styles.presetCardName}>{preset.name}</Text>
+          <View style={styles.presetTempPills}>
+            <View style={[styles.tempPill, { borderColor: colors.ember }]}>
+              <Text style={[styles.tempPillText, { color: colors.ember }]}>
+                DAB {formatTemp(preset.settings.dabAlarmF, settings.useCelsius)}
+              </Text>
+            </View>
+            <View style={[styles.tempPill, { borderColor: colors.quartz }]}>
+              <Text style={[styles.tempPillText, { color: colors.quartz }]}>
+                DUNK {formatTemp(preset.settings.dunkAlarmF, settings.useCelsius)}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.presetCardRight}>
+          {isActive ? (
+            <View style={styles.activePill}>
+              <Text style={styles.activePillText}>ACTIVE</Text>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => onApply(preset)} style={styles.applyBtn}>
+              <Text style={styles.applyBtnText}>Apply</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </LinearGradient>
+    </Animated.View>
   );
 }
 
@@ -494,6 +553,31 @@ function PresetsPanel() {
   const settings = useSettingsStore((s) => s.settings);
   const connectionState = useBleStore((s) => s.connectionState);
   const [presets, setPresets] = useState<Preset[]>([]);
+
+  const floatY = useSharedValue(0);
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
+
+  const listProgress = useSharedValue(0);
+
+  useEffect(() => {
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [floatY]);
+
+  useEffect(() => {
+    if (presets.length > 0) {
+      listProgress.value = 0;
+      listProgress.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) });
+    }
+  }, [presets.length, listProgress]);
 
   useEffect(() => {
     presetsDb.getAll().then(setPresets).catch(() => {});
@@ -525,67 +609,37 @@ function PresetsPanel() {
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Presets</Text>
           <TouchableOpacity
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/(connected)/presets/new');
+            }}
             style={styles.newBtn}
           >
             <Text style={styles.newBtnText}>+ New</Text>
           </TouchableOpacity>
         </View>
 
-        {presets.map((preset) => {
-          const kind = presetKind(preset);
-          const active = isActive(preset);
-          return (
-            <View key={preset.id} style={styles.presetCardOuter}>
-              <LinearGradient
-                colors={active ? ['#1e170e', '#0f0b06'] : ['#110d0a', '#0a0806']}
-                style={styles.presetCard}
-              >
-                <View style={[StyleSheet.absoluteFillObject, styles.presetCardBorder]} pointerEvents="none" />
-                <View style={styles.presetCardLeft}>
-                  <PresetGlyph kind={kind} />
-                </View>
-                <View style={styles.presetCardMid}>
-                  <Text style={styles.presetCardName}>{preset.name}</Text>
-                  <View style={styles.presetTempPills}>
-                    <View style={[styles.tempPill, { borderColor: '#C97326' }]}>
-                      <Text style={[styles.tempPillText, { color: '#C97326' }]}>
-                        DAB {formatTemp(preset.settings.dabAlarmF, settings.useCelsius)}
-                      </Text>
-                    </View>
-                    <View style={[styles.tempPill, { borderColor: '#7BA8C4' }]}>
-                      <Text style={[styles.tempPillText, { color: '#7BA8C4' }]}>
-                        DUNK {formatTemp(preset.settings.dunkAlarmF, settings.useCelsius)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.presetCardRight}>
-                  {active ? (
-                    <View style={styles.activePill}>
-                      <Text style={styles.activePillText}>ACTIVE</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => handleApply(preset)}
-                      style={styles.applyBtn}
-                    >
-                      <Text style={styles.applyBtnText}>Apply</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </LinearGradient>
-            </View>
-          );
-        })}
+        {presets.map((preset, index) => (
+          <PresetCard
+            key={preset.id}
+            preset={preset}
+            index={index}
+            listProgress={listProgress}
+            settings={settings}
+            isActive={isActive(preset)}
+            onApply={handleApply}
+          />
+        ))}
 
         {presets.length === 0 && (
           <View style={styles.emptyState}>
-            <Svg width={44} height={44} viewBox="0 0 44 44" style={styles.emptyGlyph}>
-              <Path d="M22 4 L40 22 L22 40 L4 22 Z" stroke="#E89240" strokeWidth={1} fill="none" />
-              <Path d="M22 13 L31 22 L22 31 L13 22 Z" stroke="#E89240" strokeWidth={0.5} fill="none" opacity={0.5} />
-              <SvgCircle cx={22} cy={22} r={2} fill="#E89240" opacity={0.6} />
-            </Svg>
+            <Animated.View style={[styles.emptyGlyph, floatStyle]}>
+              <Svg width={44} height={44} viewBox="0 0 44 44">
+                <Path d="M22 4 L40 22 L22 40 L4 22 Z" stroke={colors.emberBright} strokeWidth={1} fill="none" />
+                <Path d="M22 13 L31 22 L22 31 L13 22 Z" stroke={colors.emberBright} strokeWidth={0.5} fill="none" opacity={0.5} />
+                <SvgCircle cx={22} cy={22} r={2} fill={colors.emberBright} opacity={0.6} />
+              </Svg>
+            </Animated.View>
             <Text style={styles.emptyStateText}>No presets yet</Text>
             <Text style={styles.emptyStateSub}>Tap + New to save a session configuration</Text>
           </View>
@@ -709,10 +763,10 @@ function HistoryPanel() {
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
             <Svg width={44} height={44} viewBox="0 0 44 44" style={styles.emptyGlyph}>
-              <SvgCircle cx={22} cy={22} r={16} stroke="#9ABDD8" strokeWidth={1} fill="none" />
+              <SvgCircle cx={22} cy={22} r={16} stroke={colors.quartzBright} strokeWidth={1} fill="none" />
               <Polyline
                 points="6,22 12,22 15,30 19,10 23,26 27,18 30,22 38,22"
-                stroke="#9ABDD8"
+                stroke={colors.quartzBright}
                 strokeWidth={1}
                 fill="none"
                 strokeLinejoin="round"
@@ -737,8 +791,6 @@ function ConfigurePanel() {
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const dirty = useSettingsStore((s) => s.dirty);
   const markConfirmed = useSettingsStore((s) => s.markConfirmed);
-  const setTheme = useSettingsStore((s) => s.setTheme);
-  const theme = useSettingsStore((s) => s.theme);
 
   const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -796,7 +848,7 @@ function ConfigurePanel() {
             value={settings.dabAlarmF}
             min={400}
             max={700}
-            accent="#E89240"
+            accent={colors.emberBright}
             useCelsius={settings.useCelsius}
             onChange={(v) => handleUpdate('dabAlarmF', v)}
           />
@@ -806,7 +858,7 @@ function ConfigurePanel() {
             value={settings.dunkAlarmF}
             min={150}
             max={400}
-            accent="#9ABDD8"
+            accent={colors.quartzBright}
             useCelsius={settings.useCelsius}
             onChange={(v) => handleUpdate('dunkAlarmF', v)}
           />
@@ -874,33 +926,13 @@ function ConfigurePanel() {
           />
         </ConfigSection>
 
-        {/* Appearance */}
-        <ConfigSection title="Appearance">
-          <View style={styles.swatchRow}>
-            {THEME_SWATCHES.map((swatch) => (
-              <TouchableOpacity
-                key={swatch.id}
-                onPress={() => { setTheme(swatch.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                style={[styles.swatchItem, theme === swatch.id && styles.swatchItemActive]}
-              >
-                <LinearGradient
-                  colors={[...swatch.colors]}
-                  style={styles.swatchGradient}
-                />
-                <Text style={[styles.swatchLabel, theme === swatch.id && styles.swatchLabelActive]}>
-                  {swatch.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ConfigSection>
       </ScrollView>
 
       {/* Save bar — sits above the tab bar */}
       <View style={[styles.saveBarOuter, { bottom: Math.max(100, insets.bottom + 84) }]}>
         <TouchableOpacity onPress={handleSave} activeOpacity={0.85} style={styles.saveBarBtn}>
           <LinearGradient
-            colors={dirty ? ['#E89240', '#C97326'] : ['#2a2320', '#1c1714']}
+            colors={dirty ? [colors.emberBright, colors.ember] : ['#2a2320', colors.surface3]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.saveBarGradient}
@@ -910,7 +942,7 @@ function ConfigurePanel() {
             ) : (
               <View style={styles.syncedRow}>
                 <Svg width={14} height={14} viewBox="0 0 14 14">
-                  <Path d="M2 7 L5.5 10.5 L12 4" stroke="#9e907e" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <Path d="M2 7 L5.5 10.5 L12 4" stroke={colors.bone50} strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
                 <Text style={styles.syncedText}>SYNCED</Text>
               </View>
@@ -926,6 +958,7 @@ function ConfigurePanel() {
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<TabId>('session');
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
   const panelOpacity = useSharedValue(1);
 
   const panelStyle = useAnimatedStyle(() => ({
@@ -949,13 +982,18 @@ export default function HomeScreen() {
       <QBackground />
 
       <Animated.View style={panelStyle}>
-        {activeTab === 'session' && <SessionPanel />}
+        {activeTab === 'session' && <SessionPanel onOpenPresets={() => handleTabChange('presets')} onStartSession={() => setShowWalkthrough(true)} />}
         {activeTab === 'presets' && <PresetsPanel />}
         {activeTab === 'history' && <HistoryPanel />}
         {activeTab === 'configure' && <ConfigurePanel />}
       </Animated.View>
 
       <QTabBar active={activeTab} onChange={handleTabChange} />
+
+      <SessionWalkthrough
+        visible={showWalkthrough}
+        onClose={() => setShowWalkthrough(false)}
+      />
     </View>
   );
 }
@@ -965,7 +1003,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#050403',
+    backgroundColor: colors.bgDeep,
   },
 
   // Session panel
@@ -999,7 +1037,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontSize: 22,
     fontWeight: '400',
-    color: '#e8dfd2',
+    color: colors.bone90,
     letterSpacing: -0.44,
   },
   metricLabel: {
@@ -1007,7 +1045,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 2.2,
     textTransform: 'uppercase',
-    color: '#9e907e',
+    color: colors.bone50,
     marginTop: 2,
   },
   metricDivider: {
@@ -1038,7 +1076,7 @@ const styles = StyleSheet.create({
   presetBarBorder: {
     borderRadius: 18,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.08)',
+    borderColor: colors.glassBorder,
   },
   presetBarLeft: {
     flex: 1,
@@ -1056,12 +1094,12 @@ const styles = StyleSheet.create({
   presetBarName: {
     fontFamily: 'Georgia',
     fontSize: 16,
-    color: '#f4ede4',
+    color: colors.bone100,
     letterSpacing: -0.32,
   },
   presetBarSub: {
     fontSize: 10,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.5,
     marginTop: 1,
   },
@@ -1071,8 +1109,39 @@ const styles = StyleSheet.create({
   },
   presetChangeBtnText: {
     fontSize: 11,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.88,
+  },
+
+  // Start Session button
+  startSessionOuter: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 8,
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: colors.emberBright,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  startSessionBtn: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  startSessionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 18,
+  },
+  startSessionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    letterSpacing: 0.3,
   },
 
   // Shared panel
@@ -1094,12 +1163,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontSize: 32,
     fontWeight: '400',
-    color: '#f4ede4',
+    color: colors.bone100,
     letterSpacing: -0.64,
   },
   panelSubtitle: {
     fontSize: 12,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.3,
     marginTop: 2,
   },
@@ -1110,7 +1179,7 @@ const styles = StyleSheet.create({
   newBtnText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#C97326',
+    color: colors.ember,
     letterSpacing: 0.2,
   },
 
@@ -1135,7 +1204,7 @@ const styles = StyleSheet.create({
   presetCardBorder: {
     borderRadius: 22,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.08)',
+    borderColor: colors.glassBorder,
   },
   presetCardLeft: {
     width: 48,
@@ -1150,7 +1219,7 @@ const styles = StyleSheet.create({
   presetCardName: {
     fontFamily: 'Georgia',
     fontSize: 17,
-    color: '#f4ede4',
+    color: colors.bone100,
     letterSpacing: -0.34,
     marginBottom: 6,
   },
@@ -1176,7 +1245,7 @@ const styles = StyleSheet.create({
   },
   activePill: {
     borderWidth: 0.5,
-    borderColor: '#E89240',
+    borderColor: colors.emberBright,
     borderRadius: 100,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1185,10 +1254,10 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '500',
     letterSpacing: 1.8,
-    color: '#E89240',
+    color: colors.emberBright,
   },
   applyBtn: {
-    backgroundColor: '#1c1714',
+    backgroundColor: colors.surface3,
     borderWidth: 0.5,
     borderColor: 'rgba(244,237,228,0.10)',
     borderRadius: 100,
@@ -1197,7 +1266,7 @@ const styles = StyleSheet.create({
   },
   applyBtnText: {
     fontSize: 12,
-    color: '#e8dfd2',
+    color: colors.bone90,
     fontWeight: '400',
     letterSpacing: 0.3,
   },
@@ -1217,16 +1286,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(28,23,20,0.6)',
   },
   filterChipActive: {
-    borderColor: '#C97326',
-    backgroundColor: '#1c1714',
+    borderColor: colors.ember,
+    backgroundColor: colors.surface3,
   },
   filterChipText: {
     fontSize: 12,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.2,
   },
   filterChipTextActive: {
-    color: '#f4ede4',
+    color: colors.bone100,
     fontWeight: '500',
   },
 
@@ -1258,19 +1327,19 @@ const styles = StyleSheet.create({
   sessionCardDate: {
     fontFamily: 'Menlo',
     fontSize: 11,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.3,
   },
   sessionCardDur: {
     fontFamily: 'Menlo',
     fontSize: 11,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.3,
   },
   sessionPeakTemp: {
     fontFamily: 'Georgia',
     fontSize: 24,
-    color: '#f4ede4',
+    color: colors.bone100,
     letterSpacing: -0.48,
     marginBottom: 10,
   },
@@ -1286,7 +1355,7 @@ const styles = StyleSheet.create({
   sessionTimeMono: {
     fontFamily: 'Menlo',
     fontSize: 10,
-    color: '#6d6050',
+    color: colors.bone35,
     letterSpacing: 0.3,
   },
 
@@ -1299,7 +1368,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 2.2,
     textTransform: 'uppercase',
-    color: '#9e907e',
+    color: colors.bone50,
     marginBottom: 8,
     marginLeft: 2,
   },
@@ -1325,13 +1394,13 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 14,
-    color: '#e8dfd2',
+    color: colors.bone90,
     fontWeight: '400',
   },
   sliderValue: {
     fontFamily: 'Menlo',
     fontSize: 13,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.3,
   },
   sliderTrackRow: {
@@ -1343,7 +1412,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 100,
-    backgroundColor: '#1c1714',
+    backgroundColor: colors.surface3,
     borderWidth: 0.5,
     borderColor: 'rgba(244,237,228,0.10)',
     alignItems: 'center',
@@ -1373,16 +1442,16 @@ const styles = StyleSheet.create({
   },
   toggleRowLabel: {
     fontSize: 14,
-    color: '#e8dfd2',
+    color: colors.bone90,
     fontWeight: '400',
   },
   toggleTrack: {
     width: 42,
     height: 25,
     borderRadius: 100,
-    backgroundColor: '#1c1714',
+    backgroundColor: colors.surface3,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.08)',
+    borderColor: colors.glassBorder,
     justifyContent: 'center',
     paddingHorizontal: 3,
   },
@@ -1415,13 +1484,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#1c1714',
+    backgroundColor: colors.surface3,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.08)',
+    borderColor: colors.glassBorder,
   },
   defaultsBtnText: {
     fontSize: 13,
-    color: '#9e907e',
+    color: colors.bone50,
     fontWeight: '400',
     letterSpacing: 0.2,
   },
@@ -1429,23 +1498,23 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#1c1714',
+    backgroundColor: colors.surface3,
     borderWidth: 0.5,
     borderColor: 'rgba(244,237,228,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepPipActive: {
-    borderColor: '#C97326',
+    borderColor: colors.ember,
     backgroundColor: 'rgba(201,115,38,0.15)',
   },
   stepPipText: {
     fontSize: 13,
-    color: '#9e907e',
+    color: colors.bone50,
     fontWeight: '400',
   },
   stepPipTextActive: {
-    color: '#E89240',
+    color: colors.emberBright,
     fontWeight: '500',
   },
   soundRow: {
@@ -1453,7 +1522,7 @@ const styles = StyleSheet.create({
   },
   soundRowLabel: {
     fontSize: 14,
-    color: '#e8dfd2',
+    color: colors.bone90,
     fontWeight: '400',
     marginBottom: 8,
   },
@@ -1465,49 +1534,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 100,
-    backgroundColor: '#1c1714',
+    backgroundColor: colors.surface3,
     borderWidth: 0.5,
     borderColor: 'rgba(244,237,228,0.06)',
   },
   soundPillActive: {
-    borderColor: '#C97326',
+    borderColor: colors.ember,
     backgroundColor: 'rgba(201,115,38,0.12)',
   },
   soundPillText: {
     fontSize: 12,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: 0.2,
   },
   soundPillTextActive: {
-    color: '#E89240',
-    fontWeight: '500',
-  },
-  swatchRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 14,
-  },
-  swatchItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  swatchItemActive: {},
-  swatchGradient: {
-    width: '100%',
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.06)',
-  },
-  swatchLabel: {
-    fontSize: 10,
-    color: '#9e907e',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-  },
-  swatchLabelActive: {
-    color: '#e8dfd2',
+    color: colors.emberBright,
     fontWeight: '500',
   },
   saveBarOuter: {
@@ -1533,7 +1574,7 @@ const styles = StyleSheet.create({
   saveBarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f4ede4',
+    color: colors.bone100,
     letterSpacing: 0.4,
   },
   syncedRow: {
@@ -1545,7 +1586,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     letterSpacing: 1.8,
-    color: '#9e907e',
+    color: colors.bone50,
   },
 
   // Empty states
@@ -1560,13 +1601,13 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontFamily: 'Georgia',
     fontSize: 20,
-    color: '#9e907e',
+    color: colors.bone50,
     letterSpacing: -0.4,
     marginBottom: 8,
   },
   emptyStateSub: {
     fontSize: 13,
-    color: '#6d6050',
+    color: colors.bone35,
     letterSpacing: 0.2,
   },
 });
