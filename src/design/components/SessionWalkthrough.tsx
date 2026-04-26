@@ -522,7 +522,7 @@ interface StepBodyProps {
   dunkAlarmF: number;
   useCelsius: boolean;
   peakF: number;
-  startedAt: number | null;
+  walkthroughStartedAt: number;
 }
 
 function StepBody({
@@ -535,17 +535,18 @@ function StepBody({
   dunkAlarmF,
   useCelsius,
   peakF,
-  startedAt,
+  walkthroughStartedAt,
 }: StepBodyProps) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    if (step.id !== 'complete' || !startedAt) return;
+    if (step.id !== 'complete') return;
+    setElapsed(Math.floor((Date.now() - walkthroughStartedAt) / 1000));
     const iv = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+      setElapsed(Math.floor((Date.now() - walkthroughStartedAt) / 1000));
     }, 1000);
     return () => clearInterval(iv);
-  }, [step.id, startedAt]);
+  }, [step.id, walkthroughStartedAt]);
 
   const elapsedLabel =
     elapsed > 0
@@ -576,7 +577,7 @@ function StepBody({
   if (step.id === 'heat') {
     return (
       <View style={styles.stepCenterIcon}>
-        <TorchTimer durationSeconds={torchDuration} onComplete={onTorchComplete} />
+        <TorchTimer key={stepIndex} durationSeconds={torchDuration} onComplete={onTorchComplete} />
       </View>
     );
   }
@@ -652,7 +653,14 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
 
   const liveTempF = useBleStore((s) => s.liveTempF) ?? 72;
   const settings = useSettingsStore((s) => s.settings);
-  const { active: sessionActive, peakF, startedAt, startSession, endSession, dabAlertFired, dunkAlertFired } = useSessionStore();
+  const sessionActive = useSessionStore((s) => s.active);
+  const peakF = useSessionStore((s) => s.peakF);
+  const endSession = useSessionStore((s) => s.endSession);
+  const dunkAlertFired = useSessionStore((s) => s.dunkAlertFired);
+
+  const walkthroughStartedAt = useRef<number>(Date.now());
+  const hasHeatedRef = useRef(false);
+  const [capturedPeakF, setCapturedPeakF] = useState(0);
 
   const [stepIndex, setStepIndex] = useState(0);
   const torchDuration = TORCH_DURATION_S;
@@ -668,6 +676,10 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
 
   useEffect(() => {
     if (visible) {
+      setStepIndex(0);
+      walkthroughStartedAt.current = Date.now();
+      hasHeatedRef.current = false;
+      setCapturedPeakF(0);
       backdropOpacity.value = withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) });
       contentTranslateY.value = withSpring(0, { damping: 22, stiffness: 200 });
       contentOpacity.value = withTiming(1, { duration: 300 });
@@ -675,13 +687,6 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
       backdropOpacity.value = withTiming(0, { duration: 220 });
       contentTranslateY.value = withTiming(60, { duration: 220 });
       contentOpacity.value = withTiming(0, { duration: 220 });
-    }
-  }, [visible]);
-
-  // Start session when walkthrough opens
-  useEffect(() => {
-    if (visible && !sessionActive) {
-      startSession();
     }
   }, [visible]);
 
@@ -700,19 +705,20 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   const advance = useCallback(() => {
     const next = stepIndex + 1;
     if (next < STEPS.length) {
+      if (STEPS[next]?.id === 'complete') {
+        setCapturedPeakF(peakF);
+      }
       transitionToStep(next);
     }
-  }, [stepIndex, transitionToStep]);
+  }, [stepIndex, transitionToStep, peakF]);
 
   const handleClose = useCallback(() => {
-    if (sessionActive) endSession();
     backdropOpacity.value = withTiming(0, { duration: 220 });
     contentTranslateY.value = withTiming(80, { duration: 220 });
     contentOpacity.value = withTiming(0, { duration: 220 }, () => {
       runOnJS(onClose)();
     });
-    setStepIndex(0);
-  }, [sessionActive, endSession, onClose]);
+  }, [onClose]);
 
   const handleFinish = useCallback(() => {
     if (sessionActive) endSession();
@@ -721,13 +727,15 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
     contentOpacity.value = withTiming(0, { duration: 220 }, () => {
       runOnJS(onClose)();
     });
-    setStepIndex(0);
   }, [sessionActive, endSession, onClose]);
 
-  // Auto-advance: cool step triggers on temp ≤ dabAlarmF + 5
+  // Auto-advance: cool step — detect falling edge through dabAlarmF (temp must first rise above alarm + 25)
   useEffect(() => {
     if (!visible || step.id !== 'cool') return;
-    if (liveTempF <= settings.dabAlarmF + 5) {
+    if (liveTempF > settings.dabAlarmF + 25) {
+      hasHeatedRef.current = true;
+    }
+    if (hasHeatedRef.current && liveTempF <= settings.dabAlarmF + 5) {
       advance();
     }
   }, [liveTempF, step.id, visible, settings.dabAlarmF, advance]);
@@ -829,8 +837,8 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
                 dabAlarmF={settings.dabAlarmF}
                 dunkAlarmF={settings.dunkAlarmF}
                 useCelsius={settings.useCelsius}
-                peakF={peakF}
-                startedAt={startedAt}
+                peakF={capturedPeakF}
+                walkthroughStartedAt={walkthroughStartedAt.current}
               />
             </Animated.View>
 
