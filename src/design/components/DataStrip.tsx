@@ -22,7 +22,7 @@ export function DataStrip({
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.glassFill, borderColor: colors.glassBorder },
+        { backgroundColor: colors.glassFill },
         style,
       ]}
     >
@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
   container: {
     height: 56,
     borderRadius: 16,
-    borderWidth: 1,
     overflow: 'hidden',
   },
   borderOverlay: {

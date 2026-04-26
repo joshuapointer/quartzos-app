@@ -15,24 +15,24 @@ export function FloatingHeader({ connectionState = '' }: FloatingHeaderProps) {
   const insets = useSafeAreaInsets();
   const tc = useThemeColors();
   return (
-    <View style={[styles.container, { top: 16 + insets.top }]} pointerEvents="none">
+    <View style={[styles.container, { top: 16 + insets.top, borderColor: tc.glassBorder }]} pointerEvents="none">
       <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
       <View style={[styles.overlay, { backgroundColor: tc.bgDeep + 'BF' }]} />
       <View style={styles.row}>
         {/* Left: icon */}
-        <MaterialIcons name="blur-on" size={24} color={colors.primaryContainer} />
+        <MaterialIcons name="blur-on" size={24} color={tc.primaryContainer} />
 
         {/* Center: wordmark */}
-        <Text style={styles.wordmark}>QUARTZIE</Text>
+        <Text style={[styles.wordmark, { color: tc.primaryContainer }]}>QUARTZIE</Text>
 
         {/* Right: status pill */}
-        <StatusPill connectionState={connectionState} />
+        <StatusPill connectionState={connectionState} tc={tc} />
       </View>
     </View>
   );
 }
 
-function StatusPill({ connectionState }: FloatingHeaderProps) {
+function StatusPill({ connectionState, tc }: FloatingHeaderProps & { tc: ReturnType<typeof useThemeColors> }) {
   let dotColor = colors.error;
   let label = 'OFFLINE';
 
@@ -45,9 +45,9 @@ function StatusPill({ connectionState }: FloatingHeaderProps) {
   }
 
   return (
-    <View style={styles.pill}>
+    <View style={[styles.pill, { backgroundColor: tc.bgDeep + '99', borderColor: tc.glassBorder }]}>
       <View style={[styles.dot, { backgroundColor: dotColor }]} />
-      <Text style={styles.pillLabel}>{label}</Text>
+      <Text style={[styles.pillLabel, { color: tc.onSurfaceVariant }]}>{label}</Text>
     </View>
   );
 }
@@ -62,7 +62,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
     shadowColor: '#000',
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -83,7 +82,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 18,
     letterSpacing: 4.8,
-    color: colors.primaryContainer,
   },
   pill: {
     flexDirection: 'row',
@@ -92,9 +90,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
-    backgroundColor: 'rgba(18,12,31,0.6)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
   },
   dot: {
     width: 8,
@@ -105,6 +101,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.8,
-    color: colors.onSurfaceVariant,
   },
 });

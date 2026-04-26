@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls /Users/joshpointer/Developer/quartzos-app/.omc/state/ralph-state.json /Users/joshpointer/Developer/quartzos-app/.omc/state/ultrawork-state.json /Users/joshpointer/Developer/quartzos-app...",
+  "tool_input_preview": "{\"command\":\"ls .omc/state/autopilot-state.json .omc/state/ralph-state.json .omc/state/ultrawork-state.json .omc/state/ultraqa-state.json 2>/dev/null\",\"description\":\"Check which autopilot state files e...",
   "error": "Exit code 2",
-  "timestamp": "2026-04-25T22:39:33.021Z",
+  "timestamp": "2026-04-26T00:01:26.626Z",
   "retry_count": 1
 }

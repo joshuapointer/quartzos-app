@@ -80,7 +80,7 @@ export default function HomeScreen() {
           {/* Content area (above bottom sheet peek) */}
           <View style={styles.contentArea}>
 
-            {/* Status row */}
+            {/* Status row — pinned below floating header */}
             <View style={styles.statusRow}>
               <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
               <Text style={[styles.statusLabel, { color: statusColor }]}>
@@ -88,15 +88,17 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            {/* Temperature Orb */}
-            <TemperatureOrb
-              tempF={tempF}
-              dabAlarmF={settings.dabAlarmF}
-              dunkAlarmF={settings.dunkAlarmF}
-              sessionActive={sessionActive}
-              useCelsius={settings.useCelsius}
-              size={260}
-            />
+            {/* Orb area — flex:1 so orb stays centered in remaining space */}
+            <View style={styles.orbArea}>
+              <TemperatureOrb
+                tempF={tempF}
+                dabAlarmF={settings.dabAlarmF}
+                dunkAlarmF={settings.dunkAlarmF}
+                sessionActive={sessionActive}
+                useCelsius={settings.useCelsius}
+                size={260}
+              />
+            </View>
 
             {/* Data strip */}
             <DataStrip
@@ -146,7 +148,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 80,
+    paddingBottom: 180,
     alignItems: 'center',
+  },
+  orbArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusRow: {
     flexDirection: 'row',

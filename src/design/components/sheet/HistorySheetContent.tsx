@@ -19,6 +19,8 @@ import { useThemeColors } from '../../ThemeContext';
 import { colors, spacing, radius, fonts } from '../../tokens';
 import * as sessionsDb from '../../../db/sessions';
 import type { SessionRecord } from '../../../db/sessions';
+import { useSettingsStore } from '../../../state/settingsStore';
+import { formatTemp } from '../../../utils/temperature';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ interface SparklineProps {
 }
 
 function Sparkline({ samples }: SparklineProps) {
+  const tc = useThemeColors();
   if (samples.length === 0) {
     return <View style={{ height: 60 }} />;
   }
@@ -109,14 +112,14 @@ function Sparkline({ samples }: SparklineProps) {
     >
       <Defs>
         <SVGGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="rgba(181,161,255,0.2)" stopOpacity={1} />
-          <Stop offset="1" stopColor="rgba(181,161,255,0)" stopOpacity={1} />
+          <Stop offset="0" stopColor={tc.primary + '33'} stopOpacity={1} />
+          <Stop offset="1" stopColor={tc.primary + '00'} stopOpacity={1} />
         </SVGGradient>
       </Defs>
       <Path d={fillPath} fill="url(#sparkFill)" />
       <Path
         d={linePath}
-        stroke={colors.primaryContainer}
+        stroke={tc.primaryContainer}
         strokeWidth={2}
         fill="none"
         strokeLinecap="round"
@@ -131,9 +134,10 @@ function Sparkline({ samples }: SparklineProps) {
 interface SessionCardProps {
   session: SessionRecord;
   onPress: () => void;
+  useCelsius: boolean;
 }
 
-function SessionCard({ session, onPress }: SessionCardProps) {
+function SessionCard({ session, onPress, useCelsius }: SessionCardProps) {
   const themeColors = useThemeColors();
   const category = getCategoryFromTemp(session.peakTempF);
 
@@ -156,9 +160,8 @@ function SessionCard({ session, onPress }: SessionCardProps) {
         {/* Peak temp display */}
         <View style={styles.peakTempBlock}>
           <Text style={[styles.peakTempValue, { color: themeColors.onSurface }]}>
-            {session.peakTempF}
+            {formatTemp(session.peakTempF, useCelsius)}
           </Text>
-          <Text style={[styles.peakTempUnit, { color: themeColors.onSurface }]}>°F</Text>
         </View>
         <Text style={[styles.peakTempLabel, { color: themeColors.onSurfaceVariant }]}>
           PEAK TEMP
@@ -183,12 +186,13 @@ function SessionCard({ session, onPress }: SessionCardProps) {
 
 // ─── Filter chips ─────────────────────────────────────────────────────────────
 
-const FILTER_CHIPS = ['All', 'High', 'Low'] as const;
+const FILTER_CHIPS = ['All', 'High', 'Mid', 'Low'] as const;
 
 // ─── HistorySheetContent ──────────────────────────────────────────────────────
 
 export function HistorySheetContent() {
   const themeColors = useThemeColors();
+  const useCelsius = useSettingsStore(s => s.settings.useCelsius);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [activeFilter, setActiveFilter] = useState(0);
 
@@ -221,7 +225,8 @@ export function HistorySheetContent() {
 
   const filteredSessions = sessions.filter((s) => {
     if (activeFilter === 1) return s.peakTempF >= 500;
-    if (activeFilter === 2) return s.peakTempF < 450;
+    if (activeFilter === 2) return s.peakTempF >= 400 && s.peakTempF < 500;
+    if (activeFilter === 3) return s.peakTempF < 400;
     return true;
   });
 
@@ -243,7 +248,7 @@ export function HistorySheetContent() {
               style={[
                 styles.chip,
                 active
-                  ? [styles.chipActive, { borderColor: themeColors.primaryContainer }]
+                  ? [{ backgroundColor: themeColors.primary + '26', borderColor: themeColors.primaryContainer }]
                   : [styles.chipInactive, { backgroundColor: themeColors.glassFill, borderColor: themeColors.glassBorder }],
               ]}
             >
@@ -284,6 +289,7 @@ export function HistorySheetContent() {
         <SessionCard
           session={item}
           onPress={() => router.push(`/(connected)/history/${item.id}`)}
+          useCelsius={useCelsius}
         />
       )}
     />

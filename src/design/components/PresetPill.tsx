@@ -59,7 +59,7 @@ export function PresetPill({ presetName, gemColor, onPress, style }: PresetPillP
       <View
         style={[
           styles.container,
-          { backgroundColor: colors.glassFill, borderColor: colors.glassBorder },
+          { backgroundColor: colors.glassFill },
         ]}
       >
         <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
@@ -90,7 +90,6 @@ const styles = StyleSheet.create({
   container: {
     height: 48,
     borderRadius: 14,
-    borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',

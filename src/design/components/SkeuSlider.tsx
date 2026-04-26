@@ -9,7 +9,8 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { colors, gradients, radius, animation } from '../tokens';
+import { gradients, radius, animation } from '../tokens';
+import { useThemeColors } from '../ThemeContext';
 
 interface Props {
   value: number;
@@ -43,6 +44,7 @@ export function SkeuSlider({
   accessibilityLabel,
   variant = 'primary',
 }: Props) {
+  const tc = useThemeColors();
   const [trackWidth, setTrackWidth] = useState(0);
   const position = useSharedValue(0);
   const startPosition = useSharedValue(0);
@@ -121,14 +123,14 @@ export function SkeuSlider({
     transform: [{ translateX: position.value - THUMB / 2 }],
   }));
 
-  const fillColors = variant === 'secondary' ? gradients.secondary : gradients.primary;
+  const fillColors = variant === 'secondary' ? gradients.secondary : [tc.primaryContainer, tc.primary, tc.outline] as [string, string, string];
 
   return (
     <View style={[styles.root, style]}>
       {label && (
         <View style={styles.labelRow}>
-          <Text style={styles.label}>{label}</Text>
-          <Text style={styles.value}>
+          <Text style={[styles.label, { color: tc.onSurfaceVariant }]}>{label}</Text>
+          <Text style={[styles.value, { color: tc.primary }]}>
             {Math.round(value)}
             {unit ? unit : ''}
           </Text>
@@ -167,7 +169,7 @@ export function SkeuSlider({
           {/* Thumb */}
           <Animated.View style={[styles.thumb, thumbStyle]}>
             <LinearGradient
-              colors={['#e7deff', '#b5a1ff']}
+              colors={[tc.primaryContainer, tc.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.thumbFill}
@@ -191,14 +193,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    color: colors.onSurfaceVariant,
     fontSize: 13,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     fontWeight: '600',
   },
   value: {
-    color: colors.primary,
     fontSize: 18,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
