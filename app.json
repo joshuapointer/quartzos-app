@@ -77,6 +77,14 @@
         }
       ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/bf01e852-e296-4c49-88e8-a9b709c17cab",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "experiments": {
       "typedRoutes": true
     },
