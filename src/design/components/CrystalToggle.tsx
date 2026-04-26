@@ -13,6 +13,8 @@ import Animated, {
 import { colors, gradients, radius, animation } from '../tokens';
 import { useThemeColors } from '../ThemeContext';
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 interface Props {
   value: boolean;
   onValueChange: (v: boolean) => void;
@@ -29,6 +31,10 @@ const PADDING = 3;
 export function CrystalToggle({ value, onValueChange, disabled = false, style, accessibilityLabel }: Props) {
   const tc = useThemeColors();
   const progress = useSharedValue(value ? 1 : 0);
+  const pressScale = useSharedValue(1);
+  const pressScaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
 
   useEffect(() => {
     progress.value = withSpring(value ? 1 : 0, animation.toggleSpring);
@@ -64,10 +70,12 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
   }));
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={handlePress}
+      onPressIn={() => { pressScale.value = withSpring(0.96, animation.toggleSpring); }}
+      onPressOut={() => { pressScale.value = withSpring(1, animation.toggleSpring); }}
       disabled={disabled}
-      style={[styles.wrap, disabled && styles.disabled, style]}
+      style={[styles.wrap, disabled && styles.disabled, pressScaleStyle, style]}
       accessibilityRole="switch"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked: value, disabled }}
@@ -108,7 +116,7 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
         {/* Specular highlight */}
         <View style={styles.spec} pointerEvents="none" />
       </Animated.View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

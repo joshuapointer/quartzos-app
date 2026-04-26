@@ -161,7 +161,7 @@ export function TempDial({
 
   // Build tick marks: 24 total, major at multiples of 6
   const TICK_COUNT = 24;
-  const ticks = Array.from({ length: TICK_COUNT }, (_, i) => {
+  const ticks = React.useMemo(() => Array.from({ length: TICK_COUNT }, (_, i) => {
     const isMajor = i % 6 === 0;
     const deg = (i * 360) / TICK_COUNT;
     const rad = ((deg - 90) * Math.PI) / 180;
@@ -174,7 +174,7 @@ export function TempDial({
       y2: cy + Math.sin(rad) * outerR,
       isMajor,
     };
-  });
+  }), [size]);
 
   return (
     <Animated.View

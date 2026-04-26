@@ -13,9 +13,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  interpolateColor,
   runOnJS,
+  Easing,
 } from 'react-native-reanimated';
 import { useThemeColors } from '../ThemeContext';
+import { animation } from '../tokens';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -34,6 +38,60 @@ export interface MainBottomSheetProps {
 }
 
 type TabKey = 'presets' | 'history' | 'configure';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function SheetTabButton({
+  label,
+  isActive,
+  onPress,
+}: {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  const theme = useThemeColors();
+  const progress = useSharedValue(isActive ? 1 : 0);
+  const pressScale = useSharedValue(1);
+
+  React.useEffect(() => {
+    progress.value = withTiming(isActive ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [isActive]);
+
+  const labelStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(progress.value, [0, 1], [theme.onSurfaceVariant, theme.onSurface]),
+  }));
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ scaleX: progress.value }],
+  }));
+
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={() => { pressScale.value = withSpring(0.96, animation.pressSpring); }}
+      onPressOut={() => { pressScale.value = withSpring(1, animation.pressSpring); }}
+      style={[styles.tabItem, scaleStyle]}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+    >
+      <Animated.Text style={[styles.tabLabel, labelStyle]}>
+        {label}
+      </Animated.Text>
+      <Animated.View
+        style={[styles.tabIndicator, { backgroundColor: theme.primary }, indicatorStyle]}
+      />
+    </AnimatedPressable>
+  );
+}
 
 const SPRING_CONFIG = { damping: 20, stiffness: 200, mass: 0.8 } as const;
 
@@ -147,35 +205,14 @@ export const MainBottomSheet = React.forwardRef<
 
           {/* Tab bar */}
           <View style={styles.tabBar}>
-            {tabs.map(({ key, label }) => {
-              const isActive = selectedTab === key;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => setSelectedTab(key)}
-                  style={styles.tabItem}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: isActive }}
-                >
-                  <Text
-                    style={[
-                      styles.tabLabel,
-                      {
-                        color: isActive ? theme.onSurface : theme.onSurfaceVariant,
-                        fontWeight: isActive ? '500' : '400',
-                      },
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                  {isActive && (
-                    <View
-                      style={[styles.tabIndicator, { backgroundColor: theme.primary }]}
-                    />
-                  )}
-                </Pressable>
-              );
-            })}
+            {tabs.map(({ key, label }) => (
+              <SheetTabButton
+                key={key}
+                label={label}
+                isActive={selectedTab === key}
+                onPress={() => setSelectedTab(key)}
+              />
+            ))}
           </View>
         </View>
       </GestureDetector>

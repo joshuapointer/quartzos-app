@@ -1,14 +1,16 @@
 import React, { useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
   Easing,
   type SharedValue,
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import { animation } from '../tokens';
 
 export type TabId = 'session' | 'presets' | 'history' | 'configure';
 
@@ -21,6 +23,8 @@ const TABS: { id: TabId; label: string }[] = [
 
 const TIMING = { duration: 200, easing: Easing.out(Easing.quad) };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 function TabButton({
   tab,
   index,
@@ -32,6 +36,12 @@ function TabButton({
   activeIndexAnim: SharedValue<number>;
   onPress: () => void;
 }) {
+  const scale = useSharedValue(1);
+
+  const pressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   const bgStyle = useAnimatedStyle(() => ({
     backgroundColor: withTiming(
       activeIndexAnim.value === index
@@ -50,17 +60,18 @@ function TabButton({
   }));
 
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       onPress={onPress}
-      activeOpacity={0.85}
-      style={styles.tabTouch}
+      onPressIn={() => { scale.value = withSpring(0.94, animation.pressSpring); }}
+      onPressOut={() => { scale.value = withSpring(1, animation.pressSpring); }}
+      style={[styles.tabTouch, pressStyle]}
     >
       <Animated.View style={[styles.tabBg, bgStyle]}>
         <Animated.Text style={[styles.tabText, textStyle]}>
           {tab.label}
         </Animated.Text>
       </Animated.View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
