@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { QuartzBackground, TemperatureOrb, FloatingHeader } from '../../src/design';
 import { DataStrip } from '../../src/design/components/DataStrip';
@@ -13,8 +13,10 @@ import { useBleStore } from '../../src/state/bleStore';
 import { useSettingsStore } from '../../src/state/settingsStore';
 import { useSessionStore } from '../../src/state/sessionStore';
 import { useTheme, useThemeColors } from '../../src/design/ThemeContext';
-import { colors, fonts } from '../../src/design/tokens';
 import { formatTemp } from '../../src/utils/temperature';
+
+// Bottom sheet peeks 180pt above the bottom of the screen
+const SHEET_PEEK = 180;
 
 export default function HomeScreen() {
   const tempF = useBleStore((s) => s.liveTempF);
@@ -26,6 +28,8 @@ export default function HomeScreen() {
 
   const { theme } = useTheme();
   const themeColors = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const { height: screenH } = useWindowDimensions();
 
   const sheetRef = useRef<MainBottomSheetHandle>(null);
 
@@ -43,90 +47,70 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [sessionActive, startedAt]);
 
-  const statusColor =
-    connectionState === 'READY'
-      ? colors.success
-      : connectionState === 'RECONNECTING' ||
-          connectionState === 'SCANNING' ||
-          connectionState === 'CONNECTING' ||
-          connectionState === 'DISCOVERING'
-        ? colors.warning
-        : colors.error;
-
-  const connectionLabel =
-    connectionState === 'READY'
-      ? 'Live'
-      : connectionState === 'RECONNECTING'
-        ? 'Reconnecting'
-        : connectionState === 'SCANNING' ||
-            connectionState === 'CONNECTING' ||
-            connectionState === 'DISCOVERING'
-          ? 'Connecting'
-          : 'Offline';
-
   const elapsedFormatted = sessionActive
     ? `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`
     : '0:00';
 
   const targetRangeText = `${formatTemp(settings.dabAlarmF - 20, settings.useCelsius)} – ${formatTemp(settings.dabAlarmF + 20, settings.useCelsius)}`;
 
+  // Calculate exact pixel positions from the top of the screen
+  // FloatingHeader: positioned at insets.top + 16, height 64
+  const headerBottom = insets.top + 16 + 64 + 12; // 12pt gap below header
+  // Bottom sheet peek: 180pt up from screen bottom
+  const sheetTop = screenH - SHEET_PEEK;
+
   return (
     <View style={[styles.root, { backgroundColor: themeColors.bgDeep }]}>
       <QuartzBackground />
 
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.flex}>
+      {/* ORB LAYER — centered between header and sheet peek */}
+      <View
+        style={[
+          styles.orbLayer,
+          { top: headerBottom, bottom: SHEET_PEEK },
+        ]}
+        pointerEvents="none"
+      >
+        <TemperatureOrb
+          tempF={tempF}
+          dabAlarmF={settings.dabAlarmF}
+          dunkAlarmF={settings.dunkAlarmF}
+          sessionActive={sessionActive}
+          useCelsius={settings.useCelsius}
+          size={280}
+        />
+      </View>
 
-          {/* Content area (above bottom sheet peek) */}
-          <View style={styles.contentArea}>
+      {/* CONTROLS LAYER — DataStrip + PresetPill pinned just above sheet */}
+      <View
+        style={[
+          styles.controlsLayer,
+          { bottom: SHEET_PEEK + 8 },
+        ]}
+        pointerEvents="box-none"
+      >
+        <DataStrip
+          sessionTimeFormatted={elapsedFormatted}
+          peakTempFormatted={formatTemp(peakF, settings.useCelsius)}
+          targetRangeFormatted={targetRangeText}
+        />
+        <PresetPill
+          presetName={formatTemp(settings.dabAlarmF, settings.useCelsius)}
+          gemColor={theme.primary}
+          onPress={() => sheetRef.current?.openToPresets()}
+          style={styles.presetPill}
+        />
+      </View>
 
-            {/* Status row — pinned below floating header */}
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-              <Text style={[styles.statusLabel, { color: statusColor }]}>
-                {connectionLabel}
-              </Text>
-            </View>
-
-            {/* Orb area — flex:1 so orb stays centered in remaining space */}
-            <View style={styles.orbArea}>
-              <TemperatureOrb
-                tempF={tempF}
-                dabAlarmF={settings.dabAlarmF}
-                dunkAlarmF={settings.dunkAlarmF}
-                sessionActive={sessionActive}
-                useCelsius={settings.useCelsius}
-                size={260}
-              />
-            </View>
-
-            {/* Data strip */}
-            <DataStrip
-              sessionTimeFormatted={elapsedFormatted}
-              peakTempFormatted={formatTemp(peakF, settings.useCelsius)}
-              targetRangeFormatted={targetRangeText}
-              style={styles.dataStrip}
-            />
-
-            {/* Preset pill */}
-            <PresetPill
-              presetName={formatTemp(settings.dabAlarmF, settings.useCelsius)}
-              gemColor={theme.primary}
-              onPress={() => sheetRef.current?.openToPresets()}
-              style={styles.presetPill}
-            />
-          </View>
-
-          {/* MainBottomSheet — absolutely positioned over content */}
-          <MainBottomSheet
-            ref={sheetRef}
-            presetsContent={<PresetsSheetContent />}
-            historyContent={<HistorySheetContent />}
-            configureContent={<ConfigureSheetContent />}
-          />
-
-        </View>
-      </SafeAreaView>
+      {/* Bottom sheet */}
+      <View style={styles.sheetContainer} pointerEvents="box-none">
+        <MainBottomSheet
+          ref={sheetRef}
+          presetsContent={<PresetsSheetContent />}
+          historyContent={<HistorySheetContent />}
+          configureContent={<ConfigureSheetContent />}
+        />
+      </View>
 
       {/* FloatingHeader — sits on top of everything */}
       <FloatingHeader connectionState={connectionState} />
@@ -138,45 +122,22 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  safe: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  contentArea: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 80,
-    paddingBottom: 180,
-    alignItems: 'center',
-  },
-  orbArea: {
-    flex: 1,
+  orbLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusLabel: {
-    ...fonts.labelCaps,
-    marginLeft: 6,
-  },
-  dataStrip: {
-    width: '100%',
-    marginTop: 20,
+  controlsLayer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
   },
   presetPill: {
-    width: '100%',
-    marginTop: 12,
+    marginTop: 8,
+  },
+  sheetContainer: {
+    ...StyleSheet.absoluteFillObject,
   },
 });

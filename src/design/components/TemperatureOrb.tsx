@@ -353,20 +353,22 @@ const styles = StyleSheet.create({
   },
   tempRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start', // Align to start (top) so the baseline difference is handled by padding/margins, or we can keep flex-end if lineHeight is set properly
   },
   temp: {
     color: colors.onSurface,
     fontSize: 72,
+    lineHeight: 80,
     fontWeight: '200',
     letterSpacing: -2,
     fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
   },
   unit: {
     color: colors.primary,
     fontSize: 16,
     fontWeight: '500',
-    marginBottom: 10,
+    marginTop: 12, // Since we changed to flex-start, we add top margin to push it down
     marginLeft: 2,
   },
   target: {
