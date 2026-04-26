@@ -375,7 +375,7 @@ const THEME_SWATCHES = [
 
 // ─── SessionPanel ─────────────────────────────────────────────────────────────
 
-function SessionPanel() {
+function SessionPanel({ onOpenPresets }: { onOpenPresets?: () => void }) {
   const { width: screenW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -475,7 +475,10 @@ function SessionPanel() {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onOpenPresets?.();
+              }}
               style={styles.presetChangeBtn}
             >
               <Text style={styles.presetChangeBtnText}>Change</Text>
@@ -525,7 +528,10 @@ function PresetsPanel() {
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Presets</Text>
           <TouchableOpacity
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/(connected)/presets/new');
+            }}
             style={styles.newBtn}
           >
             <Text style={styles.newBtnText}>+ New</Text>
@@ -949,7 +955,7 @@ export default function HomeScreen() {
       <QBackground />
 
       <Animated.View style={panelStyle}>
-        {activeTab === 'session' && <SessionPanel />}
+        {activeTab === 'session' && <SessionPanel onOpenPresets={() => handleTabChange('presets')} />}
         {activeTab === 'presets' && <PresetsPanel />}
         {activeTab === 'history' && <HistoryPanel />}
         {activeTab === 'configure' && <ConfigurePanel />}

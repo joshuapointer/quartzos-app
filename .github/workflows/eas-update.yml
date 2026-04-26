@@ -4,43 +4,11 @@ on:
   push:
     branches: ['**']
 
-permissions:
-  contents: read
-
 jobs:
   update:
-    name: Publish EAS Update
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Publish update
-        env:
-          BRANCH_NAME: ${{ github.ref_name }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        run: |
-          eas update \
-            --branch "$BRANCH_NAME" \
-            --message "$COMMIT_MESSAGE" \
-            --non-interactive
-
-      - name: Point production channel at main
-        if: github.ref_name == 'main'
-        run: eas channel:edit production --branch main --non-interactive
+    uses: joshuapointer/eas-workflows/.github/workflows/update.yml@main
+    with:
+      platform: all
+      npm_flags: --legacy-peer-deps
+    secrets:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
