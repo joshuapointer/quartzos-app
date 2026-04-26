@@ -1,0 +1,5 @@
+{"type":"server-started","port":53534,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:53534","screen_dir":"/Users/joshpointer/Developer/quartzos-app/.superpowers/brainstorm/22884-1777149526/content","state_dir":"/Users/joshpointer/Developer/quartzos-app/.superpowers/brainstorm/22884-1777149526/state"}
+{"type":"screen-added","file":"/Users/joshpointer/Developer/quartzos-app/.superpowers/brainstorm/22884-1777149526/content/prompt-structure.html"}
+{"source":"user-event","type":"click","text":"✓\n    \n      Looks good — write the full prompt\n      Proceed with all 6 sections as shown","choice":"looks-good","id":null,"timestamp":1777149955589}
+{"type":"screen-added","file":"/Users/joshpointer/Developer/quartzos-app/.superpowers/brainstorm/22884-1777149526/content/full-prompt.html"}
+{"type":"server-stopped","reason":"idle timeout"}

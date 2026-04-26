@@ -250,14 +250,14 @@ const styles = StyleSheet.create({
   },
   title: {
     ...fonts.h1,
-    color: colors.textPrimary,
+    color: colors.onSurface,
     fontWeight: '700',
     textAlign: 'center',
     marginTop: spacing.md,
   },
   body: {
     ...fonts.body,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     marginTop: spacing.sm,
     marginBottom: spacing.md,
@@ -272,9 +272,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.full,
-    backgroundColor: colors.crystalWhite,
+    backgroundColor: colors.onSurface,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: colors.glassBorder,
   },
   orbRing: {
     position: 'absolute',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: colors.crystalEdge,
+    borderColor: colors.glassBorder,
   },
   list: {
     alignSelf: 'stretch',
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: colors.glassBorder,
   },
   rowPressed: {
     opacity: 0.7,
@@ -311,17 +311,17 @@ const styles = StyleSheet.create({
   },
   rowName: {
     ...fonts.body,
-    color: colors.textPrimary,
+    color: colors.onSurface,
     fontWeight: '600',
   },
   rowId: {
     ...fonts.caption,
-    color: colors.textDim,
+    color: colors.outline,
     marginTop: 2,
   },
   rowStatus: {
     ...fonts.caption,
-    color: colors.activeAmber,
+    color: colors.primary,
     marginLeft: spacing.sm,
   },
   bars: {
@@ -333,11 +333,11 @@ const styles = StyleSheet.create({
   bar: {
     width: 4,
     borderRadius: 2,
-    backgroundColor: colors.activeAmber,
+    backgroundColor: colors.primary,
   },
   emptyHint: {
     ...fonts.body,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     paddingVertical: spacing.lg,
   },

@@ -1,24 +1,33 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
-import { QuartzBackground, TemperatureOrb, GlassCard, ChromeButton } from '../../src/design';
+import { QuartzBackground, TemperatureOrb, FloatingHeader } from '../../src/design';
+import { DataStrip } from '../../src/design/components/DataStrip';
+import { PresetPill } from '../../src/design/components/PresetPill';
+import { MainBottomSheet, MainBottomSheetHandle } from '../../src/design/components/MainBottomSheet';
+import { PresetsSheetContent } from '../../src/design/components/sheet/PresetsSheetContent';
+import { HistorySheetContent } from '../../src/design/components/sheet/HistorySheetContent';
+import { ConfigureSheetContent } from '../../src/design/components/sheet/ConfigureSheetContent';
 import { useBleStore } from '../../src/state/bleStore';
 import { useSettingsStore } from '../../src/state/settingsStore';
 import { useSessionStore } from '../../src/state/sessionStore';
-import { colors, spacing, radius } from '../../src/design/tokens';
+import { useTheme, useThemeColors } from '../../src/design/ThemeContext';
+import { colors, fonts } from '../../src/design/tokens';
 import { formatTemp } from '../../src/utils/temperature';
 
 export default function HomeScreen() {
   const tempF = useBleStore((s) => s.liveTempF);
   const connectionState = useBleStore((s) => s.connectionState);
   const settings = useSettingsStore((s) => s.settings);
-  const confirmed = useSettingsStore((s) => s.confirmed);
   const sessionActive = useSessionStore((s) => s.active);
   const peakF = useSessionStore((s) => s.peakF);
   const startedAt = useSessionStore((s) => s.startedAt);
-  const useCelsius = settings.useCelsius;
+
+  const { theme } = useTheme();
+  const themeColors = useThemeColors();
+
+  const sheetRef = useRef<MainBottomSheetHandle>(null);
 
   // Session elapsed time display
   const [elapsedSec, setElapsedSec] = React.useState(0);
@@ -34,98 +43,91 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [sessionActive, startedAt]);
 
-  const stateColor =
+  const statusColor =
     connectionState === 'READY'
       ? colors.success
-      : connectionState === 'RECONNECTING'
-        ? colors.alertAmber
-        : colors.alertRed;
+      : connectionState === 'RECONNECTING' ||
+          connectionState === 'SCANNING' ||
+          connectionState === 'CONNECTING' ||
+          connectionState === 'DISCOVERING'
+        ? colors.warning
+        : colors.error;
 
   const connectionLabel =
     connectionState === 'READY'
-      ? 'Dab Rite Connected'
+      ? 'Live'
       : connectionState === 'RECONNECTING'
-        ? 'Reconnecting…'
-        : connectionState;
+        ? 'Reconnecting'
+        : connectionState === 'SCANNING' ||
+            connectionState === 'CONNECTING' ||
+            connectionState === 'DISCOVERING'
+          ? 'Connecting'
+          : 'Offline';
+
+  const elapsedFormatted = sessionActive
+    ? `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`
+    : '0:00';
+
+  const targetRangeText = `${formatTemp(settings.dabAlarmF - 20, settings.useCelsius)} – ${formatTemp(settings.dabAlarmF + 20, settings.useCelsius)}`;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: themeColors.bgDeep }]}>
       <QuartzBackground />
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        {/* Connection bar */}
-        <GlassCard style={styles.connectionBar} padding={12} borderRadius={radius.md}>
-          <View style={styles.connectionRow}>
-            <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text style={styles.connectionText}>{connectionLabel}</Text>
-            {!confirmed && connectionState === 'READY' && (
-              <Text style={styles.pendingText}> settings pending…</Text>
-            )}
-          </View>
-        </GlassCard>
 
-        {/* Temperature Orb — hero */}
-        <View style={styles.orbContainer}>
-          <TemperatureOrb
-            tempF={tempF}
-            dabAlarmF={settings.dabAlarmF}
-            dunkAlarmF={settings.dunkAlarmF}
-            sessionActive={sessionActive}
-            useCelsius={useCelsius}
-          />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.flex}>
 
-        {/* Alarm targets row */}
-        <View style={styles.alarmRow}>
-          <GlassCard style={styles.alarmCard} padding={12} borderRadius={radius.md}>
-            <Text style={styles.alarmLabel}>DAB</Text>
-            <Text style={[styles.alarmValue, { color: colors.activeAmber }]}>
-              {formatTemp(settings.dabAlarmF, useCelsius)}
-            </Text>
-          </GlassCard>
-          <GlassCard style={styles.alarmCard} padding={12} borderRadius={radius.md}>
-            <Text style={styles.alarmLabel}>DUNK</Text>
-            <Text style={[styles.alarmValue, { color: '#5AD9FF' }]}>
-              {formatTemp(settings.dunkAlarmF, useCelsius)}
-            </Text>
-          </GlassCard>
-        </View>
+          {/* Content area (above bottom sheet peek) */}
+          <View style={styles.contentArea}>
 
-        {/* Session info (visible when active) */}
-        {sessionActive && (
-          <GlassCard style={styles.sessionCard} padding={14} borderRadius={radius.md}>
-            <View style={styles.sessionRow}>
-              <View style={styles.sessionStat}>
-                <Text style={styles.sessionLabel}>SESSION</Text>
-                <Text style={styles.sessionValue}>
-                  {Math.floor(elapsedSec / 60)}:
-                  {String(elapsedSec % 60).padStart(2, '0')}
-                </Text>
-              </View>
-              <View style={styles.sessionDivider} />
-              <View style={styles.sessionStat}>
-                <Text style={styles.sessionLabel}>PEAK</Text>
-                <Text style={styles.sessionValue}>{formatTemp(peakF, useCelsius)}</Text>
-              </View>
+            {/* Status row */}
+            <View style={styles.statusRow}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusLabel, { color: statusColor }]}>
+                {connectionLabel}
+              </Text>
             </View>
-          </GlassCard>
-        )}
 
-        {/* Bottom actions */}
-        <View style={styles.bottomActions}>
-          <ChromeButton
-            label="Settings"
-            onPress={() => router.push('/(connected)/settings')}
-            variant="secondary"
-            style={styles.actionButton}
+            {/* Temperature Orb */}
+            <TemperatureOrb
+              tempF={tempF}
+              dabAlarmF={settings.dabAlarmF}
+              dunkAlarmF={settings.dunkAlarmF}
+              sessionActive={sessionActive}
+              useCelsius={settings.useCelsius}
+              size={260}
+            />
+
+            {/* Data strip */}
+            <DataStrip
+              sessionTimeFormatted={elapsedFormatted}
+              peakTempFormatted={formatTemp(peakF, settings.useCelsius)}
+              targetRangeFormatted={targetRangeText}
+              style={styles.dataStrip}
+            />
+
+            {/* Preset pill */}
+            <PresetPill
+              presetName={formatTemp(settings.dabAlarmF, settings.useCelsius)}
+              gemColor={theme.primary}
+              onPress={() => sheetRef.current?.openToPresets()}
+              style={styles.presetPill}
+            />
+          </View>
+
+          {/* MainBottomSheet — absolutely positioned over content */}
+          <MainBottomSheet
+            ref={sheetRef}
+            presetsContent={<PresetsSheetContent />}
+            historyContent={<HistorySheetContent />}
+            configureContent={<ConfigureSheetContent />}
           />
-          <ChromeButton
-            label="Scan"
-            onPress={() => router.push('/(modals)/scan')}
-            variant="ghost"
-            style={styles.actionButton}
-          />
+
         </View>
       </SafeAreaView>
+
+      {/* FloatingHeader — sits on top of everything */}
+      <FloatingHeader connectionState={connectionState} />
     </View>
   );
 }
@@ -133,102 +135,40 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.idleDeep,
   },
   safe: {
     flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
   },
-  connectionBar: {
-    alignSelf: 'stretch',
+  flex: {
+    flex: 1,
   },
-  connectionRow: {
-    flexDirection: 'row',
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 80,
     alignItems: 'center',
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: spacing.sm,
-  },
-  connectionText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  pendingText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  orbContainer: {
-    flex: 1,
+  statusRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 12,
   },
-  alarmRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  alarmCard: {
-    flex: 1,
-    alignItems: 'center',
+  statusLabel: {
+    ...fonts.labelCaps,
+    marginLeft: 6,
   },
-  alarmLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    marginBottom: spacing.xs,
+  dataStrip: {
+    width: '100%',
+    marginTop: 20,
   },
-  alarmValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.3,
-  },
-  sessionCard: {
-    alignSelf: 'stretch',
-    marginBottom: spacing.md,
-  },
-  sessionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  sessionStat: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  sessionLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    marginBottom: spacing.xs,
-  },
-  sessionValue: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-  },
-  sessionDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: colors.crystalEdge,
-    marginHorizontal: spacing.md,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  actionButton: {
-    flex: 1,
+  presetPill: {
+    width: '100%',
+    marginTop: 12,
   },
 });

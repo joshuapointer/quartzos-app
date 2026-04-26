@@ -1,0 +1,64 @@
+# Ralph Progress Log - QuartzOS Simulator Launch
+
+## Session Start: 2026-04-25
+
+### Initial State:
+- macOS Darwin 21.6.0 (x86_64)
+- System Ruby: 2.6.10 at /usr/bin/ruby (too old for CocoaPods ffi >= 1.15)
+- No rbenv, rvm, or Homebrew Ruby installed
+- No CocoaPods installed (pod not found)
+- Node: v22.22.2, npm: 10.9.7
+- Expo SDK ~54, React Native 0.81.5
+- iOS simulators available: iPhone 14, iPhone SE 3rd gen, etc. (all Shutdown)
+- Project: Expo Router app with Skia, MMKV, Reanimated v4, BLE
+
+### Plan:
+1. Install rbenv + Ruby 3.3 via Homebrew
+2. Install CocoaPods gem
+3. Run pod install
+4. Boot simulator
+5. Run expo run:ios or npx expo start --ios
+
+## Iteration Log:
+
+---
+
+## Completion Summary (2026-04-25)
+
+### All Build Errors Fixed:
+
+1. **Swift 5.7.2 compat** (Swift 5.9 features used in Expo SDK):
+   - 11 `#Preview` macros wrapped in `#if swift(>=5.9)` guards
+   - `SharedObject.emit()` parameter-pack fallback implemented for Swift <5.9
+   - Explicit `() -> ReturnType` on async closures in expo-notifications (3 files)
+
+2. **Non-modular React headers** (Xcode 14 + prebuilt React.xcframework):
+   - `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES`
+   - `-Wno-non-modular-include-in-framework-module` in OTHER_CFLAGS
+   - `-Xcc -Wno-non-modular-include-in-framework-module` in OTHER_SWIFT_FLAGS
+   - All codified in `ios/Podfile` `post_install` hook (permanent fix)
+
+3. **MMKV JSI**: Upgraded react-native-mmkv v2 → v3.3.3 (uses `__turboModuleProxy` 
+   instead of `nativeCallSyncHook`, compatible with New Architecture bridgeless mode)
+
+4. **New Arch flag propagation**: `-Xcc -DRCT_NEW_ARCH_ENABLED` in OTHER_SWIFT_FLAGS
+   for all Swift pods — also codified in Podfile post_install hook
+
+5. **Expo Router navigation race**: `app/index.tsx` — added `useRootNavigationState`
+   guard + `setTimeout(0)` deferral; also fixed leaked timer/subscription cleanup
+
+### Key Learnings:
+- `RCT_USE_PREBUILT_RNCORE=1` causes prebuilt React.xcframework whose umbrella header
+  includes headers from the pods pool (not inside the framework bundle) → non-modular 
+  Clang errors on Swift targets that import React via module maps
+- Expo Router v6: `useRootNavigationState().key` guard is necessary but not sufficient 
+  alone — need `setTimeout(0)` to defer past the navigation container's initial mount
+- MMKV v2 `createMMKV` API → v3 `new MMKV()` API migration required throughout app
+- xcconfig patches MUST go in Podfile post_install to survive `pod install` regeneration
+
+### Files Changed (source-controlled):
+- `ios/Podfile` — post_install hook with all xcconfig patches
+- `app/index.tsx` — navigation guard fix + cleanup fix
+- `package.json` — react-native-mmkv ^3.3.3
+
+### App Status: Running on iPhone 14 simulator (iOS 16.2), Metro on :8081, no errors.

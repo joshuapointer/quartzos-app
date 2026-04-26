@@ -10,14 +10,13 @@ import {
   TextStyle,
   GestureResponderEvent,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { colors, gradients, radius, shadow, animation } from '../tokens';
+import { colors, radius, shadow, animation } from '../tokens';
 
 export type ChromeButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -71,24 +70,24 @@ export function ChromeButton({
     [disabled, loading, haptic, onPress],
   );
 
-  const fillColors =
+  const bgStyle =
     variant === 'primary'
-      ? gradients.amber
+      ? styles.bgPrimary
       : variant === 'secondary'
-        ? gradients.chrome
-        : (['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] as const);
+        ? styles.bgSecondary
+        : styles.bgGhost;
 
-  const bezelColors =
-    variant === 'ghost'
-      ? (['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.04)'] as const)
-      : ([colors.bezelLight, colors.bezelDark] as const);
-
-  const textColor =
+  const borderStyle =
     variant === 'primary'
-      ? colors.idleDeep
+      ? styles.borderPrimary
       : variant === 'secondary'
-        ? colors.bezelDark
-        : colors.textPrimary;
+        ? styles.borderSecondary
+        : styles.borderGhost;
+
+  const shadowStyle =
+    variant === 'primary'
+      ? styles.shadowPrimary
+      : shadow.button;
 
   return (
     <AnimatedPressable
@@ -101,38 +100,21 @@ export function ChromeButton({
       accessibilityState={{ disabled: disabled || loading }}
       style={[
         styles.pressable,
-        shadow.button,
+        shadowStyle,
         disabled && styles.disabled,
         animatedStyle,
         style,
       ]}
     >
-      {/* Bezel layer */}
-      <LinearGradient
-        colors={bezelColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.bezel}
-      />
-      {/* Fill layer */}
-      <LinearGradient
-        colors={fillColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.fill}
-      />
-      {/* Top gloss layer */}
-      <LinearGradient
-        colors={gradients.gloss}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gloss}
-      />
+      {/* Background layer */}
+      <View style={[StyleSheet.absoluteFill, styles.bg, bgStyle]} />
+      {/* Border overlay */}
+      <View style={[StyleSheet.absoluteFill, styles.borderOverlay, borderStyle]} pointerEvents="none" />
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator color={textColor} />
+          <ActivityIndicator color={colors.onSurface} />
         ) : (
-          <Text style={[styles.label, { color: textColor }, labelStyle]}>{label}</Text>
+          <Text style={[styles.label, labelStyle]}>{label}</Text>
         )}
       </View>
     </AnimatedPressable>
@@ -150,26 +132,37 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.45,
   },
-  bezel: {
-    ...StyleSheet.absoluteFillObject,
+  bg: {
     borderRadius: radius.md,
   },
-  fill: {
-    position: 'absolute',
-    top: 1.5,
-    left: 1.5,
-    right: 1.5,
-    bottom: 1.5,
-    borderRadius: radius.md - 1,
+  bgPrimary: {
+    backgroundColor: 'rgba(207,193,255,0.3)',
   },
-  gloss: {
-    position: 'absolute',
-    top: 1.5,
-    left: 1.5,
-    right: 1.5,
-    height: '50%',
-    borderTopLeftRadius: radius.md - 1,
-    borderTopRightRadius: radius.md - 1,
+  bgSecondary: {
+    backgroundColor: 'rgba(22,16,35,0.6)',
+  },
+  bgGhost: {
+    backgroundColor: 'transparent',
+  },
+  borderOverlay: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  borderPrimary: {
+    borderColor: 'rgba(204,189,255,0.35)',
+  },
+  borderSecondary: {
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  borderGhost: {
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  shadowPrimary: {
+    shadowColor: '#b5a1ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   content: {
     paddingVertical: 14,
@@ -181,5 +174,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.3,
+    color: colors.onSurface,
   },
 });

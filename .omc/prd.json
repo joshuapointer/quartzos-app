@@ -1,0 +1,60 @@
+{
+  "title": "Get QuartzOS Running on iOS Simulator",
+  "description": "Fix all build errors, install dependencies, and launch the quartzos-app on an iOS simulator.",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Install Ruby 3.x via rbenv",
+      "description": "System Ruby is 2.6.10 which is too old for CocoaPods ffi (requires >= 3.0). Install rbenv and Ruby 3.3.",
+      "acceptanceCriteria": [
+        "rbenv is installed and available in PATH",
+        "Ruby 3.3.x is installed via rbenv",
+        "`ruby --version` via rbenv returns 3.3.x",
+        "rbenv global is set to Ruby 3.3.x"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-002",
+      "title": "Install CocoaPods with Ruby 3.x",
+      "description": "With Ruby 3.x available, install the cocoapods gem.",
+      "acceptanceCriteria": [
+        "`pod --version` returns a valid version (>= 1.14)",
+        "CocoaPods installed using rbenv's Ruby 3.x, not system Ruby"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-003",
+      "title": "Run pod install in ios/ directory",
+      "description": "Install all iOS native dependencies via CocoaPods.",
+      "acceptanceCriteria": [
+        "`pod install` completes without errors in ios/",
+        "Pods/ directory exists in ios/",
+        "QuartzOS.xcworkspace exists in ios/"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-004",
+      "title": "Boot iOS Simulator",
+      "description": "Boot an iPhone simulator ready for running the app.",
+      "acceptanceCriteria": [
+        "At least one iPhone simulator is in 'Booted' state",
+        "`xcrun simctl list devices | grep Booted` shows an iPhone"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US-005",
+      "title": "Build and Launch App on Simulator",
+      "description": "Build the Expo/React Native app and launch it on the booted simulator.",
+      "acceptanceCriteria": [
+        "App builds successfully (no fatal build errors)",
+        "App launches and is visible on the iOS simulator",
+        "Expo dev server is running"
+      ],
+      "passes": true
+    }
+  ]
+}

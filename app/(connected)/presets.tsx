@@ -9,21 +9,41 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
-import { QuartzBackground, GlassCard, ChromeButton } from '../../src/design';
+import { QuartzBackground, GlassCard, ChromeButton, FloatingHeader } from '../../src/design';
 import { colors, spacing, radius, fonts } from '../../src/design/tokens';
 import { formatTemp } from '../../src/utils/temperature';
 import { bleManager } from '../../src/ble/BleManager';
+import { useBleStore } from '../../src/state/bleStore';
 import * as presetsDb from '../../src/db/presets';
 import type { Preset } from '../../src/db/presets';
-import type { RGB565 } from '../../src/ble/types';
 
-function rgb565ToHex(value: RGB565): string {
-  const r = ((value >> 11) & 0x1f) << 3;
-  const g = ((value >> 5) & 0x3f) << 2;
-  const b = (value & 0x1f) << 3;
-  return `rgb(${r},${g},${b})`;
+// ─── Gem color helper ────────────────────────────────────────────────────────
+
+const GEM_COLORS = [
+  colors.sapphire,
+  colors.amethyst,
+  colors.citrine,
+  colors.emerald,
+  colors.ruby,
+] as const;
+
+const GEM_ICONS: Record<string, keyof typeof MaterialIcons.glyphMap> = {
+  [colors.sapphire]:  'water-drop',
+  [colors.amethyst]:  'diamond',
+  [colors.citrine]:   'local-fire-department',
+  [colors.emerald]:   'eco',
+  [colors.ruby]:      'favorite',
+};
+
+function gemColorFor(preset: Preset): string {
+  let hash = 0;
+  for (const ch of preset.name) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
+  return GEM_COLORS[Math.abs(hash) % GEM_COLORS.length];
 }
+
+// ─── PresetCard ───────────────────────────────────────────────────────────────
 
 interface PresetCardProps {
   preset: Preset;
@@ -34,60 +54,90 @@ interface PresetCardProps {
 
 function PresetCard({ preset, onApply, onDelete, onEdit }: PresetCardProps) {
   const { settings } = preset;
+  const gemColor = gemColorFor(preset);
+  const gemIcon = GEM_ICONS[gemColor] ?? 'diamond';
+
   return (
-    <GlassCard style={styles.card} padding={14} borderRadius={radius.md}>
-      {/* Header row */}
-      <View style={styles.cardHeader}>
+    <GlassCard
+      style={[styles.card, { borderColor: gemColor + '33' }]}
+      padding={16}
+      borderRadius={radius.lg}
+    >
+      {/* Top row: temp badge + menu actions */}
+      <View style={styles.cardTopRow}>
+        <View style={styles.tempBadge}>
+          <Text style={styles.tempBadgeText}>
+            {formatTemp(settings.dabAlarmF, settings.useCelsius)}
+          </Text>
+        </View>
+        <View style={styles.cardActions}>
+          {!preset.isBuiltIn && (
+            <>
+              <TouchableOpacity
+                onPress={onEdit}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.iconBtn}
+              >
+                <MaterialIcons name="edit" size={16} color={colors.onSurfaceVariant} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onDelete}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.iconBtn}
+              >
+                <MaterialIcons name="close" size={16} color={colors.error} />
+              </TouchableOpacity>
+            </>
+          )}
+          {preset.isBuiltIn && (
+            <View style={styles.builtInBadge}>
+              <Text style={styles.builtInText}>Built-in</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Center: gem icon orb */}
+      <View style={styles.cardCenter}>
+        <View style={[
+          styles.gemOrb,
+          {
+            backgroundColor: gemColor + '26',
+            borderColor: gemColor,
+          },
+        ]}>
+          <MaterialIcons name={gemIcon} size={32} color={gemColor} />
+        </View>
+      </View>
+
+      {/* Bottom: name, alarm temps, apply */}
+      <View style={styles.cardBottom}>
         <Text style={styles.cardName} numberOfLines={1}>{preset.name}</Text>
-        {preset.isBuiltIn && (
-          <View style={styles.builtInBadge}>
-            <Text style={styles.builtInText}>Built-in</Text>
-          </View>
-        )}
-        {!preset.isBuiltIn && (
-          <>
-            <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.editIcon}>✏️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.deleteIcon}>✕</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
 
-      {/* Color swatches */}
-      <View style={styles.swatchRow}>
-        {(settings.colors as [RGB565, RGB565, RGB565, RGB565]).map((c, i) => (
-          <View
-            key={i}
-            style={[styles.swatch, { backgroundColor: rgb565ToHex(c) }]}
-          />
-        ))}
-      </View>
+        <View style={styles.alarmRow}>
+          <Text style={styles.alarmLabel}>
+            Dab: <Text style={styles.alarmValue}>{formatTemp(settings.dabAlarmF, settings.useCelsius)}</Text>
+          </Text>
+          <Text style={styles.alarmLabel}>
+            Dunk: <Text style={[styles.alarmValue, { color: colors.sapphire }]}>{formatTemp(settings.dunkAlarmF, settings.useCelsius)}</Text>
+          </Text>
+        </View>
 
-      {/* Alarm temps */}
-      <View style={styles.alarmRow}>
-        <Text style={styles.alarmLabel}>
-          Dab: <Text style={styles.alarmValue}>{formatTemp(settings.dabAlarmF, settings.useCelsius)}</Text>
-        </Text>
-        <Text style={styles.alarmLabel}>
-          Dunk: <Text style={[styles.alarmValue, { color: '#5AD9FF' }]}>{formatTemp(settings.dunkAlarmF, settings.useCelsius)}</Text>
-        </Text>
+        <ChromeButton
+          label="Apply"
+          onPress={onApply}
+          variant="secondary"
+          style={styles.applyButton}
+        />
       </View>
-
-      {/* Apply button */}
-      <ChromeButton
-        label="Apply"
-        onPress={onApply}
-        variant="secondary"
-        style={styles.applyButton}
-      />
     </GlassCard>
   );
 }
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 export default function PresetsScreen() {
+  const connectionState = useBleStore((s) => s.connectionState);
   const [presets, setPresets] = useState<Preset[]>([]);
 
   const load = useCallback(async () => {
@@ -125,8 +175,20 @@ export default function PresetsScreen() {
   return (
     <View style={styles.root}>
       <QuartzBackground />
+      <FloatingHeader connectionState={connectionState} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <Text style={styles.heading}>Presets</Text>
+        {/* Page header */}
+        <Text style={styles.displayTitle}>Presets</Text>
+        <Text style={styles.subtitle}>Your saved transcendental states.</Text>
+
+        {/* Crystallize New button */}
+        <ChromeButton
+          label="+ Crystallize New"
+          onPress={() => router.push('/(connected)/presets/new')}
+          variant="primary"
+          style={styles.crystallizeBtn}
+        />
+
         <FlatList
           data={presets}
           keyExtractor={(item) => item.id}
@@ -141,13 +203,6 @@ export default function PresetsScreen() {
             />
           )}
         />
-        {/* FAB */}
-        <ChromeButton
-          label="+"
-          onPress={() => router.push('/(connected)/presets/new')}
-          variant="primary"
-          style={styles.fab}
-        />
       </SafeAreaView>
     </View>
   );
@@ -156,97 +211,108 @@ export default function PresetsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.idleDeep,
+    backgroundColor: colors.bgDeep,
   },
   safe: {
     flex: 1,
+    paddingTop: 88,
+    paddingBottom: 120,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
   },
-  heading: {
-    color: colors.textPrimary,
-    ...fonts.h1,
-    fontWeight: '700',
-    marginBottom: spacing.md,
+  displayTitle: {
+    ...fonts.display,
+    color: colors.onSurface,
   },
-  listContent: {
-    paddingBottom: 80,
+  subtitle: {
+    fontSize: 18,
+    color: colors.onSurfaceVariant,
+    marginBottom: 24,
   },
-  card: {
+  crystallizeBtn: {
+    marginBottom: 20,
     alignSelf: 'stretch',
   },
-  cardHeader: {
+  listContent: {
+    paddingBottom: spacing.lg,
+  },
+  // Card
+  card: {
+    alignSelf: 'stretch',
+    minHeight: 200,
+    backgroundColor: 'rgba(22,16,35,0.4)',
+    borderWidth: 1,
+  },
+  cardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
-  cardName: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '600',
+  tempBadge: {
+    backgroundColor: colors.surfaceBright + '66',
+    borderRadius: radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  tempBadgeText: {
+    color: colors.onSurface,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  iconBtn: {
+    padding: 4,
   },
   builtInBadge: {
-    backgroundColor: colors.glassTint,
+    backgroundColor: colors.glassFill,
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    marginLeft: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: colors.glassBorder,
   },
   builtInText: {
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.4,
   },
-  deleteIcon: {
-    color: colors.alertRed,
-    fontSize: 16,
-    marginLeft: spacing.sm,
-    fontWeight: '700',
+  cardCenter: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
-  editIcon: {
-    fontSize: 16,
-    marginLeft: spacing.sm,
-  },
-  swatchRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  swatch: {
-    width: 24,
-    height: 24,
-    borderRadius: radius.sm,
+  gemOrb: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBottom: {
+    gap: spacing.sm,
+  },
+  cardName: {
+    color: colors.onSurface,
+    ...fonts.h2,
   },
   alarmRow: {
     flexDirection: 'row',
     gap: spacing.lg,
-    marginBottom: spacing.md,
   },
   alarmLabel: {
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     fontSize: 13,
   },
   alarmValue: {
-    color: colors.activeAmber,
+    color: colors.primary,
     fontWeight: '600',
   },
   applyButton: {
     alignSelf: 'stretch',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    right: spacing.md,
-    width: 56,
-    height: 56,
-    borderRadius: radius.full,
-    minHeight: 0,
   },
 });

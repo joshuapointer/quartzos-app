@@ -5,42 +5,86 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 export { SCREEN_W, SCREEN_H };
 
 export const colors = {
-  // Backgrounds
-  idleDeep:     '#0A1F3D',
-  idleMid:      '#1B3A6B',
-  idleLight:    '#2B4E90',
-  // Active/heat states
+  // Backgrounds (amethyst-deep)
+  bgDeep:      '#120C1F',
+  surface1:    '#110b1e',
+  surface2:    '#161023',
+  surface3:    '#1e182c',
+  surface4:    '#231c30',
+  surface5:    '#2d273b',
+  surface6:    '#383146',
+  surfaceBright: '#3d364b',
+
+  // Primary (amethyst/lavender)
+  primary:           '#cfc1ff',
+  primaryContainer:  '#b5a1ff',
+  primaryFixedDim:   '#ccbdff',
+  primaryFixedHigh:  '#e7deff',
+  inversePrimary:    '#6350a8',
+
+  // Secondary (rose/mauve)
+  secondary:           '#e1bae2',
+  secondaryContainer:  '#5a3c5d',
+
+  // Glass surfaces
+  glassFill:   'rgba(18,12,31,0.40)',
+  glassBorder: 'rgba(204,189,255,0.10)',
+
+  // On-surface text
+  onSurface:        '#e9def9',
+  onSurfaceVariant: '#cac4d3',
+  outline:          '#938e9c',
+  outlineVariant:   '#484551',
+
+  // Semantic
+  error:   '#ffb4ab',
+  warning: '#FF9F2E',
+  success: '#49D67A',
+
+  // Heat-state ring colors (preserved for usability)
+  heatIdle:    'rgba(140,180,255,0.5)',
+  heatAmber:   '#FFA93C',
+  heatGlow:    '#FFD27A',
+  heatCyan:    '#5AD9FF',
+  heatCooling: 'rgba(212,106,11,0.55)',
+
+  // Gem palette for presets / aura core
+  ruby:     '#ff4d6d',
+  amethyst: '#b5a1ff',
+  emerald:  '#06d6a0',
+  sapphire: '#60a5fa',
+  citrine:  '#fbbf24',
+
+  // Legacy aliases (used by a few screens – kept to avoid breaking changes)
+  /** @deprecated use bgDeep */
+  idleDeep:     '#120C1F',
+  /** @deprecated use onSurface */
+  textPrimary:  '#e9def9',
+  /** @deprecated use onSurfaceVariant */
+  textSecondary: '#cac4d3',
+  /** @deprecated use outline */
+  textDim:      '#938e9c',
+  /** @deprecated use outlineVariant */
+  crystalEdge:  'rgba(204,189,255,0.10)',
+  /** @deprecated use glassFill */
+  glassDeep:    'rgba(18,12,31,0.40)',
+  /** @deprecated use heatAmber */
   activeAmber:  '#FFA93C',
+  /** @deprecated use heatGlow */
   activeGlow:   '#FFD27A',
-  activeDark:   '#D46A0B',
-  // Crystal/glass
-  crystalWhite: 'rgba(255,255,255,0.85)',
-  crystalEdge:  'rgba(255,255,255,0.38)',
-  glassTint:    'rgba(180,210,255,0.18)',
-  glassDeep:    'rgba(10,31,61,0.72)',
-  // Chrome
-  chromeHi:     '#F6F8FB',
-  chromeMid:    '#B9C5D2',
-  chromeLo:     '#4A5668',
-  bezelDark:    '#1E2530',
-  bezelLight:   '#3A4A62',
-  // Alert
-  alertRed:     '#FF4E50',
-  alertAmber:   '#FF9F2E',
-  success:      '#49D67A',
-  // Text
-  textPrimary:  '#FFFFFF',
-  textSecondary: 'rgba(255,255,255,0.65)',
-  textDim:      'rgba(255,255,255,0.38)',
+  /** @deprecated use primary */
+  activeDark:   '#cfc1ff',
 };
 
 export const gradients = {
-  background:   ['#0A1F3D', '#132D5A', '#1B3A6B'] as const,
-  amber:        ['#FFD27A', '#FFA93C', '#D46A0B'] as const,
-  chrome:       ['#F6F8FB', '#D0D8E2', '#B9C5D2', '#4A5668'] as const,
-  crystal:      ['rgba(255,255,255,0.45)', 'rgba(200,220,255,0.15)', 'rgba(100,150,220,0.08)'] as const,
-  gloss:        ['rgba(255,255,255,0.52)', 'rgba(255,255,255,0.0)'] as const,
-  heatCore:     ['rgba(255,160,0,0.0)', 'rgba(255,160,0,0.35)', 'rgba(255,200,80,0.7)'] as const,
+  background:   ['#120C1F', '#161023', '#1e182c'] as const,
+  amethyst:     ['#e7deff', '#cfc1ff', '#5a3c5d'] as const,
+  primary:      ['#e7deff', '#b5a1ff', '#6350a8'] as const,
+  secondary:    ['#ffd6ff', '#e1bae2', '#5a3c5d'] as const,
+  wordmark:     ['#ffffff', '#b5a1ff'] as const,
+  crystal:      ['rgba(207,193,255,0.15)', 'rgba(100,80,180,0.05)', 'rgba(18,12,31,0)'] as const,
+  gloss:        ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.0)'] as const,
+  heatCore:     ['rgba(255,160,0,0.0)', 'rgba(255,160,0,0.25)', 'rgba(255,200,80,0.5)'] as const,
 };
 
 export const spacing = {
@@ -60,10 +104,10 @@ export const shadow = {
     elevation: 12,
   },
   orb: {
-    shadowColor: '#1B3A6B',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
+    shadowColor: '#b5a1ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
     elevation: 20,
   },
   button: {
@@ -76,11 +120,13 @@ export const shadow = {
 };
 
 export const fonts = {
-  display: { fontSize: 72, letterSpacing: -1.5 },
-  h1:      { fontSize: 28, letterSpacing: -0.5 },
-  h2:      { fontSize: 22 },
-  body:    { fontSize: 16 },
+  display: { fontSize: 48, letterSpacing: -1.92, fontWeight: '300' as const },
+  h1:      { fontSize: 32, letterSpacing: -0.64, fontWeight: '400' as const },
+  h2:      { fontSize: 24, fontWeight: '400' as const },
+  bodyLg:  { fontSize: 18, fontWeight: '300' as const },
+  body:    { fontSize: 16, fontWeight: '300' as const },
   caption: { fontSize: 12, letterSpacing: 0.4 },
+  labelCaps: { fontSize: 12, letterSpacing: 1.2, fontWeight: '500' as const, textTransform: 'uppercase' as const },
 };
 
 export const animation = {
@@ -89,4 +135,5 @@ export const animation = {
   pressSpring: { damping: 14, stiffness: 220, mass: 0.6 },
   toggleSpring: { damping: 15, stiffness: 260, mass: 0.5 },
   thumbSpring: { damping: 18, stiffness: 200, mass: 0.7 },
+  orbitDurationMs: 30000,
 };

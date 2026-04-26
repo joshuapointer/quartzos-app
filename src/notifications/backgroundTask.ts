@@ -17,8 +17,8 @@ export async function startForegroundService(): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       identifier: FOREGROUND_NOTIFICATION_ID,
       content: {
-        title: 'QuartzOS Active',
-        body: 'QuartzOS is monitoring your Dab Rite.',
+        title: 'Quartzie Active',
+        body: 'Quartzie is monitoring your Dab Rite.',
         sticky: true,
         autoDismiss: false,
       },
