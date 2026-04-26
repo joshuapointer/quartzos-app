@@ -273,8 +273,7 @@ export default function NewPresetWizardScreen() {
   const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue →';
 
   return (
-    <View style={styles.root}>
-      <QuartzBackground />
+    <QuartzBackground>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.kav}
@@ -334,7 +333,7 @@ export default function NewPresetWizardScreen() {
           />
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </QuartzBackground>
   );
 }
 
@@ -1042,10 +1041,6 @@ const labelCaps = {
 };
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.bgDeep,
-  },
   safe: { flex: 1 },
   kav: { flex: 1 },
 
@@ -1135,10 +1130,10 @@ const styles = StyleSheet.create({
   bangerCard: {
     width: CARD_W,
     height: CARD_H,
-    backgroundColor: colors.surface1,
+    backgroundColor: colors.surface3,
     borderRadius: radius.lg,
     borderWidth: 0.5,
-    borderColor: colors.bone20,
+    borderColor: colors.bone35,
     padding: spacing.md,
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1192,8 +1187,8 @@ const styles = StyleSheet.create({
   thermalPanel: {
     marginHorizontal: spacing.md,
     marginTop: spacing.sm,
-    backgroundColor: colors.surface1,
-    borderColor: colors.bone20,
+    backgroundColor: colors.surface3,
+    borderColor: colors.bone35,
     borderWidth: 0.5,
     borderRadius: radius.md,
     padding: spacing.md,
@@ -1230,8 +1225,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: colors.bone20,
-    backgroundColor: colors.surface1,
+    borderColor: colors.bone35,
+    backgroundColor: colors.surface3,
   },
   swatchActive: {
     borderColor: colors.emberBright,
@@ -1311,8 +1306,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: radius.md,
     borderWidth: 0.5,
-    borderColor: colors.bone20,
-    backgroundColor: colors.surface1,
+    borderColor: colors.bone35,
+    backgroundColor: colors.surface3,
     paddingHorizontal: spacing.md,
     color: colors.bone100,
     fontSize: 15,
@@ -1344,8 +1339,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: radius.full,
     borderWidth: 0.5,
-    borderColor: colors.bone20,
-    backgroundColor: colors.surface1,
+    borderColor: colors.bone35,
+    backgroundColor: colors.surface3,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1363,10 +1358,10 @@ const styles = StyleSheet.create({
 
   // Save step
   heroCard: {
-    backgroundColor: colors.surface1,
+    backgroundColor: colors.surface3,
     borderRadius: radius.lg,
     borderWidth: 0.5,
-    borderColor: colors.bone20,
+    borderColor: colors.bone35,
     padding: spacing.lg,
     alignItems: 'center',
     gap: spacing.sm,
