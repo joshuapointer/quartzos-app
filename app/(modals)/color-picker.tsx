@@ -19,7 +19,7 @@ import Animated, {
 import {
   ChromeButton,
   GlassCard,
-  QuartzBackground,
+  QBackground,
   SkeuSlider,
 } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
@@ -228,7 +228,8 @@ export default function ColorPickerModal() {
   const quantizedCss = `rgb(${quantized.r}, ${quantized.g}, ${quantized.b})`;
 
   return (
-    <QuartzBackground>
+    <View style={styles.root}>
+      <QBackground />
       <View style={styles.screen}>
         <GlassCard padding={spacing.md} style={styles.card}>
           <Text style={styles.title}>{COLOR_SLOT_LABELS[slotIdx]}</Text>
@@ -245,7 +246,7 @@ export default function ColorPickerModal() {
               />
               {/* Vertical lightness overlay */}
               <LinearGradient
-                colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)', 'rgba(0,0,0,1)']}
+                colors={['rgba(244,237,228,1)', 'rgba(244,237,228,0)', 'rgba(5,4,3,1)']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -310,7 +311,7 @@ export default function ColorPickerModal() {
           </View>
         </GlassCard>
       </View>
-    </QuartzBackground>
+    </View>
   );
 }
 
@@ -333,6 +334,7 @@ function clampSlot(n: number): 0 | 1 | 2 | 3 {
 // ---------- styles -------------------------------------------------------
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#050403' },
   screen: {
     flex: 1,
     justifyContent: 'center',
@@ -354,7 +356,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.crystalEdge,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgDeep,
   },
   cursor: {
     position: 'absolute',
@@ -362,9 +364,9 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#FFF',
+    borderColor: colors.bone100,
     backgroundColor: 'transparent',
-    shadowColor: '#000',
+    shadowColor: 'rgba(5,4,3,0.9)',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.5,
     shadowRadius: 2,
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   hexInput: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(5,4,3,0.35)',
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.crystalEdge,

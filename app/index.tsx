@@ -89,12 +89,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   tagline: {
+    fontFamily: 'SpaceGrotesk_500Medium',
     fontSize: 10,
     fontWeight: '500',
     letterSpacing: 2.2,
     textTransform: 'uppercase',
     color: '#9e907e',
     marginTop: 12,
-    fontFamily: 'Menlo',
   },
 });

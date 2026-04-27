@@ -10,16 +10,21 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
+type WordmarkState = 'idle' | 'heating' | 'target' | 'dunk';
+
 interface Props {
   connected?: boolean;
+  state?: WordmarkState;
 }
 
-export function QWordmark({ connected = true }: Props) {
+export function QWordmark({ connected = true, state = 'idle' }: Props) {
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0);
 
+  const isActive = connected && (state === 'heating' || state === 'target' || state === 'dunk');
+
   useEffect(() => {
-    if (connected) {
+    if (isActive) {
       pulseScale.value = 1;
       pulseOpacity.value = 0.55;
       pulseScale.value = withRepeat(
@@ -44,29 +49,46 @@ export function QWordmark({ connected = true }: Props) {
       pulseScale.value = withTiming(1, { duration: 300 });
       pulseOpacity.value = withTiming(0, { duration: 300 });
     }
-  }, [connected]);
+  }, [isActive]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseOpacity.value,
     transform: [{ scale: pulseScale.value }],
   }));
 
-  const dotColor = connected ? '#E89240' : '#6d6050';
+  // Dot color: hidden when offline; bone35 when idle-connected; ember/quartz when active
+  const dotColor = !connected
+    ? 'transparent'
+    : state === 'dunk'
+    ? '#9ABDD8'  // quartzBright
+    : state === 'heating' || state === 'target'
+    ? '#E89240'  // emberBright
+    : '#6d6050'; // bone35 — static idle
+
+  const glowColor = state === 'dunk' ? '#9ABDD8' : '#E89240';
 
   return (
     <View style={styles.container}>
       <Text style={styles.wordmark}>quartzie</Text>
       <View style={styles.statusRow}>
-        <View style={styles.dotWrap}>
-          <Animated.View
-            style={[
-              styles.pulseRing,
-              { borderColor: dotColor },
-              pulseStyle,
-            ]}
-          />
-          <View style={[styles.dot, { backgroundColor: dotColor }]} />
-        </View>
+        {connected && (
+          <View style={styles.dotWrap}>
+            <Animated.View
+              style={[
+                styles.pulseRing,
+                { borderColor: dotColor },
+                pulseStyle,
+              ]}
+            />
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: dotColor },
+                isActive && { shadowColor: glowColor, shadowOpacity: 0.6, shadowRadius: 4 },
+              ]}
+            />
+          </View>
+        )}
         <Text style={styles.statusText}>{connected ? 'CONNECTED' : 'OFFLINE'}</Text>
       </View>
     </View>
@@ -104,10 +126,9 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    shadowColor: '#E89240',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 4,
+    shadowOpacity: 0,
+    shadowRadius: 0,
     elevation: 2,
     position: 'absolute',
   },
@@ -119,9 +140,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   statusText: {
+    fontFamily: 'SpaceGrotesk_500Medium',
     fontSize: 9.5,
-    letterSpacing: 1.8,
+    letterSpacing: 2.2,
     color: '#9e907e',
-    fontFamily: 'Menlo',
   },
 });

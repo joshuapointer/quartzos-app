@@ -21,7 +21,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ChromeButton, GlassCard, QuartzBackground } from '../../src/design';
+import { ChromeButton, GlassCard, QBackground } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
 import { bleManager } from '../../src/ble/BleManager';
 import { SERVICE_UUID } from '../../src/ble/constants';
@@ -125,7 +125,8 @@ export default function PairScreen() {
   );
 
   return (
-    <QuartzBackground>
+    <View style={styles.root}>
+      <QBackground />
       <View style={styles.screen}>
         <GlassCard padding={24} style={styles.card}>
           <CrystalOrb />
@@ -160,7 +161,7 @@ export default function PairScreen() {
           ) : null}
         </GlassCard>
       </View>
-    </QuartzBackground>
+    </View>
   );
 }
 
@@ -240,6 +241,10 @@ function rssiToBars(rssi: number | null): number {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.bgDeep,
+  },
   screen: {
     flex: 1,
     justifyContent: 'center',

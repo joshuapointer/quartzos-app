@@ -13,7 +13,6 @@ import { GlassCard } from '../GlassCard';
 import { ChromeButton } from '../ChromeButton';
 import { CrystalToggle } from '../CrystalToggle';
 import { SkeuSlider } from '../SkeuSlider';
-import { ThemePicker } from '../ThemePicker';
 import { useThemeColors } from '../../ThemeContext';
 import { colors, fonts, radius, spacing } from '../../tokens';
 import { useSettingsStore } from '../../../state/settingsStore';
@@ -327,15 +326,6 @@ export function ConfigureSheetContent() {
           label="Configure Phone Alerts"
           variant="secondary"
           onPress={() => router.push('/(modals)/notification-config')}
-        />
-      </GlassCard>
-
-      {/* APPEARANCE */}
-      <GlassCard style={styles.card} padding={spacing.md}>
-        <Text style={sectionTitleStyle}>Appearance</Text>
-        <ThemePicker
-          value={themeName}
-          onChange={(t) => setTheme(t)}
         />
       </GlassCard>
 

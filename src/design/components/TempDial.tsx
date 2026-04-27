@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors } from '../tokens';
 import Svg, {
   Circle,
   Line,
@@ -27,11 +28,11 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 type DialState = 'idle' | 'heating' | 'target' | 'cooling' | 'dunk';
 
 const PALETTE: Record<DialState, { ring: string; text: string; lensTop: string; lensBottom: string }> = {
-  idle:    { ring: '#4A7490', text: '#e8dfd2', lensTop: '#28283C', lensBottom: '#0c0908' },
-  heating: { ring: '#9B6030', text: '#f4ede4', lensTop: '#3D1E0A', lensBottom: '#0c0908' },
-  target:  { ring: '#E89240', text: '#fff5e8', lensTop: '#5E2E0C', lensBottom: '#14100e' },
-  cooling: { ring: '#AD7040', text: '#e8dfd2', lensTop: '#3E2212', lensBottom: '#0c0908' },
-  dunk:    { ring: '#9ABDD8', text: '#e6effa', lensTop: '#2A3C52', lensBottom: '#0c0908' },
+  idle:    { ring: colors.quartzDim,    text: colors.bone90,  lensTop: colors.lensIdle,    lensBottom: colors.surface1 },
+  heating: { ring: colors.emberMid,     text: colors.bone100, lensTop: colors.lensHeating, lensBottom: colors.surface1 },
+  target:  { ring: colors.emberBright,  text: '#fff5e8',      lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
+  cooling: { ring: colors.emberCool,    text: colors.bone90,  lensTop: colors.lensCooling, lensBottom: colors.surface1 },
+  dunk:    { ring: colors.quartzBright, text: '#e6effa',      lensTop: colors.lensDunk,    lensBottom: colors.surface1 },
 };
 
 const STATE_LABELS: Record<DialState, string> = {
@@ -47,7 +48,7 @@ const STATE_INDICES: Record<DialState, number> = {
 };
 
 const RING_COLOR_STOPS = [0, 0.25, 0.5, 0.75, 1];
-const RING_COLORS = ['#4A7490', '#9B6030', '#E89240', '#AD7040', '#9ABDD8'];
+const RING_COLORS = [colors.quartzDim, colors.emberMid, colors.emberBright, colors.emberCool, colors.quartzBright];
 
 function deriveState(
   tempF: number,
@@ -211,7 +212,7 @@ export function TempDial({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: '#0c0908',
+          backgroundColor: colors.surface1,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 16 },
           shadowOpacity: 0.5,
@@ -325,10 +326,11 @@ export function TempDial({
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <Text
             style={{
-              fontFamily: 'Georgia',
+              fontFamily: 'SpaceGrotesk_300Light',
               fontSize: numFontSize,
               lineHeight: numFontSize * 0.95,
-              fontWeight: '400',
+              fontWeight: '300',
+              fontVariant: ['tabular-nums'],
               color: pal.text,
               letterSpacing: -numFontSize * 0.03,
             }}
@@ -337,12 +339,13 @@ export function TempDial({
           </Text>
           <Text
             style={{
+              fontFamily: 'SpaceGrotesk_400Regular',
+              fontVariant: ['tabular-nums'],
               fontSize: 11,
               letterSpacing: 1.2,
               color: 'rgba(244,237,228,0.5)',
               marginLeft: 5,
               marginTop: 8,
-              fontFamily: 'Menlo',
             }}
           >
             {unitLabel}°
@@ -351,11 +354,12 @@ export function TempDial({
         {state !== 'idle' && (
           <Text
             style={{
+              fontFamily: 'SpaceGrotesk_400Regular',
+              fontVariant: ['tabular-nums'],
               marginTop: 10,
               fontSize: 10,
               letterSpacing: 1.2,
               color: 'rgba(244,237,228,0.4)',
-              fontFamily: 'Menlo',
             }}
           >
             {targetMin}–{targetMax}°

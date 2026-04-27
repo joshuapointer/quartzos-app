@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { BleManager as RNBleManager } from 'react-native-ble-plx';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 
-import { ChromeButton, GlassCard, QuartzBackground } from '../../src/design';
+import { ChromeButton, GlassCard, QBackground } from '../../src/design';
 import { colors, fonts, spacing } from '../../src/design/tokens';
 import { requestNotificationPermissions } from '../../src/notifications/channels';
 
@@ -82,7 +82,8 @@ export default function PermissionsScreen() {
   const blocked = bleState === 'blocked';
 
   return (
-    <QuartzBackground>
+    <View style={styles.root}>
+      <QBackground />
       <View style={styles.screen}>
         <GlassCard padding={28} style={styles.card}>
           <View style={styles.iconWrap}>
@@ -133,7 +134,7 @@ export default function PermissionsScreen() {
           ) : null}
         </GlassCard>
       </View>
-    </QuartzBackground>
+    </View>
   );
 }
 
@@ -142,21 +143,21 @@ function CrystalBleIcon() {
     <Svg width={96} height={96} viewBox="0 0 96 96">
       <Defs>
         <SvgGradient id="crystal" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#F6F8FB" stopOpacity={0.85} />
-          <Stop offset="0.6" stopColor="#B9C5D2" stopOpacity={0.55} />
-          <Stop offset="1" stopColor="#4A5668" stopOpacity={0.8} />
+          <Stop offset="0" stopColor="#f4ede4" stopOpacity={0.85} />
+          <Stop offset="0.6" stopColor="#c7b8a4" stopOpacity={0.55} />
+          <Stop offset="1" stopColor="#8A4E16" stopOpacity={0.8} />
         </SvgGradient>
         <SvgGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.65} />
-          <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+          <Stop offset="0" stopColor="rgba(244,237,228,0.6)" stopOpacity={1} />
+          <Stop offset="1" stopColor="rgba(244,237,228,0)" stopOpacity={1} />
         </SvgGradient>
       </Defs>
-      <Circle cx={48} cy={48} r={44} fill="url(#crystal)" stroke="rgba(255,255,255,0.6)" strokeWidth={1.5} />
+      <Circle cx={48} cy={48} r={44} fill="url(#crystal)" stroke="rgba(244,237,228,0.4)" strokeWidth={1.5} />
       <Circle cx={48} cy={36} r={28} fill="url(#gloss)" />
       {/* Bluetooth glyph */}
       <Path
         d="M40 28 L56 44 L40 60 V36 L56 52 L40 68"
-        stroke="#0A1F3D"
+        stroke="#050403"
         strokeWidth={3}
         fill="none"
         strokeLinecap="round"
@@ -167,6 +168,10 @@ function CrystalBleIcon() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.bgDeep,
+  },
   screen: {
     flex: 1,
     justifyContent: 'center',

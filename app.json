@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#120C1F"
+      "backgroundColor": "#050403"
     },
     "ios": {
       "bundleIdentifier": "com.quartzos.app",
@@ -29,7 +29,7 @@
       "package": "com.quartzos.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#120C1F"
+        "backgroundColor": "#050403"
       },
       "permissions": [
         "android.permission.BLUETOOTH_CONNECT",

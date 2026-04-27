@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { QuartzBackground, GlassCard, ChromeButton } from '../../../src/design';
+import { QBackground, GlassCard, ChromeButton } from '../../../src/design';
 import { colors, spacing, radius, fonts } from '../../../src/design/tokens';
 import { useSettingsStore } from '../../../src/state/settingsStore';
 import * as presetsDb from '../../../src/db/presets';
@@ -61,7 +61,7 @@ export default function PresetEditorScreen() {
 
   return (
     <View style={styles.root}>
-      <QuartzBackground />
+      <QBackground />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.kav}

@@ -13,7 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { format } from 'date-fns';
 import Svg, { Polyline, Line, Circle, Text as SvgText } from 'react-native-svg';
 
-import { QuartzBackground, GlassCard, ChromeButton } from '../../../src/design';
+import { QBackground, GlassCard, ChromeButton } from '../../../src/design';
 import { colors, spacing, radius, fonts } from '../../../src/design/tokens';
 import * as sessionsDb from '../../../src/db/sessions';
 import type { SessionRecord, TempSample } from '../../../src/db/sessions';
@@ -200,7 +200,7 @@ export default function SessionDetailScreen() {
   if (!session) {
     return (
       <View style={styles.root}>
-        <QuartzBackground />
+        <QBackground />
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Text style={styles.loadingText}>Loading…</Text>
         </SafeAreaView>
@@ -210,7 +210,7 @@ export default function SessionDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <QuartzBackground />
+      <QBackground />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.kav}

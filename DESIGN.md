@@ -265,3 +265,56 @@ A horizontal row of labeled numeric values (e.g., peak temp, duration, hit count
 - **Don't** introduce a second typeface for UI text. Space Grotesk handles all roles. Georgia is wordmark-only. Menlo is sensor-debug-only.
 - **Don't** animate layout properties. Position, scale, and opacity only via Reanimated. Never width/height/padding in animated values.
 - **Don't** add a modal as a first-response to secondary actions. The single-surface layout uses in-place reveal and bottom-sheet promotion. Modals are for interruptions that require a decision before proceeding.
+
+
+## 7. Brand Kit & Production Assets
+
+The Quartzie brand kit lives at `assets/brand/` (production-ready PNGs) with vector source SVGs at `assets/brand/source/`. The four runtime app icons live at `assets/`.
+
+### Runtime app icons (`assets/`)
+
+| File | Size | Purpose |
+|---|---|---|
+| `icon.png` | 1024×1024 | iOS app icon — full-bleed warm-obsidian + Q-as-dial monogram |
+| `adaptive-icon.png` | 1024×1024 | Android adaptive-icon foreground; mark sized inside the 66% safe-zone; pairs with `app.json android.adaptiveIcon.backgroundColor: "#050403"` |
+| `splash-icon.png` | 1024×1024 | Splash mark — wordmark "quartzie" over a quiet ember halo; pairs with `app.json splash.backgroundColor: "#050403"` |
+| `favicon.png` | 512×512 | Web favicon (Expo Web) — color, retina-friendly |
+
+All four are rendered from canonical SVG sources, so they can be regenerated at any size.
+
+### Brand kit (`assets/brand/`)
+
+| File | Size | Purpose |
+|---|---|---|
+| `monogram.png` / `monogram-512.png` | 1024² / 512² | The Q-as-dial mark on warm-obsidian, with 12% padding to the canvas edge. Use for press, profile avatars, square brand placements. |
+| `wordmark-light.png` | 1200×320 | Wordmark on warm-obsidian (light text on dark). Default usage. |
+| `wordmark-dark.png` | 1200×320 | Wordmark on warm-bone (dark text on light). For light surfaces or print. |
+| `og-hero.png` | 1200×630 | Open-graph share image. Monogram + wordmark + tagline + descriptor. |
+| `social-square.png` | 1080×1080 | Instagram / general social square. Centered monogram + wordmark stack. |
+
+### The mark — design rationale
+
+The Quartzie monogram is the **Q-as-thermal-dial**:
+
+- The bowl of the Q is the TempDial outer ring at fired-amber (`#E89240`) — the at-target heat state.
+- The descender is the heat-trace tangent leaving the ring at ~4 o'clock, ending in a small ember terminal.
+- The center lens uses a warm-obsidian gradient (`lensTarget` → `surface1`) that reads as the inner crystal at temperature.
+- A subtle bone gloss runs across the upper edge of the lens — the only specular highlight on the mark.
+- A hairline bone tick at 12 o'clock anchors the dial.
+
+The mark literally **is** what the app does: a temperature dial that spells Q. Premium without announcing itself.
+
+### Texture (`assets/textures/`)
+
+| File | Size | Purpose |
+|---|---|---|
+| `grain.png` | 512×512 | Tiled fractal-noise grain. Use at ≤4% opacity over `QBackground` for material weight. |
+
+### Usage rules
+
+1. The wordmark sits only on `#050403` (light variant) or `#f4ede4` (dark variant). Never on amber.
+2. The monogram has a built-in ember halo — do not add an additional outer glow.
+3. Minimum monogram size: 64×64 px (anything smaller becomes a flat amber dot).
+4. Clear-space: at least 12.5% of the monogram width on every side.
+5. Never tint the wordmark amber. Amber is a temperature signal, not a brand color (per the Functional Color Rule).
+6. Re-rendering: SVG sources are deterministic. To regenerate PNGs, see `assets/brand/README.md`.

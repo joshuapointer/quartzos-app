@@ -15,7 +15,7 @@ import { format, isToday, isYesterday } from 'date-fns';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop } from 'react-native-svg';
 
-import { QuartzBackground, GlassCard, ChromeButton, FloatingHeader } from '../../src/design';
+import { QBackground, GlassCard, ChromeButton, FloatingHeader } from '../../src/design';
 import { colors, spacing, radius, fonts } from '../../src/design/tokens';
 import * as sessionsDb from '../../src/db/sessions';
 import type { SessionRecord } from '../../src/db/sessions';
@@ -105,8 +105,8 @@ function Sparkline({ samples }: SparklineProps) {
     >
       <Defs>
         <SVGGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="rgba(181,161,255,0.2)" stopOpacity={1} />
-          <Stop offset="1" stopColor="rgba(181,161,255,0)" stopOpacity={1} />
+          <Stop offset="0" stopColor="rgba(232,146,64,0.20)" stopOpacity={1} />
+          <Stop offset="1" stopColor="rgba(232,146,64,0)" stopOpacity={1} />
         </SVGGradient>
       </Defs>
       <Path d={fillPath} fill="url(#sparkFill)" />
@@ -217,7 +217,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.root}>
-      <QuartzBackground />
+      <QBackground />
       <FloatingHeader />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Page header */}
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipActive: {
-    backgroundColor: 'rgba(207,193,255,0.15)',
+    backgroundColor: 'rgba(232,146,64,0.12)',
     borderColor: colors.primaryContainer,
   },
   chipInactive: {
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(202,196,211,0.08)',
+    backgroundColor: 'rgba(244,237,228,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },

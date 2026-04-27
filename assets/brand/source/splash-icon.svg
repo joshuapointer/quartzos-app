@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    Quartzie splash mark — wordmark over a quiet ember halo.
+    Splash is centered in expo-splash-screen with resizeMode "contain", on background #050403.
+    The wordmark is in Georgia italic (rendered in a vector path so font availability
+    doesn't matter). Mark is restrained: just the wordmark with a small ember dot.
+  -->
+  <defs>
+    <radialGradient id="ambientGlow" cx="0.5" cy="0.5" r="0.45">
+      <stop offset="0" stop-color="#E89240" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#E89240" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient ember warmth behind the wordmark -->
+  <circle cx="512" cy="512" r="380" fill="url(#ambientGlow)"/>
+
+  <!-- Wordmark "quartzie" in Georgia italic (system serif). -->
+  <text x="512" y="525"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-style="italic"
+        font-weight="400"
+        font-size="156"
+        fill="#f4ede4"
+        letter-spacing="-2">quartzie</text>
+
+  <!-- Small ember accent dot to the right of the 'e' (~36px below center) -->
+  <circle cx="816" cy="512" r="8" fill="#E89240"/>
+
+  <!-- Tagline below in label-caps register, bone-dim -->
+  <text x="512" y="600"
+        text-anchor="middle"
+        font-family="Helvetica, Arial, sans-serif"
+        font-weight="500"
+        font-size="22"
+        letter-spacing="6"
+        fill="#9e907e">RITUAL  INSTRUMENT</text>
+</svg>

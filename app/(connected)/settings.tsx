@@ -14,7 +14,7 @@ import {
   CrystalToggle,
   FloatingHeader,
   GlassCard,
-  QuartzBackground,
+  QBackground,
   SkeuSlider,
 } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
@@ -179,7 +179,8 @@ export default function SettingsScreen() {
   }, [status]);
 
   return (
-    <QuartzBackground>
+    <View style={styles.root}>
+      <QBackground />
       <FloatingHeader connectionState={connectionState} />
       <ScrollView
         style={styles.scroll}
@@ -340,7 +341,7 @@ export default function SettingsScreen() {
           <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
         </View>
       </ScrollView>
-    </QuartzBackground>
+    </View>
   );
 }
 
@@ -407,6 +408,10 @@ function SegmentedPicker({
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.bgDeep,
+  },
   scroll: {
     flex: 1,
   },
@@ -506,8 +511,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.glassFill,
   },
   segmentActive: {
-    backgroundColor: 'rgba(207,193,255,0.2)',
-    borderColor: colors.primaryContainer,
+    backgroundColor: '#2a2320',
+    borderColor: '#6d6050',
   },
   segmentText: {
     ...fonts.caption,
@@ -515,7 +520,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   segmentTextActive: {
-    color: colors.primary,
+    color: '#f4ede4',
   },
   saveRow: {
     flexDirection: 'row',

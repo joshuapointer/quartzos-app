@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320">
+  <!-- Quartzie wordmark — dark (obsidian) on warm bone. Use on light surfaces. -->
+  <rect width="1200" height="320" fill="#f4ede4"/>
+
+  <text x="600" y="190"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-style="italic"
+        font-weight="400"
+        font-size="156"
+        fill="#0c0908"
+        letter-spacing="-2">quartzie</text>
+
+  <!-- ember accent dot (deeper ember to read on bone) -->
+  <circle cx="900" cy="180" r="9" fill="#C97326"/>
+
+  <text x="600" y="248"
+        text-anchor="middle"
+        font-family="Helvetica, Arial, sans-serif"
+        font-weight="500"
+        font-size="20"
+        letter-spacing="6"
+        fill="#6d6050">RITUAL  INSTRUMENT</text>
+</svg>

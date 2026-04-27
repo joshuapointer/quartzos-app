@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { QuartzBackground, GlassCard, ChromeButton, FloatingHeader } from '../../src/design';
+import { QBackground, GlassCard, ChromeButton, FloatingHeader } from '../../src/design';
 import { colors, spacing, radius, fonts } from '../../src/design/tokens';
 import { formatTemp } from '../../src/utils/temperature';
 import { bleManager } from '../../src/ble/BleManager';
@@ -174,7 +174,7 @@ export default function PresetsScreen() {
 
   return (
     <View style={styles.root}>
-      <QuartzBackground />
+      <QBackground />
       <FloatingHeader connectionState={connectionState} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Page header */}

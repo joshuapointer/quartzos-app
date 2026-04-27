@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../tokens';
 import { useThemeColors } from '../ThemeContext';
+import { QWordmark } from './QWordmark';
 
 export interface FloatingHeaderProps {
   connectionState?: string;
@@ -23,7 +24,9 @@ export function FloatingHeader({ connectionState = '' }: FloatingHeaderProps) {
         <MaterialIcons name="blur-on" size={24} color={tc.primaryContainer} />
 
         {/* Center: wordmark */}
-        <Text style={[styles.wordmark, { color: tc.primaryContainer }]}>QUARTZIE</Text>
+        <View style={styles.wordmarkWrap} pointerEvents="none">
+          <QWordmark connected={connectionState === 'READY'} />
+        </View>
 
         {/* Right: status pill */}
         <StatusPill connectionState={connectionState} tc={tc} />
@@ -62,7 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    shadowColor: '#000',
+    shadowColor: 'rgba(5,4,3,0.9)',
     shadowOpacity: 0.5,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
@@ -78,10 +81,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
-  wordmark: {
-    fontWeight: '700',
-    fontSize: 18,
-    letterSpacing: 4.8,
+  wordmarkWrap: {
+    flex: 1,
+    overflow: 'hidden',
   },
   pill: {
     flexDirection: 'row',

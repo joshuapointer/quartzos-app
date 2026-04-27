@@ -9,7 +9,7 @@ import {
   ChromeButton,
   CrystalToggle,
   GlassCard,
-  QuartzBackground,
+  QBackground,
   SkeuSlider,
 } from '../../src/design';
 import { colors, fonts, spacing, radius } from '../../src/design/tokens';
@@ -80,7 +80,8 @@ export default function NotificationConfigModal() {
   }, [router]);
 
   return (
-    <QuartzBackground>
+    <View style={styles.root}>
+      <QBackground />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ScrollView
           contentContainerStyle={styles.content}
@@ -160,11 +161,15 @@ export default function NotificationConfigModal() {
           />
         </ScrollView>
       </SafeAreaView>
-    </QuartzBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#050403',
+  },
   safe: {
     flex: 1,
   },

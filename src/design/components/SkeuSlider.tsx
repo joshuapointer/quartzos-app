@@ -147,7 +147,7 @@ export function SkeuSlider({
           {/* Recessed groove */}
           <View style={styles.groove}>
             <LinearGradient
-              colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.25)']}
+              colors={['rgba(5,4,3,0.55)', 'rgba(5,4,3,0.25)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#05030A',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(244,237,228,0.05)',
   },
   innerShadowTop: {
     position: 'absolute',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(5,4,3,0.4)',
   },
   innerShadowBottom: {
     position: 'absolute',
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(244,237,228,0.15)',
   },
   fillWrap: {
     position: 'absolute',
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     height: THUMB,
     borderRadius: THUMB / 2,
     overflow: 'visible',
-    shadowColor: '#000',
+    shadowColor: 'rgba(5,4,3,0.9)',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.45,
     shadowRadius: 4,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: THUMB / 2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
+    borderColor: 'rgba(244,237,228,0.55)',
   },
   thumbSpec: {
     position: 'absolute',
@@ -270,6 +270,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 6,
     borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(244,237,228,0.85)',
   },
 });

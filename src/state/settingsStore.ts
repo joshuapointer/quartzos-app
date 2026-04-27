@@ -9,7 +9,7 @@ const storage = new MMKV();
 
 function loadPersistedTheme(): ThemeName {
   const stored = storage.getString('app.theme');
-  if (stored === 'warm-mineral' || stored === 'smoke' || stored === 'cool-shell') {
+  if (stored === 'obsidian') {
     return stored;
   }
   return DEFAULT_THEME;

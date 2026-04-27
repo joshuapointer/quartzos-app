@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
   },
 
   stepTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: 'SpaceGrotesk_400Regular',
     fontSize: 38,
     fontWeight: '400',
     color: colors.bone100,
@@ -939,9 +939,10 @@ const styles = StyleSheet.create({
   },
 
   timerCountdown: {
-    fontFamily: 'Georgia',
+    fontFamily: 'SpaceGrotesk_300Light',
     fontSize: 48,
-    fontWeight: '400',
+    fontWeight: '300',
+    fontVariant: ['tabular-nums'],
     color: colors.bone90,
     letterSpacing: -1,
     marginTop: 4,
@@ -967,9 +968,10 @@ const styles = StyleSheet.create({
   },
 
   liveTempValue: {
-    fontFamily: 'Georgia',
+    fontFamily: 'SpaceGrotesk_300Light',
     fontSize: 36,
-    fontWeight: '400',
+    fontWeight: '300',
+    fontVariant: ['tabular-nums'],
     letterSpacing: -0.7,
   },
 
@@ -1017,9 +1019,10 @@ const styles = StyleSheet.create({
   },
 
   statValue: {
-    fontFamily: 'Georgia',
+    fontFamily: 'SpaceGrotesk_300Light',
     fontSize: 28,
-    fontWeight: '400',
+    fontWeight: '300',
+    fontVariant: ['tabular-nums'],
     color: colors.bone90,
     letterSpacing: -0.5,
   },
