@@ -45,3 +45,6 @@ yarn-error.*
 
 # OMC local artifacts (state, plans, research, scratchpads)
 .omc/
+
+# Local research/reference data
+docs/ref/
