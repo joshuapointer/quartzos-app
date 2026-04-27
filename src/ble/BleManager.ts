@@ -14,6 +14,7 @@ import { useSessionStore } from '../state/sessionStore';
 import { useSettingsStore } from '../state/settingsStore';
 import { ConnectionStateMachine } from './ConnectionStateMachine';
 import {
+  ATT_MTU,
   CHAR_FF01_UUID,
   CHAR_FF02_UUID,
   FRAME_SETTINGS_LEN,
@@ -149,8 +150,8 @@ export class BleManager {
 
   private device: Device | null = null;
   private ff01Sub: Subscription | null = null;
-  private ff02Sub: Subscription | null = null;
   private disconnectSub: Subscription | null = null;
+  private negotiatedMtu: number = ATT_MTU + 3; // BLE chunk size = mtu - 3 ATT bytes
 
   private queryInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -236,11 +237,18 @@ export class BleManager {
         console.warn('[BLE] requestConnectionPriority failed:', e);
       }
 
+      // iOS auto-negotiates MTU at connect time; requestMTU is a no-op there but harmless.
+      // On Android, default is 23 — we must explicitly request a larger MTU so the 22-byte
+      // WRITE_ALL frame fits in a single write (preventing fragmented writes that crash firmware).
+      this.negotiatedMtu = device.mtu && device.mtu >= ATT_MTU + 3 ? device.mtu : ATT_MTU + 3;
       try {
         const negotiated = await device.requestMTU(185);
-        console.log('[BLE] MTU negotiated to', negotiated.mtu);
+        if (negotiated.mtu && negotiated.mtu > 0) {
+          this.negotiatedMtu = negotiated.mtu;
+        }
+        console.log('[BLE] MTU is', this.negotiatedMtu);
       } catch (e) {
-        console.warn('[BLE] MTU negotiation not supported; using default 23', e);
+        console.warn('[BLE] requestMTU failed; using', this.negotiatedMtu, e);
       }
 
       this.setState('READY');
@@ -330,16 +338,6 @@ export class BleManager {
         this.handleFf01(ch);
       },
     );
-
-    this.ff02Sub = this.rnBle.monitorCharacteristicForDevice(
-      deviceId,
-      SERVICE_UUID,
-      CHAR_FF02_UUID,
-      (error, ch) => {
-        if (error || !ch) return;
-        this.handleFf02(ch);
-      },
-    );
   }
 
   private handleFf01(ch: Characteristic): void {
@@ -360,25 +358,6 @@ export class BleManager {
         return;
       }
       if (type === TYPE_QUERY_REPLY) {
-        const settings = decodeSettings(bytes);
-        if (settings) {
-          useSettingsStore.getState().setSettings(settings);
-          this.querySettingsReceived = true;
-          this.stopQueryPoll();
-        }
-      }
-    }
-  }
-
-  private handleFf02(ch: Characteristic): void {
-    // Some devices echo responses on FF02 as well; parse the same as FF01 for safety.
-    const bytes = decodeBase64(ch.value);
-    if (!bytes) return;
-    if (bytes.length === FRAME_SETTINGS_LEN) {
-      const type = bytes[2];
-      if (type === TYPE_WRITE_ACK) {
-        this.commandQueue.resolveAck();
-      } else if (type === TYPE_QUERY_REPLY) {
         const settings = decodeSettings(bytes);
         if (settings) {
           useSettingsStore.getState().setSettings(settings);
@@ -477,7 +456,8 @@ export class BleManager {
   private async sendFrame(frame: Uint8Array): Promise<void> {
     const device = this.device;
     if (!device) throw new Error('BLE not connected');
-    const chunks = fragmentFrame(frame);
+    const chunkSize = Math.max(this.negotiatedMtu - 3, ATT_MTU);
+    const chunks = fragmentFrame(frame, chunkSize);
     for (const chunk of chunks) {
       const b64 = Buffer.from(chunk).toString('base64');
       await this.rnBle.writeCharacteristicWithResponseForDevice(
@@ -542,9 +522,7 @@ export class BleManager {
 
   private teardownCharacteristicSubs(): void {
     this.ff01Sub?.remove();
-    this.ff02Sub?.remove();
     this.ff01Sub = null;
-    this.ff02Sub = null;
   }
 
   private teardownSubscriptions(): void {
