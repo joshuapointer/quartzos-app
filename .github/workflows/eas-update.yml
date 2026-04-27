@@ -30,10 +30,13 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish update
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
           eas update \
-            --branch "${{ github.ref_name }}" \
-            --message "${{ github.event.head_commit.message }}" \
+            --branch "$BRANCH_NAME" \
+            --message "$COMMIT_MSG" \
             --platform all \
             --non-interactive
 
