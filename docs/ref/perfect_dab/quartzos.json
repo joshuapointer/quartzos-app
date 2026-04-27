@@ -1,0 +1,1694 @@
+{
+  "$schema": "https://quartzos.app/schemas/reference-data-v1.json",
+  "meta": {
+    "name": "QuartzOS Reference Data",
+    "version": "1.0.0",
+    "release_date": "2026-04-27",
+    "description": "Production-grade reference data for cannabis concentrate dabbing \u2014 banger form factors, concentrates, sensors, and temperature calibrations. Sourced from manufacturer documentation (Dab Rite, Highly Educated, Quave, Honeybee Herb), brand guidance (710 Labs, Mood, Press Club), and 2025-2026 community consensus.",
+    "license": "Open data for non-commercial integration. Verify temperature recommendations against current community testing before production deployment.",
+    "units": {
+      "temperature": "fahrenheit",
+      "distance": "inches",
+      "time": "seconds",
+      "wall_thickness": "millimeters"
+    },
+    "temperature_convention": "All concentrate.surface_temp_f values are INTERIOR SURFACE temperatures (probe-truth, Terpometer V1 contact). Sensor readings on instruments differ \u2014 use the sensor + banger.ir_offset_f + banger.ir_offset_sign math to convert.",
+    "calibration_formula": "displayed_temp = interior_surface_temp + (banger.ir_offset_sign * banger.ir_offset_f) + wall.modifier_f",
+    "data_sources": [
+      "Dab Rite official documentation and 2025 placement guide (dabrite.com)",
+      "Highly Educated Control Tower FAQ (highlyeducatedti.com)",
+      "Honeybee Herb product documentation (honeybeeherb.com)",
+      "Mood blog torch + temperature guides (mood.com)",
+      "420 VapeZone empirical Dab Rite + slurper testing",
+      "710 Labs solventless temperature guidance",
+      "Press Club temple ball / hash temp guidance",
+      "Quave Club Banger product documentation",
+      "Hashwriter community Terpometer averages",
+      "Reddit r/Dabs, r/QuartzBangers technique threads (2024-2026)"
+    ],
+    "confidence_levels": {
+      "S": "peer-reviewed scientific source",
+      "M": "manufacturer-published (primary source)",
+      "B": "brand/extractor-published",
+      "C": "community consensus (multi-source convergence)",
+      "E": "empirically tested (controlled measurement)",
+      "A": "anecdotal / single source"
+    }
+  },
+  "schema": {
+    "bangers": {
+      "description": "Quartz banger form factors in active 2025-2026 production. Each entry contains geometry, temperature ranges, IR calibration data, torch technique, and procedure metadata.",
+      "fields": {
+        "id": "Stable string identifier (lowercase, hyphenated)",
+        "name": "Display name",
+        "category": "One of: classic | slurper | specialty | premium",
+        "geometry": "Thermal class for IR offset math: bucket | slurper | insert | enail. Drives ir_offset_sign.",
+        "description": "Brief description for UI",
+        "surface_temp_range_f": "[low, high] interior surface temp where this banger is operable",
+        "ir_offset_f": "Magnitude of IR-vs-interior offset in \u00b0F",
+        "ir_offset_sign": "Direction of offset: -1 = display reads LOWER than interior (bucket-class, IR sees cooler exterior wall); +1 = display reads HIGHER than interior (slurper-class, side-of-column wall is thinner and hotter); 0 = no offset (e-nail PID is its own system)",
+        "ir_aim_location": "Where to aim the IR thermometer (the most-disputed UX spec \u2014 verified against Dab Rite 2025 placement guide)",
+        "heat_time_seconds": "Total torch time as a string range (some bangers have multi-stage breakdowns)",
+        "cooldown_seconds": "Wait time after torch-off before dabbing",
+        "torch_pattern": "circular_sweep | circular_sweep_outer_only | circular_sweep_floor | sequenced | simultaneous_sweep | none",
+        "torch_zones": "Array of {anatomy, time_pct} describing where to focus the flame",
+        "torch_distance_inches": "Distance from inner-cone tip of Blazer Big Shot to quartz",
+        "visual_cue": "Stop-torching visual signal",
+        "cold_start_compatible": "YES | NO | OPTIONAL",
+        "tags": "Array of UI tags",
+        "notable_manufacturers": "Array of brands producing this form factor in 2026"
+      }
+    },
+    "concentrates": {
+      "description": "Cannabis concentrates in active 2025-2026 rotation. surface_temp_f values are INTERIOR SURFACE temps (Terpometer-equivalent, not Dab Rite IR readings).",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "category": "solventless | hash | hydrocarbon | distillate | novel",
+        "description": "Brief description",
+        "surface_temp_range_f": "[low, high] interior surface temp range",
+        "surface_temp_optimal_f": "Single optimal interior surface temp (midpoint of range or community consensus)",
+        "terpene_profile": "none | low | med | high",
+        "good_for_cold_start": "Boolean \u2014 concentrate benefits from cold-start workflow",
+        "blocked": "If present, this concentrate should NOT be dabbed. Value is the user-facing explanation.",
+        "warning": "If present, soft warning to display alongside dab recommendation",
+        "notes": "Array of contextual notes / why-this-temp explanations",
+        "confidence": "Confidence level per META.confidence_levels (e.g., 'BRAND+COMMUNITY')",
+        "tags": "Array of UI tags"
+      }
+    },
+    "sensors": {
+      "description": "Temperature measurement instruments. Method drives the calibration formula branch.",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "method": "contact | ir | enail | visual",
+        "description": "Brief description",
+        "calibration_note": "How this instrument relates to interior surface temp"
+      }
+    },
+    "wall_thicknesses": {
+      "description": "Banger wall thickness modifier. Thinner walls heat and cool faster.",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "thickness_mm_range": "Approximate wall thickness in mm",
+        "modifier_f": "\u00b0F to add to surface temp target (thicker = positive, thinner = negative)",
+        "description": "Brief description"
+      }
+    }
+  },
+  "calibration": {
+    "formula": "displayed_temp = interior_surface_temp + (banger.ir_offset_sign * banger.ir_offset_f) + wall.modifier_f",
+    "explanation": [
+      "1. Start with concentrate.surface_temp_optimal_f (interior surface \u2014 what the dab actually contacts)",
+      "2. Apply wall.modifier_f (thicker walls hold more heat, target slightly higher)",
+      "3. Multiply banger.ir_offset_f by banger.ir_offset_sign (-1 for bucket-class, +1 for slurper-class, 0 for e-nail)",
+      "4. Add result to surface temp to get the displayed temp on the user's instrument"
+    ],
+    "examples": [
+      {
+        "scenario": "Live Resin + Flat Top + IR + Standard wall",
+        "math": "510 (interior) + 0 (wall) + (-1 * 35) (bucket-class IR offset) = 475\u00b0F displayed on Dab Rite",
+        "displayed_target_f": 475
+      },
+      {
+        "scenario": "Live Resin + Blender + IR + Standard wall",
+        "math": "510 (interior) + 0 (wall) + (+1 * 20) (slurper-class IR offset) = 530\u00b0F displayed on Dab Rite",
+        "displayed_target_f": 530
+      },
+      {
+        "scenario": "Cold Cure Rosin + Terp Slurper + IR + Standard wall",
+        "math": "460 (interior) + 0 (wall) + (+1 * 20) (slurper-class IR offset) = 480\u00b0F displayed on Dab Rite",
+        "displayed_target_f": 480
+      },
+      {
+        "scenario": "Live Resin + Flat Top + Probe + Standard wall",
+        "math": "510 (interior) + 0 (wall) + 0 (probe is contact, no offset) = 510\u00b0F displayed on Terpometer",
+        "displayed_target_f": 510
+      },
+      {
+        "scenario": "Live Resin + E-Banger + PID + Standard wall",
+        "math": "510 (interior) + 0 (wall) + 50 (PID midpoint coil offset) = 560\u00b0F PID setpoint",
+        "displayed_target_f": 560
+      }
+    ],
+    "workflow_note": "For IR-mode users: the Dab Rite alarms when temp DESCENDS through the set point. Torch past the displayed target, pull the flame, then dab when the alarm fires on the way down. Don't dab AT peak torch."
+  },
+  "torch_reference": {
+    "default_torch": "Blazer Big Shot GT8000",
+    "max_flame_temp_f": 2500,
+    "burn_time_minutes": 35,
+    "fuel_capacity_g": 28,
+    "ignition": "piezo crystal",
+    "supports_inverted_use": true,
+    "flame_anatomy": {
+      "inner_cone_temp_f": 1900,
+      "outer_envelope_temp_f": 2500,
+      "hottest_point": "tip of inner blue cone where it meets outer envelope",
+      "common_misconception": "Cone interior looks brightest but is NOT hottest \u2014 heat peaks at the cone tip where combustion completes"
+    },
+    "universal_rules": [
+      "Use the TIP of the bright blue inner cone \u2014 not the cone interior",
+      "Distance: 1-2\" for bucket-class, 0.5-1\" for slurper-class",
+      "Keep flame moving \u2014 no stationary points (creates hot spots, devitrification)",
+      "Never torch a wet banger (thermal shock cracks quartz)",
+      "Never torch the joint connection (stress fractures)",
+      "Never torch with carb cap on during hot-start (uneven heat trapping)",
+      "Never torch to clean residue between dabs (carbonizes residue into surface)"
+    ],
+    "common_mistakes": [
+      "Chasing the orange glow every dab (devitrifies quartz, burns terps)",
+      "Stationary point heating (hot spots \u2192 chazzing \u2192 microfractures)",
+      "Torching with cap on during hot-start",
+      "Holding flame too close (buries quartz in cooler reducing zone)",
+      "Skipping cooldown after glow (concentrate combusts instead of vaporizes)",
+      "Using inner cone interior instead of cone tip",
+      "Torching to burn off residue between dabs"
+    ]
+  },
+  "enums": {
+    "banger_categories": [
+      {
+        "id": "classic",
+        "label": "Classic"
+      },
+      {
+        "id": "slurper",
+        "label": "Slurper Class"
+      },
+      {
+        "id": "specialty",
+        "label": "Specialty"
+      },
+      {
+        "id": "premium",
+        "label": "Premium"
+      }
+    ],
+    "banger_geometries": [
+      {
+        "id": "bucket",
+        "label": "Bucket-class",
+        "ir_offset_direction": "negative",
+        "description": "IR display reads LOWER than interior surface"
+      },
+      {
+        "id": "slurper",
+        "label": "Slurper-class",
+        "ir_offset_direction": "positive",
+        "description": "IR display reads HIGHER than interior surface (thin column wall, direct flame)"
+      },
+      {
+        "id": "insert",
+        "label": "Insert workflow",
+        "ir_offset_direction": "negative",
+        "description": "Read host banger temp, not insert directly"
+      },
+      {
+        "id": "enail",
+        "label": "E-nail (electric)",
+        "ir_offset_direction": "none",
+        "description": "PID setpoint, no torch, no IR needed"
+      }
+    ],
+    "concentrate_categories": [
+      {
+        "id": "solventless",
+        "label": "Solventless"
+      },
+      {
+        "id": "hash",
+        "label": "Hash"
+      },
+      {
+        "id": "hydrocarbon",
+        "label": "Hydrocarbon"
+      },
+      {
+        "id": "distillate",
+        "label": "Distillate"
+      },
+      {
+        "id": "novel",
+        "label": "Novel / 2026"
+      }
+    ],
+    "torch_patterns": [
+      {
+        "id": "circular_sweep",
+        "label": "Circular sweep \u2014 keep flame moving"
+      },
+      {
+        "id": "circular_sweep_outer_only",
+        "label": "Circular sweep \u2014 OUTER WALL ONLY"
+      },
+      {
+        "id": "circular_sweep_floor",
+        "label": "Circular sweep \u2014 focus floor, not pillar"
+      },
+      {
+        "id": "sequenced",
+        "label": "Sequenced \u2014 dish \u2192 column \u2192 dish"
+      },
+      {
+        "id": "simultaneous_sweep",
+        "label": "Simultaneous side-to-side + top-to-bottom"
+      },
+      {
+        "id": "none",
+        "label": "No torch (electric)"
+      }
+    ],
+    "cold_start_compatibility": [
+      "YES",
+      "NO",
+      "OPTIONAL"
+    ],
+    "terpene_profiles": [
+      "none",
+      "low",
+      "med",
+      "high"
+    ],
+    "sensor_methods": [
+      "contact",
+      "ir",
+      "enail",
+      "visual"
+    ]
+  },
+  "wall_thicknesses": [
+    {
+      "id": "thin",
+      "name": "Thin (2 mm)",
+      "thickness_mm_range": "1.5-2.5",
+      "modifier_f": -8,
+      "description": "Light flat tops. Faster heat, faster cool."
+    },
+    {
+      "id": "standard",
+      "name": "Standard (3-4 mm)",
+      "thickness_mm_range": "3-4",
+      "modifier_f": 0,
+      "description": "Typical premium banger. Default."
+    },
+    {
+      "id": "thick",
+      "name": "Thick (5-6 mm)",
+      "thickness_mm_range": "5-6",
+      "modifier_f": 12,
+      "description": "Heavy reactor / opaque. More retention."
+    },
+    {
+      "id": "unknown",
+      "name": "Don't Know",
+      "thickness_mm_range": null,
+      "modifier_f": 0,
+      "description": "Defaults to standard."
+    }
+  ],
+  "sensors": [
+    {
+      "id": "probe",
+      "name": "Probe (Terpometer V1)",
+      "method": "contact",
+      "description": "Contact probe touches interior surface. Reads SURFACE TRUTH directly.",
+      "calibration_note": "No offset applied \u2014 your reading IS the surface temp."
+    },
+    {
+      "id": "ir",
+      "name": "IR Thermometer (Dab Rite Pro, Octave, Terpometer Gen 2)",
+      "method": "ir",
+      "description": "Non-contact IR. Aim per banger geometry \u2014 bucket vs slurper-class read differently.",
+      "calibration_note": "Apply banger.ir_offset_sign * banger.ir_offset_f. Bucket-class subtracts (display lower than interior). Slurper-class adds (display higher than interior \u2014 thinner wall, direct flame contact). Cooldown-trigger workflow: dab on descent through target, NOT at peak torch."
+    },
+    {
+      "id": "enail",
+      "name": "E-Nail PID Setpoint",
+      "method": "enail",
+      "description": "Coil temp controller. Set & forget. Coil reads 30-80\u00b0F higher than surface (varies by brand).",
+      "calibration_note": "Add ~50\u00b0F midpoint to surface target. MiniNail-on-MiniNail is factory-calibrated to display surface temp directly \u2014 set PID to surface target, not the +50\u00b0F estimate."
+    },
+    {
+      "id": "visual",
+      "name": "No Thermometer (Visual / Timing)",
+      "method": "visual",
+      "description": "Glow + count method. Approximate. App estimates based on form factor.",
+      "calibration_note": "Use IR-equivalent values as approximate guidance. Visual cue (banger.visual_cue) is the primary signal."
+    }
+  ],
+  "bangers": [
+    {
+      "id": "flat-top",
+      "name": "Flat Top",
+      "category": "classic",
+      "geometry": "bucket",
+      "description": "Universal default. Cylindrical bucket, flat rim. ~80% of bangers in market.",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "ir_offset_f": 35,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Center underside of bucket bottom, 1/2\" away",
+      "heat_time_seconds": "20-40",
+      "cooldown_seconds": "30-45",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "bucket_bottom",
+          "time_pct": 60
+        },
+        {
+          "anatomy": "lower_walls",
+          "time_pct": 40
+        }
+      ],
+      "torch_distance_inches": "1-2",
+      "visual_cue": "Just shy of orange glow",
+      "cold_start_compatible": "OPTIONAL",
+      "tags": [
+        "CLASSIC"
+      ],
+      "notable_manufacturers": [
+        "Quave",
+        "Toro",
+        "Highly Educated",
+        "Evan Shore",
+        "Honeybee Herb",
+        "Pulsar",
+        "MJ Arsenal"
+      ]
+    },
+    {
+      "id": "beveled",
+      "name": "Beveled Edge",
+      "category": "classic",
+      "geometry": "bucket",
+      "description": "Inward-cut bevel for flush bubble cap seal. Better seal lets you target 20-40\u00b0F lower than non-beveled flat top.",
+      "surface_temp_range_f": [
+        480,
+        580
+      ],
+      "ir_offset_f": 35,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Center underside of bucket bottom, 1/2\" away",
+      "heat_time_seconds": "25-35",
+      "cooldown_seconds": "35-50",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "bucket_bottom",
+          "time_pct": 60
+        },
+        {
+          "anatomy": "lower_walls",
+          "time_pct": 40
+        }
+      ],
+      "torch_distance_inches": "1-2",
+      "visual_cue": "Just barely glowing",
+      "cold_start_compatible": "OPTIONAL",
+      "tags": [
+        "CLASSIC",
+        "BETTER_SEAL"
+      ],
+      "notable_manufacturers": [
+        "Quave",
+        "Highly Educated Gavel",
+        "Evan Shore",
+        "Pulsar Beveled Edge",
+        "Honeybee Herb Original Bevel"
+      ]
+    },
+    {
+      "id": "opaque-bottom",
+      "name": "Opaque Bottom",
+      "category": "premium",
+      "geometry": "bucket",
+      "description": "Sandblasted/frosted bottom disc. Best IR accuracy of any banger. Use Dab Rite \"Opaque Quartz\" emissivity preset.",
+      "surface_temp_range_f": [
+        480,
+        560
+      ],
+      "ir_offset_f": 25,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Center of opaque bottom underside, 1/2\" away (Dab Rite: switch to Opaque Quartz preset)",
+      "heat_time_seconds": "30-40",
+      "cooldown_seconds": "45-60",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "opaque_bottom",
+          "time_pct": 70
+        },
+        {
+          "anatomy": "lower_walls",
+          "time_pct": 30
+        }
+      ],
+      "torch_distance_inches": "1-2",
+      "visual_cue": "Faint side-wall glow only \u2014 opaque hides bottom glow",
+      "cold_start_compatible": "OPTIONAL",
+      "tags": [
+        "BEST_IR_ACCURACY"
+      ],
+      "notable_manufacturers": [
+        "Evan Shore Opaque ESB",
+        "Highly Educated Gavel V3",
+        "Lavatech XL Opaque",
+        "Honeybee Herb Honey & Milk"
+      ]
+    },
+    {
+      "id": "thermal",
+      "name": "Thermal (Double Wall)",
+      "category": "specialty",
+      "geometry": "bucket",
+      "description": "Air gap between walls insulates inner cup. IR reads cooler than actual oil contact temp because IR sees outer wall \u2014 compensate via timing.",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "ir_offset_f": 60,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Outer base of bucket, 1/2\" away (manufacturer-correct aim)",
+      "heat_time_seconds": "30-45",
+      "cooldown_seconds": "45-60",
+      "torch_pattern": "circular_sweep_outer_only",
+      "torch_zones": [
+        {
+          "anatomy": "outer_side_wall",
+          "time_pct": 70
+        },
+        {
+          "anatomy": "outer_bottom",
+          "time_pct": 30
+        }
+      ],
+      "torch_distance_inches": "0.5-1",
+      "visual_cue": "No glow / faint outer corner glow only",
+      "cold_start_compatible": "YES",
+      "tags": [
+        "IR_READS_LOW"
+      ],
+      "notable_manufacturers": [
+        "AFM Thermal",
+        "Pukinbeagle",
+        "Pulsar Thermal",
+        "Honeybee Herb",
+        "Ooze Quartz Thermal"
+      ]
+    },
+    {
+      "id": "round-bottom",
+      "name": "Round Bottom",
+      "category": "classic",
+      "geometry": "bucket",
+      "description": "Hemispherical interior, no corners. Best shape for terp pearls (rolls freely) and cold start (oil pools center).",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "ir_offset_f": 35,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Lowest curve apex (= bottom center), 1/2\" away",
+      "heat_time_seconds": "30-45",
+      "cooldown_seconds": "30-50",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "bottom_curve",
+          "time_pct": 70
+        },
+        {
+          "anatomy": "lower_walls",
+          "time_pct": 30
+        }
+      ],
+      "torch_distance_inches": "1-2",
+      "visual_cue": "Just before glow on the curve",
+      "cold_start_compatible": "YES",
+      "tags": [
+        "CLASSIC",
+        "COLD_START_IDEAL"
+      ],
+      "notable_manufacturers": [
+        "AFM Round Bottom",
+        "Bear Quartz Round V2",
+        "VapeBrat Full-Weld",
+        "Joel Halen artisan"
+      ]
+    },
+    {
+      "id": "core-reactor",
+      "name": "Core Reactor",
+      "category": "specialty",
+      "geometry": "bucket",
+      "description": "Central pillar increases surface area + thermal mass. Cold-start compatible per Honeybee Herb.",
+      "surface_temp_range_f": [
+        500,
+        580
+      ],
+      "ir_offset_f": 45,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Inner bucket floor around pillar, 1/2\" away",
+      "heat_time_seconds": "25-30",
+      "cooldown_seconds": "45-60",
+      "torch_pattern": "circular_sweep_floor",
+      "torch_zones": [
+        {
+          "anatomy": "opaque_bottom",
+          "time_pct": 70
+        },
+        {
+          "anatomy": "lower_outer_wall",
+          "time_pct": 30
+        }
+      ],
+      "torch_distance_inches": "1-2",
+      "visual_cue": "Heat shimmer, no orange glow",
+      "cold_start_compatible": "YES",
+      "tags": [
+        "HEAT_MASS",
+        "COLD_START_OK"
+      ],
+      "notable_manufacturers": [
+        "VapeBrat Core Reactor",
+        "Yo Dabba Dabba",
+        "Honeybee Herb Honey & Milk Core Reactor",
+        "Termini"
+      ]
+    },
+    {
+      "id": "swing-arm",
+      "name": "Swing-Arm Honey Bucket",
+      "category": "specialty",
+      "geometry": "bucket",
+      "description": "Legacy form factor \u2014 heat dome out of chamber, swing back in. NOT cold-start compatible.",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "ir_offset_f": 40,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Outside of dome in heating position, ~1\" away",
+      "heat_time_seconds": "15-30",
+      "cooldown_seconds": "10-30",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "swung_out_dish_bottom",
+          "time_pct": 100
+        }
+      ],
+      "torch_distance_inches": "1",
+      "visual_cue": "Slight shimmer, no red",
+      "cold_start_compatible": "NO",
+      "tags": [
+        "LEGACY",
+        "NO_COLD_START"
+      ],
+      "notable_manufacturers": [
+        "Mothership (vintage)",
+        "Honeybee Herb OFZ"
+      ]
+    },
+    {
+      "id": "terp-slurper",
+      "name": "Terp Slurper",
+      "category": "slurper",
+      "geometry": "slurper",
+      "description": "Bottom dish + slotted column + bucket. Marble cap. Hot-start required \u2014 vortex needs preheat.",
+      "surface_temp_range_f": [
+        420,
+        580
+      ],
+      "ir_offset_f": 20,
+      "ir_offset_sign": 1,
+      "ir_aim_location": "Side of cup ~1/2\" above the dish (column, NOT dish underside) \u2014 Dab Rite 2025 spec",
+      "heat_time_seconds": "55-90",
+      "heat_time_breakdown": [
+        {
+          "stage": "dish",
+          "duration_seconds": 40
+        },
+        {
+          "stage": "column",
+          "duration_seconds": 25
+        },
+        {
+          "stage": "dish_return",
+          "duration_seconds": 15
+        }
+      ],
+      "cooldown_seconds": "35-60",
+      "torch_pattern": "sequenced",
+      "torch_zones": [
+        {
+          "anatomy": "bottom_dish",
+          "time_pct": 50
+        },
+        {
+          "anatomy": "slotted_column",
+          "time_pct": 31
+        },
+        {
+          "anatomy": "dish_return",
+          "time_pct": 19
+        }
+      ],
+      "torch_distance_inches": "0.5-1",
+      "visual_cue": "Faint dish glow only",
+      "cold_start_compatible": "NO",
+      "tags": [
+        "SLURPER_CLASS",
+        "NO_COLD_START"
+      ],
+      "notable_manufacturers": [
+        "Toro (originator)",
+        "Highly Educated",
+        "Evan Shore",
+        "MJ Arsenal",
+        "Pulsar Bubble Barrel",
+        "Bear Quartz",
+        "Campfire Quartz"
+      ]
+    },
+    {
+      "id": "blender",
+      "name": "Blender / Vector",
+      "category": "slurper",
+      "geometry": "slurper",
+      "description": "Slotted hurricane disc spins pearls automatically. Tighter temp window than slurper.",
+      "surface_temp_range_f": [
+        500,
+        580
+      ],
+      "ir_offset_f": 20,
+      "ir_offset_sign": 1,
+      "ir_aim_location": "Side of the tower at mid-height (slurper-class aim \u2014 NOT disc underside)",
+      "heat_time_seconds": "25-35",
+      "cooldown_seconds": "30-45",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "under_slotted_disc",
+          "time_pct": 60
+        },
+        {
+          "anatomy": "lower_wall_above_slits",
+          "time_pct": 40
+        }
+      ],
+      "torch_distance_inches": "0.5-1",
+      "visual_cue": "Faint red bottom corner",
+      "cold_start_compatible": "OPTIONAL",
+      "tags": [
+        "SLURPER_CLASS",
+        "AUTO_SPIN"
+      ],
+      "notable_manufacturers": [
+        "Bear Quartz V2 Blender",
+        "Pulsar Quartz Blender",
+        "Campfire V2 Blender",
+        "VapeBrat Swirl"
+      ]
+    },
+    {
+      "id": "spinner",
+      "name": "Spinner / Tourbillon",
+      "category": "slurper",
+      "geometry": "slurper",
+      "description": "Angled airflow holes drive pearl spin via inhale velocity. Pearl spin is airflow-driven, not temperature-driven.",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "ir_offset_f": 20,
+      "ir_offset_sign": 1,
+      "ir_aim_location": "Side of bucket wall mid-height (avoid drilled holes \u2014 radial crack risk)",
+      "heat_time_seconds": "25-40",
+      "cooldown_seconds": "45-60",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "bucket_bottom",
+          "time_pct": 65
+        },
+        {
+          "anatomy": "wall_between_holes",
+          "time_pct": 35
+        }
+      ],
+      "torch_distance_inches": "0.5-1",
+      "visual_cue": "Faint glow on the bottom",
+      "cold_start_compatible": "OPTIONAL",
+      "tags": [
+        "SLURPER_CLASS",
+        "AUTO_SPIN"
+      ],
+      "notable_manufacturers": [
+        "Yo Dabba Dabba Auto-Spinner",
+        "VapeBrat Cyclone",
+        "aLeaf Deep Dish Auto-Spin",
+        "IC Glass"
+      ]
+    },
+    {
+      "id": "control-tower",
+      "name": "Control Tower",
+      "category": "slurper",
+      "geometry": "slurper",
+      "description": "Highly Educated proprietary slurper with SE Pillar (Surface Enhanced micro-textured quartz). Manufacturer targets: 450\u00b0F solventless / 550\u00b0F hydrocarbon (interior surface).",
+      "surface_temp_range_f": [
+        450,
+        580
+      ],
+      "ir_offset_f": 20,
+      "ir_offset_sign": 1,
+      "ir_aim_location": "Side of the chamber, NOT the dish (Highly Educated FAQ)",
+      "heat_time_seconds": "50-60",
+      "heat_method": "simultaneous (heat dish + chamber together, side-to-side AND top-to-bottom)",
+      "cooldown_seconds": "30-45 + dry-pull",
+      "torch_pattern": "simultaneous_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "dish_and_chamber_simultaneously",
+          "time_pct": 100
+        }
+      ],
+      "torch_distance_inches": "0.5-1",
+      "visual_cue": "Pillar visibly at temp, faint glow in dim room",
+      "cold_start_compatible": "NO",
+      "tags": [
+        "MFR_SPEC",
+        "SE_PILLAR"
+      ],
+      "manufacturer_targets_f": {
+        "solventless": 450,
+        "hydrocarbon": 550
+      },
+      "notable_manufacturers": [
+        "Highly Educated"
+      ]
+    },
+    {
+      "id": "charmer",
+      "name": "Quave Charmer",
+      "category": "slurper",
+      "geometry": "slurper",
+      "description": "Quave proprietary slurper-blender hybrid. Outer dish with vortex holes, inner cone, three pearls, marble cap.",
+      "surface_temp_range_f": [
+        450,
+        580
+      ],
+      "ir_offset_f": 20,
+      "ir_offset_sign": 1,
+      "ir_aim_location": "Side of the cup wall (slurper-class \u2014 inferred, no first-party doc)",
+      "heat_time_seconds": "35-50",
+      "cooldown_seconds": "30-45",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "bottom_skirt_with_vortex_holes",
+          "time_pct": 60
+        },
+        {
+          "anatomy": "bucket_walls",
+          "time_pct": 40
+        }
+      ],
+      "torch_distance_inches": "0.5-1",
+      "visual_cue": "No glow / faint dish only",
+      "cold_start_compatible": "NO",
+      "tags": [
+        "SLURPER_CLASS"
+      ],
+      "notable_manufacturers": [
+        "Quave Club Banger"
+      ]
+    },
+    {
+      "id": "insert",
+      "name": "Quartz Insert (in any banger)",
+      "category": "specialty",
+      "geometry": "insert",
+      "description": "Drop-in cup. Either heat host first then drop insert, or load insert cold and heat host briefly.",
+      "surface_temp_range_f": [
+        450,
+        550
+      ],
+      "ir_offset_f": 30,
+      "ir_offset_sign": -1,
+      "ir_aim_location": "Host banger bottom, 1/2\" away (read banger temp, not insert directly)",
+      "heat_time_seconds": "25-35 host (or 10-25 cold-start)",
+      "cooldown_seconds": "10 (Method 3) / full (Method 1)",
+      "torch_pattern": "circular_sweep",
+      "torch_zones": [
+        {
+          "anatomy": "host_banger_bottom",
+          "time_pct": 60
+        },
+        {
+          "anatomy": "host_walls",
+          "time_pct": 40
+        }
+      ],
+      "torch_distance_inches": "1-2 (host); never insert",
+      "visual_cue": "Per host banger",
+      "cold_start_compatible": "YES",
+      "tags": [
+        "COLD_START_IDEAL"
+      ],
+      "notable_manufacturers": [
+        "Eternal Quartz (originator)",
+        "Quartz Tech",
+        "Halen",
+        "Hoyes",
+        "Ruby Pearl Co (premium)",
+        "Pulsar RoK"
+      ]
+    },
+    {
+      "id": "e-banger",
+      "name": "E-Banger / E-Nail",
+      "category": "specialty",
+      "geometry": "enail",
+      "description": "Coil-wrapped quartz with PID. Coil reads 30-80\u00b0F hotter than surface (varies widely by brand). MiniNail-on-MiniNail is factory-calibrated to display surface directly.",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "ir_offset_f": 0,
+      "ir_offset_sign": 0,
+      "ir_aim_location": "PID set point \u2014 no IR / no torch needed",
+      "heat_time_seconds": "30 stabilize",
+      "cooldown_seconds": "0 (PID maintained)",
+      "torch_pattern": "none",
+      "torch_zones": [],
+      "torch_distance_inches": null,
+      "visual_cue": "Coil at set temp",
+      "cold_start_compatible": "YES",
+      "tags": [
+        "ELECTRIC"
+      ],
+      "pid_offset_range_f": [
+        30,
+        80
+      ],
+      "pid_offset_midpoint_f": 50,
+      "notable_manufacturers": [
+        "MiniNail",
+        "VapeBrat",
+        "Pulsar Elite",
+        "Yo Dabba Dabba",
+        "Galaxy Enails"
+      ]
+    }
+  ],
+  "concentrates": [
+    {
+      "id": "live-rosin",
+      "name": "Live Rosin",
+      "category": "solventless",
+      "description": "Fresh-frozen pressed solventless. Glossy amber, sappy.",
+      "surface_temp_range_f": [
+        445,
+        520
+      ],
+      "surface_temp_optimal_f": 480,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start GOLD STANDARD",
+        "710 Labs anchor: 400-450\u00b0F surface",
+        "Above 520\u00b0F = generic dab taste"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "SOLVENTLESS",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "cold-cure",
+      "name": "Cold Cure Rosin",
+      "category": "solventless",
+      "description": "Live rosin nucleated to creamy badder. Most popular 2026 rosin format.",
+      "surface_temp_range_f": [
+        375,
+        510
+      ],
+      "surface_temp_optimal_f": 460,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start STRONGLY recommended",
+        "Mood/Puffco anchor: 375-450\u00b0F surface",
+        "Pushing past 500\u00b0F defeats the cure"
+      ],
+      "confidence": "BRAND+MFR",
+      "tags": [
+        "SOLVENTLESS",
+        "COLD_START",
+        "2026_DOMINANT"
+      ]
+    },
+    {
+      "id": "fresh-press",
+      "name": "Fresh Press Rosin",
+      "category": "solventless",
+      "description": "Un-cured rosin. Most volatile-rich, terps not yet homogenized.",
+      "surface_temp_range_f": [
+        440,
+        510
+      ],
+      "surface_temp_optimal_f": 470,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start strongly recommended",
+        "Gentle ramp protects pinene + ocimene"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "SOLVENTLESS",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "rosin-jam",
+      "name": "Rosin Jam",
+      "category": "solventless",
+      "description": "THCa diamonds in terpene-rich rosin sauce. Heterogeneous.",
+      "surface_temp_range_f": [
+        490,
+        545
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Slurper preferred \u2014 separates phases dynamically",
+        "Crystals need >=480\u00b0F to melt cleanly"
+      ],
+      "confidence": "COMMUNITY+BRAND",
+      "tags": [
+        "SOLVENTLESS",
+        "BLEND"
+      ]
+    },
+    {
+      "id": "rosin-badder",
+      "name": "Rosin Badder",
+      "category": "solventless",
+      "description": "Whipped/agitated rosin. Hashwriter avg 520\u00b0F Terpometer interior.",
+      "surface_temp_range_f": [
+        480,
+        540
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "high",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start optional"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "SOLVENTLESS"
+      ]
+    },
+    {
+      "id": "hot-cure",
+      "name": "Hot Cure Rosin",
+      "category": "solventless",
+      "description": "Whipped/cured at 90-225\u00b0F. Profile shifts to heavier sesquiterpenes.",
+      "surface_temp_range_f": [
+        480,
+        545
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "med",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start optional",
+        "Caryophyllene dominant \u2014 needs more heat than fresh"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "SOLVENTLESS"
+      ]
+    },
+    {
+      "id": "hash-rosin-coin",
+      "name": "Hash Rosin Coin",
+      "category": "solventless",
+      "description": "Pressed disk from 5-6 star bubble. Premium fresh-frozen input.",
+      "surface_temp_range_f": [
+        450,
+        520
+      ],
+      "surface_temp_optimal_f": 475,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start YES",
+        "Flatten coin into hash flag for even melt"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "SOLVENTLESS",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "persy-rosin",
+      "name": "Persy Hash Rosin",
+      "category": "solventless",
+      "description": "710 Labs originated. 6-star 90-micron first-wash bubble pressed to rosin.",
+      "surface_temp_range_f": [
+        445,
+        520
+      ],
+      "surface_temp_optimal_f": 480,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Treat like live rosin",
+        "Genericized term in 2026 \u2014 many producers"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "SOLVENTLESS",
+        "PREMIUM"
+      ]
+    },
+    {
+      "id": "high-melt-rosin",
+      "name": "High-Melt / Nug-Run Hash Rosin",
+      "category": "solventless",
+      "description": "Premium hash rosin from highest-grade nugs. Connoisseur tier 2025-26.",
+      "surface_temp_range_f": [
+        445,
+        510
+      ],
+      "surface_temp_optimal_f": 475,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Treat like live rosin",
+        "710 Labs Tier 3, Papa's Select top tier"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "SOLVENTLESS",
+        "PREMIUM"
+      ]
+    },
+    {
+      "id": "bubble-6star",
+      "name": "Bubble Hash \u00b7 6-Star (Full Melt)",
+      "category": "hash",
+      "description": "Ice water hash, full-melt grade. Hashwriter avg 477.5\u00b0F Terpometer interior.",
+      "surface_temp_range_f": [
+        450,
+        510
+      ],
+      "surface_temp_optimal_f": 490,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start YES",
+        "Above 500\u00b0F starts charring even 6-star"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "HASH",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "bubble-half-melt",
+      "name": "Bubble Hash \u00b7 3-4 Star (Half Melt)",
+      "category": "hash",
+      "description": "Half-melt bubble. Field consensus: don't dab \u2014 press to rosin.",
+      "surface_temp_range_f": [
+        470,
+        520
+      ],
+      "surface_temp_optimal_f": 495,
+      "terpene_profile": "med",
+      "good_for_cold_start": false,
+      "warning": "Better pressed than dabbed",
+      "notes": [
+        "NOT IDEAL for dabbing",
+        "Better used as rosin starter material"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "HASH",
+        "NOT_IDEAL"
+      ]
+    },
+    {
+      "id": "dry-sift",
+      "name": "Dry Sift (Full Melt)",
+      "category": "hash",
+      "description": "Mechanically separated trichomes via 45-160\u03bcm screens.",
+      "surface_temp_range_f": [
+        450,
+        520
+      ],
+      "surface_temp_optimal_f": 490,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start YES",
+        "Treat like ice water hash"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "HASH",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "temple-ball",
+      "name": "Temple Ball Hash",
+      "category": "hash",
+      "description": "Hand-rolled spherical hash, Nepalese-style. Frenchy Cannoli legacy.",
+      "surface_temp_range_f": [
+        350,
+        450
+      ],
+      "surface_temp_optimal_f": 400,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Press Club: 350\u00b0F surface (NOT same as rosin 450\u00b0F)",
+        "Often a smoke-first product",
+        "Cold start strongly recommended"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "HASH",
+        "LOW_TEMP"
+      ]
+    },
+    {
+      "id": "pressed-hash",
+      "name": "Pressed Hashish (Moroccan/Afghan/Charas)",
+      "category": "hash",
+      "description": "Traditional pressed hash. Will char on most bangers.",
+      "surface_temp_range_f": [
+        500,
+        550
+      ],
+      "surface_temp_optimal_f": 525,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "warning": "Will leave significant residue",
+      "notes": [
+        "NOT OPTIMAL for dabbing \u2014 expect residue",
+        "Better in pipe, joint, or hot knife"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "HASH",
+        "NOT_IDEAL"
+      ]
+    },
+    {
+      "id": "live-resin",
+      "name": "Live Resin",
+      "category": "hydrocarbon",
+      "description": "Fresh-frozen hydrocarbon BHO. ~34% of concentrate sales. Yellow-amber sauce/wax.",
+      "surface_temp_range_f": [
+        480,
+        545
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "high",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start optional",
+        "Stay <=545\u00b0F surface to preserve linalool + humulene",
+        "Most popular hydrocarbon format"
+      ],
+      "confidence": "MFR+BRAND+COMMUNITY",
+      "tags": [
+        "HYDROCARBON",
+        "POPULAR"
+      ]
+    },
+    {
+      "id": "cured-resin",
+      "name": "Cured Resin",
+      "category": "hydrocarbon",
+      "description": "BHO from cured flower. General-purpose hydrocarbon. Lost most volatile monoterps.",
+      "surface_temp_range_f": [
+        520,
+        580
+      ],
+      "surface_temp_optimal_f": 545,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start NOT typical",
+        "Sesquiterpene-heavy \u2014 takes more heat"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "HYDROCARBON"
+      ]
+    },
+    {
+      "id": "shatter",
+      "name": "Shatter",
+      "category": "hydrocarbon",
+      "description": "Glassy BHO. Once dominant, now legacy/budget tier.",
+      "surface_temp_range_f": [
+        510,
+        580
+      ],
+      "surface_temp_optimal_f": 545,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start NOT typical",
+        "Most volatile terps already lost in process"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "HYDROCARBON",
+        "LEGACY"
+      ]
+    },
+    {
+      "id": "wax-budder",
+      "name": "Wax / Budder / Badder",
+      "category": "hydrocarbon",
+      "description": "Whipped BHO. Stable mid-tier across menus.",
+      "surface_temp_range_f": [
+        480,
+        540
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "med",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start optional/popular"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "HYDROCARBON"
+      ]
+    },
+    {
+      "id": "crumble",
+      "name": "Crumble / Honeycomb",
+      "category": "hydrocarbon",
+      "description": "Dry powdery BHO. Lower moisture vaporizes easily.",
+      "surface_temp_range_f": [
+        480,
+        550
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "med",
+      "good_for_cold_start": false,
+      "notes": [
+        "Pearls essential to distribute",
+        "Cold start useful"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "HYDROCARBON"
+      ]
+    },
+    {
+      "id": "sugar",
+      "name": "Sugar Wax",
+      "category": "hydrocarbon",
+      "description": "Small THCa crystals in terpene matrix. Sugar/sauce texture.",
+      "surface_temp_range_f": [
+        480,
+        545
+      ],
+      "surface_temp_optimal_f": 510,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start LOVED for this texture"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "HYDROCARBON",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "sauce-htfse",
+      "name": "Sauce (HTFSE)",
+      "category": "hydrocarbon",
+      "description": "High-terpene full-spectrum extract. ~50% terpenes \u2014 viscous syrup with diamonds.",
+      "surface_temp_range_f": [
+        500,
+        580
+      ],
+      "surface_temp_optimal_f": 530,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start recommended for HTFSE",
+        "Slurper geometry designed for this"
+      ],
+      "confidence": "BRAND+COMMUNITY",
+      "tags": [
+        "HYDROCARBON",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "thca-diamonds",
+      "name": "THCa Diamonds (alone)",
+      "category": "hydrocarbon",
+      "description": "Discrete crystalline gemstones, 95-99% THCa, near-zero terpenes.",
+      "surface_temp_range_f": [
+        500,
+        600
+      ],
+      "surface_temp_optimal_f": 545,
+      "terpene_profile": "none",
+      "good_for_cold_start": false,
+      "notes": [
+        "Pearls essential",
+        "Cold start useful",
+        "Source-conflict: Mood (e-rig) vs Hemper (IR-bottom) \u2014 sensor-driven"
+      ],
+      "confidence": "MFR+BRAND",
+      "tags": [
+        "HYDROCARBON",
+        "PURE"
+      ]
+    },
+    {
+      "id": "diamonds-sauce",
+      "name": "Diamonds & Sauce",
+      "category": "hydrocarbon",
+      "description": "Combined product \u2014 crystals in terpene-rich sauce.",
+      "surface_temp_range_f": [
+        510,
+        570
+      ],
+      "surface_temp_optimal_f": 530,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Slurper preferred",
+        "Cold start: sauce volatilizes first, then crystals"
+      ],
+      "confidence": "MFR+BRAND",
+      "tags": [
+        "HYDROCARBON",
+        "COLD_START",
+        "BLEND"
+      ]
+    },
+    {
+      "id": "crystalline",
+      "name": "THCa Crystalline / Isolate",
+      "category": "hydrocarbon",
+      "description": "Pure powder, >99% THCa. Zero terpenes \u2014 no flavor to preserve.",
+      "surface_temp_range_f": [
+        525,
+        600
+      ],
+      "surface_temp_optimal_f": 560,
+      "terpene_profile": "none",
+      "good_for_cold_start": false,
+      "notes": [
+        "Use sticky binder (live resin) for cold start",
+        "Just needs full vaporization of THC"
+      ],
+      "confidence": "COMMUNITY",
+      "tags": [
+        "HYDROCARBON",
+        "PURE",
+        "NICHE"
+      ]
+    },
+    {
+      "id": "liquid-diamonds",
+      "name": "Liquid Diamonds (cart format)",
+      "category": "hydrocarbon",
+      "description": "Live resin + THCa diamonds. Dominant high-potency cart category 2024-26.",
+      "surface_temp_range_f": [
+        500,
+        570
+      ],
+      "surface_temp_optimal_f": 530,
+      "terpene_profile": "high",
+      "good_for_cold_start": false,
+      "notes": [
+        "Mostly vaped not dabbed \u2014 flag distinction",
+        "If dabbing jar form: treat like diamonds & sauce"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "HYDROCARBON",
+        "TRENDING"
+      ]
+    },
+    {
+      "id": "co2-oil",
+      "name": "CO2 Oil",
+      "category": "distillate",
+      "description": "Supercritical CO2 extraction. Most volatile terps lost in process.",
+      "surface_temp_range_f": [
+        520,
+        600
+      ],
+      "surface_temp_optimal_f": 560,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "notes": [
+        "Cold start optional",
+        "Fading in dab market \u2014 common in carts"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "DISTILLATE"
+      ]
+    },
+    {
+      "id": "thc-distillate",
+      "name": "THC Distillate",
+      "category": "distillate",
+      "description": "~99% pure, viscous, terpene-stripped. Primarily for carts.",
+      "surface_temp_range_f": [
+        540,
+        620
+      ],
+      "surface_temp_optimal_f": 580,
+      "terpene_profile": "none",
+      "good_for_cold_start": false,
+      "warning": "No flavor \u2014 rarely dabbed alone",
+      "notes": [
+        "Cold start NOT recommended",
+        "Hemper 400-500\u00b0F (smooth) vs Zen Leaf 600-650\u00b0F (cloud) \u2014 both valid",
+        "Rarely dabbed alone"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "DISTILLATE"
+      ]
+    },
+    {
+      "id": "cbn-distillate",
+      "name": "CBN Distillate",
+      "category": "distillate",
+      "description": "CBN-focused, often blended with sleep terpenes.",
+      "surface_temp_range_f": [
+        490,
+        570
+      ],
+      "surface_temp_optimal_f": 525,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "notes": [
+        "CBN boiling: 365\u00b0F at 1 atm",
+        "Often blended for synergy"
+      ],
+      "confidence": "SCIENCE+BRAND",
+      "tags": [
+        "DISTILLATE",
+        "NICHE"
+      ]
+    },
+    {
+      "id": "cbg-distillate",
+      "name": "CBG Distillate",
+      "category": "distillate",
+      "description": "CBG-focused. Springer study: degradation begins ~608\u00b0F.",
+      "surface_temp_range_f": [
+        480,
+        560
+      ],
+      "surface_temp_optimal_f": 520,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "notes": [
+        "CBG boiling: 126\u00b0F (very low) \u2014 needs gentle heat"
+      ],
+      "confidence": "SCIENCE+BRAND",
+      "tags": [
+        "DISTILLATE",
+        "NICHE"
+      ]
+    },
+    {
+      "id": "thcv-distillate",
+      "name": "THCV Distillate",
+      "category": "distillate",
+      "description": "THCV boiling 428\u00b0F (highest of common cannabinoids), but matrix needs more.",
+      "surface_temp_range_f": [
+        540,
+        610
+      ],
+      "surface_temp_optimal_f": 570,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "notes": [
+        "Anecdotal practice \u2014 sparse data"
+      ],
+      "confidence": "SCIENCE+ANECDOTAL",
+      "tags": [
+        "DISTILLATE",
+        "NICHE",
+        "NOVEL"
+      ]
+    },
+    {
+      "id": "infused-diamonds",
+      "name": "Infused Diamonds",
+      "category": "novel",
+      "description": "Strain-specific or terpene-infused diamonds.",
+      "surface_temp_range_f": [
+        510,
+        570
+      ],
+      "surface_temp_optimal_f": 530,
+      "terpene_profile": "high",
+      "good_for_cold_start": true,
+      "notes": [
+        "Cold start YES",
+        "Treat as diamonds & sauce"
+      ],
+      "confidence": "BRAND",
+      "tags": [
+        "NOVEL",
+        "COLD_START"
+      ]
+    },
+    {
+      "id": "thcp",
+      "name": "THCP Concentrates",
+      "category": "novel",
+      "description": "Hemp-derived. Very small % since extremely potent (~33x CB1 binding).",
+      "surface_temp_range_f": [
+        510,
+        580
+      ],
+      "surface_temp_optimal_f": 540,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "warning": "Regulatory uncertainty \u2014 Nov 2026 federal hemp ban",
+      "notes": [
+        "REGULATORY FLAG: H.R. 5371 (Nov 2026) federal hemp redefinition",
+        "State bans growing",
+        "Treat as distillate-style"
+      ],
+      "confidence": "ANECDOTAL",
+      "tags": [
+        "NOVEL",
+        "GRAY_MARKET"
+      ]
+    },
+    {
+      "id": "hash-holes",
+      "name": "Hash Holes / Donut Joints",
+      "category": "novel",
+      "description": "Pre-roll with central rosin/bubble hash worm. NOT A DAB.",
+      "surface_temp_range_f": null,
+      "surface_temp_optimal_f": null,
+      "terpene_profile": "high",
+      "good_for_cold_start": false,
+      "blocked": "This is a pre-roll format. Light it and smoke it \u2014 don't put it on a banger.",
+      "notes": [
+        "SMOKED, not dabbed",
+        "One of hottest infused-preroll subcategories 2024-26"
+      ],
+      "confidence": "N/A",
+      "tags": [
+        "SMOKE_ONLY"
+      ]
+    },
+    {
+      "id": "kief",
+      "name": "Kief / Static",
+      "category": "hash",
+      "description": "Loose unrefined trichome powder. Dust, low-melt.",
+      "surface_temp_range_f": null,
+      "surface_temp_optimal_f": null,
+      "terpene_profile": "med",
+      "good_for_cold_start": false,
+      "blocked": "Kief is too dusty for direct dabs and will combust unevenly. Press it to rosin first, or use as bowl topper.",
+      "notes": [
+        "NOT TYPICALLY DABBED",
+        "Best as bowl topper, joint infusion, or pressed to rosin/hash"
+      ],
+      "confidence": "N/A",
+      "tags": [
+        "NOT_FOR_DAB"
+      ]
+    },
+    {
+      "id": "rso",
+      "name": "RSO / FECO",
+      "category": "distillate",
+      "description": "Rick Simpson Oil / Full Extract Cannabis Oil. Oral/topical format.",
+      "surface_temp_range_f": null,
+      "surface_temp_optimal_f": null,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "blocked": "RSO is meant for oral or topical use. Dabbing is harsh due to chlorophyll, waxes, and residual solvents.",
+      "notes": [
+        "NOT FOR DABBING \u2014 sublingual, capsules, food"
+      ],
+      "confidence": "N/A",
+      "tags": [
+        "ORAL_TOPICAL"
+      ]
+    },
+    {
+      "id": "bubble-1-2",
+      "name": "Bubble Hash \u00b7 1-2 Star",
+      "category": "hash",
+      "description": "Cooking-grade ice water hash. Not dabbable.",
+      "surface_temp_range_f": null,
+      "surface_temp_optimal_f": null,
+      "terpene_profile": "low",
+      "good_for_cold_start": false,
+      "blocked": "1-2 star bubble has too much plant matter. Use it for edibles or press multiple grades together to rosin.",
+      "notes": [
+        "Edibles only \u2014 too much plant matter"
+      ],
+      "confidence": "N/A",
+      "tags": [
+        "NOT_FOR_DAB"
+      ]
+    }
+  ]
+}

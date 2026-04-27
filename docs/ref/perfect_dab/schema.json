@@ -1,0 +1,248 @@
+{
+  "meta": {
+    "name": "QuartzOS Reference Data",
+    "version": "1.0.0",
+    "release_date": "2026-04-27",
+    "description": "Production-grade reference data for cannabis concentrate dabbing \u2014 banger form factors, concentrates, sensors, and temperature calibrations. Sourced from manufacturer documentation (Dab Rite, Highly Educated, Quave, Honeybee Herb), brand guidance (710 Labs, Mood, Press Club), and 2025-2026 community consensus.",
+    "license": "Open data for non-commercial integration. Verify temperature recommendations against current community testing before production deployment.",
+    "units": {
+      "temperature": "fahrenheit",
+      "distance": "inches",
+      "time": "seconds",
+      "wall_thickness": "millimeters"
+    },
+    "temperature_convention": "All concentrate.surface_temp_f values are INTERIOR SURFACE temperatures (probe-truth, Terpometer V1 contact). Sensor readings on instruments differ \u2014 use the sensor + banger.ir_offset_f + banger.ir_offset_sign math to convert.",
+    "calibration_formula": "displayed_temp = interior_surface_temp + (banger.ir_offset_sign * banger.ir_offset_f) + wall.modifier_f",
+    "data_sources": [
+      "Dab Rite official documentation and 2025 placement guide (dabrite.com)",
+      "Highly Educated Control Tower FAQ (highlyeducatedti.com)",
+      "Honeybee Herb product documentation (honeybeeherb.com)",
+      "Mood blog torch + temperature guides (mood.com)",
+      "420 VapeZone empirical Dab Rite + slurper testing",
+      "710 Labs solventless temperature guidance",
+      "Press Club temple ball / hash temp guidance",
+      "Quave Club Banger product documentation",
+      "Hashwriter community Terpometer averages",
+      "Reddit r/Dabs, r/QuartzBangers technique threads (2024-2026)"
+    ],
+    "confidence_levels": {
+      "S": "peer-reviewed scientific source",
+      "M": "manufacturer-published (primary source)",
+      "B": "brand/extractor-published",
+      "C": "community consensus (multi-source convergence)",
+      "E": "empirically tested (controlled measurement)",
+      "A": "anecdotal / single source"
+    }
+  },
+  "schema": {
+    "bangers": {
+      "description": "Quartz banger form factors in active 2025-2026 production. Each entry contains geometry, temperature ranges, IR calibration data, torch technique, and procedure metadata.",
+      "fields": {
+        "id": "Stable string identifier (lowercase, hyphenated)",
+        "name": "Display name",
+        "category": "One of: classic | slurper | specialty | premium",
+        "geometry": "Thermal class for IR offset math: bucket | slurper | insert | enail. Drives ir_offset_sign.",
+        "description": "Brief description for UI",
+        "surface_temp_range_f": "[low, high] interior surface temp where this banger is operable",
+        "ir_offset_f": "Magnitude of IR-vs-interior offset in \u00b0F",
+        "ir_offset_sign": "Direction of offset: -1 = display reads LOWER than interior (bucket-class, IR sees cooler exterior wall); +1 = display reads HIGHER than interior (slurper-class, side-of-column wall is thinner and hotter); 0 = no offset (e-nail PID is its own system)",
+        "ir_aim_location": "Where to aim the IR thermometer (the most-disputed UX spec \u2014 verified against Dab Rite 2025 placement guide)",
+        "heat_time_seconds": "Total torch time as a string range (some bangers have multi-stage breakdowns)",
+        "cooldown_seconds": "Wait time after torch-off before dabbing",
+        "torch_pattern": "circular_sweep | circular_sweep_outer_only | circular_sweep_floor | sequenced | simultaneous_sweep | none",
+        "torch_zones": "Array of {anatomy, time_pct} describing where to focus the flame",
+        "torch_distance_inches": "Distance from inner-cone tip of Blazer Big Shot to quartz",
+        "visual_cue": "Stop-torching visual signal",
+        "cold_start_compatible": "YES | NO | OPTIONAL",
+        "tags": "Array of UI tags",
+        "notable_manufacturers": "Array of brands producing this form factor in 2026"
+      }
+    },
+    "concentrates": {
+      "description": "Cannabis concentrates in active 2025-2026 rotation. surface_temp_f values are INTERIOR SURFACE temps (Terpometer-equivalent, not Dab Rite IR readings).",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "category": "solventless | hash | hydrocarbon | distillate | novel",
+        "description": "Brief description",
+        "surface_temp_range_f": "[low, high] interior surface temp range",
+        "surface_temp_optimal_f": "Single optimal interior surface temp (midpoint of range or community consensus)",
+        "terpene_profile": "none | low | med | high",
+        "good_for_cold_start": "Boolean \u2014 concentrate benefits from cold-start workflow",
+        "blocked": "If present, this concentrate should NOT be dabbed. Value is the user-facing explanation.",
+        "warning": "If present, soft warning to display alongside dab recommendation",
+        "notes": "Array of contextual notes / why-this-temp explanations",
+        "confidence": "Confidence level per META.confidence_levels (e.g., 'BRAND+COMMUNITY')",
+        "tags": "Array of UI tags"
+      }
+    },
+    "sensors": {
+      "description": "Temperature measurement instruments. Method drives the calibration formula branch.",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "method": "contact | ir | enail | visual",
+        "description": "Brief description",
+        "calibration_note": "How this instrument relates to interior surface temp"
+      }
+    },
+    "wall_thicknesses": {
+      "description": "Banger wall thickness modifier. Thinner walls heat and cool faster.",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "thickness_mm_range": "Approximate wall thickness in mm",
+        "modifier_f": "\u00b0F to add to surface temp target (thicker = positive, thinner = negative)",
+        "description": "Brief description"
+      }
+    }
+  },
+  "calibration": {
+    "formula": "displayed_temp = interior_surface_temp + (banger.ir_offset_sign * banger.ir_offset_f) + wall.modifier_f",
+    "explanation": [
+      "1. Start with concentrate.surface_temp_optimal_f (interior surface \u2014 what the dab actually contacts)",
+      "2. Apply wall.modifier_f (thicker walls hold more heat, target slightly higher)",
+      "3. Multiply banger.ir_offset_f by banger.ir_offset_sign (-1 for bucket-class, +1 for slurper-class, 0 for e-nail)",
+      "4. Add result to surface temp to get the displayed temp on the user's instrument"
+    ],
+    "examples": [
+      {
+        "scenario": "Live Resin + Flat Top + IR + Standard wall",
+        "math": "510 (interior) + 0 (wall) + (-1 * 35) (bucket-class IR offset) = 475\u00b0F displayed on Dab Rite",
+        "displayed_target_f": 475
+      },
+      {
+        "scenario": "Live Resin + Blender + IR + Standard wall",
+        "math": "510 (interior) + 0 (wall) + (+1 * 20) (slurper-class IR offset) = 530\u00b0F displayed on Dab Rite",
+        "displayed_target_f": 530
+      },
+      {
+        "scenario": "Cold Cure Rosin + Terp Slurper + IR + Standard wall",
+        "math": "460 (interior) + 0 (wall) + (+1 * 20) (slurper-class IR offset) = 480\u00b0F displayed on Dab Rite",
+        "displayed_target_f": 480
+      },
+      {
+        "scenario": "Live Resin + Flat Top + Probe + Standard wall",
+        "math": "510 (interior) + 0 (wall) + 0 (probe is contact, no offset) = 510\u00b0F displayed on Terpometer",
+        "displayed_target_f": 510
+      },
+      {
+        "scenario": "Live Resin + E-Banger + PID + Standard wall",
+        "math": "510 (interior) + 0 (wall) + 50 (PID midpoint coil offset) = 560\u00b0F PID setpoint",
+        "displayed_target_f": 560
+      }
+    ],
+    "workflow_note": "For IR-mode users: the Dab Rite alarms when temp DESCENDS through the set point. Torch past the displayed target, pull the flame, then dab when the alarm fires on the way down. Don't dab AT peak torch."
+  },
+  "enums": {
+    "banger_categories": [
+      {
+        "id": "classic",
+        "label": "Classic"
+      },
+      {
+        "id": "slurper",
+        "label": "Slurper Class"
+      },
+      {
+        "id": "specialty",
+        "label": "Specialty"
+      },
+      {
+        "id": "premium",
+        "label": "Premium"
+      }
+    ],
+    "banger_geometries": [
+      {
+        "id": "bucket",
+        "label": "Bucket-class",
+        "ir_offset_direction": "negative",
+        "description": "IR display reads LOWER than interior surface"
+      },
+      {
+        "id": "slurper",
+        "label": "Slurper-class",
+        "ir_offset_direction": "positive",
+        "description": "IR display reads HIGHER than interior surface (thin column wall, direct flame)"
+      },
+      {
+        "id": "insert",
+        "label": "Insert workflow",
+        "ir_offset_direction": "negative",
+        "description": "Read host banger temp, not insert directly"
+      },
+      {
+        "id": "enail",
+        "label": "E-nail (electric)",
+        "ir_offset_direction": "none",
+        "description": "PID setpoint, no torch, no IR needed"
+      }
+    ],
+    "concentrate_categories": [
+      {
+        "id": "solventless",
+        "label": "Solventless"
+      },
+      {
+        "id": "hash",
+        "label": "Hash"
+      },
+      {
+        "id": "hydrocarbon",
+        "label": "Hydrocarbon"
+      },
+      {
+        "id": "distillate",
+        "label": "Distillate"
+      },
+      {
+        "id": "novel",
+        "label": "Novel / 2026"
+      }
+    ],
+    "torch_patterns": [
+      {
+        "id": "circular_sweep",
+        "label": "Circular sweep \u2014 keep flame moving"
+      },
+      {
+        "id": "circular_sweep_outer_only",
+        "label": "Circular sweep \u2014 OUTER WALL ONLY"
+      },
+      {
+        "id": "circular_sweep_floor",
+        "label": "Circular sweep \u2014 focus floor, not pillar"
+      },
+      {
+        "id": "sequenced",
+        "label": "Sequenced \u2014 dish \u2192 column \u2192 dish"
+      },
+      {
+        "id": "simultaneous_sweep",
+        "label": "Simultaneous side-to-side + top-to-bottom"
+      },
+      {
+        "id": "none",
+        "label": "No torch (electric)"
+      }
+    ],
+    "cold_start_compatibility": [
+      "YES",
+      "NO",
+      "OPTIONAL"
+    ],
+    "terpene_profiles": [
+      "none",
+      "low",
+      "med",
+      "high"
+    ],
+    "sensor_methods": [
+      "contact",
+      "ir",
+      "enail",
+      "visual"
+    ]
+  }
+}

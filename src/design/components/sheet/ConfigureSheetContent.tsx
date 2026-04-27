@@ -16,6 +16,11 @@ import { SkeuSlider } from '../SkeuSlider';
 import { useThemeColors } from '../../ThemeContext';
 import { colors, fonts, radius, spacing } from '../../tokens';
 import { useSettingsStore } from '../../../state/settingsStore';
+import { useDabPreferencesStore } from '../../../state/dabPreferencesStore';
+import { SENSORS } from '../../../data/sensors';
+import { WALL_THICKNESSES } from '../../../data/wallThicknesses';
+import type { SensorMethod } from '../../../data/sensors';
+import type { WallThicknessId } from '../../../data/wallThicknesses';
 import { bleManager } from '../../../ble/BleManager';
 import { rgb565to888 } from '../../../ble/DabRiteProtocol';
 import type { DeviceSettings } from '../../../ble/types';
@@ -41,7 +46,11 @@ function rgb565ToCss(value: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-export function ConfigureSheetContent() {
+export function ConfigureSheetContent({
+  onOpenReference,
+}: {
+  onOpenReference?: () => void;
+}) {
   const router = useRouter();
   const theme = useThemeColors();
 
@@ -51,6 +60,13 @@ export function ConfigureSheetContent() {
   const markConfirmed = useSettingsStore((s) => s.markConfirmed);
   const themeName = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+
+  const preferredSensor = useDabPreferencesStore((s) => s.preferredSensor);
+  const preferredWall = useDabPreferencesStore((s) => s.preferredWall);
+  const coldStartByDefault = useDabPreferencesStore((s) => s.coldStartByDefault);
+  const setPreferredSensor = useDabPreferencesStore((s) => s.setPreferredSensor);
+  const setPreferredWall = useDabPreferencesStore((s) => s.setPreferredWall);
+  const setColdStartByDefault = useDabPreferencesStore((s) => s.setColdStartByDefault);
 
   const [status, setStatus] = useState<WriteStatus>('synced');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -188,6 +204,24 @@ export function ConfigureSheetContent() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
+      {/* DABBING DEFAULTS */}
+      <GlassCard style={styles.card} padding={spacing.md}>
+        <Text style={sectionTitleStyle}>Dabbing Defaults</Text>
+        <SensorPicker
+          value={preferredSensor}
+          onChange={setPreferredSensor}
+        />
+        <WallPicker
+          value={preferredWall}
+          onChange={setPreferredWall}
+        />
+        <ToggleRow
+          label="Cold Start by Default"
+          value={coldStartByDefault}
+          onChange={setColdStartByDefault}
+        />
+      </GlassCard>
+
       {/* TEMPERATURES */}
       <GlassCard style={styles.card} padding={spacing.md}>
         <Text style={sectionTitleStyle}>Temperatures</Text>
@@ -338,6 +372,20 @@ export function ConfigureSheetContent() {
         />
         <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
       </View>
+
+      {/* REFERENCE LINK */}
+      {onOpenReference !== undefined && (
+        <Pressable
+          onPress={onOpenReference}
+          style={styles.referenceLink}
+          accessibilityRole="button"
+          accessibilityLabel="Open calibration reference"
+        >
+          <Text style={[styles.referenceLinkText, { color: theme.onSurfaceVariant }]}>
+            Calibration reference &amp; data sources
+          </Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
@@ -405,6 +453,102 @@ function SegmentedPicker({
                 active && { color: theme.primary },
               ]}>
                 {opt}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+function SensorPicker({
+  value,
+  onChange,
+}: {
+  value: SensorMethod;
+  onChange: (s: SensorMethod) => void;
+}) {
+  const theme = useThemeColors();
+  return (
+    <View style={styles.segmentedWrap}>
+      <Text style={[styles.segmentedLabel, { color: theme.onSurfaceVariant }]}>Sensor</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.segmentedScroll}
+      >
+        {SENSORS.map((sensor) => {
+          const active = sensor.method === value;
+          return (
+            <Pressable
+              key={sensor.id}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                onChange(sensor.method);
+              }}
+              style={[
+                styles.segment,
+                { borderColor: theme.glassBorder, backgroundColor: theme.glassFill },
+                active && { backgroundColor: theme.primary + '33', borderColor: theme.primaryContainer },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={[
+                styles.segmentText,
+                { color: theme.onSurfaceVariant },
+                active && { color: theme.primary },
+              ]}>
+                {sensor.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+function WallPicker({
+  value,
+  onChange,
+}: {
+  value: WallThicknessId;
+  onChange: (w: WallThicknessId) => void;
+}) {
+  const theme = useThemeColors();
+  return (
+    <View style={styles.segmentedWrap}>
+      <Text style={[styles.segmentedLabel, { color: theme.onSurfaceVariant }]}>Wall Thickness</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.segmentedScroll}
+      >
+        {WALL_THICKNESSES.map((wall) => {
+          const active = wall.id === value;
+          return (
+            <Pressable
+              key={wall.id}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                onChange(wall.id);
+              }}
+              style={[
+                styles.segment,
+                { borderColor: theme.glassBorder, backgroundColor: theme.glassFill },
+                active && { backgroundColor: theme.primary + '33', borderColor: theme.primaryContainer },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={[
+                styles.segmentText,
+                { color: theme.onSurfaceVariant },
+                active && { color: theme.primary },
+              ]}>
+                {wall.name}
               </Text>
             </Pressable>
           );
@@ -496,12 +640,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     borderWidth: 1,
   },
-  segmentActive: {},
   segmentText: {
     ...fonts.caption,
     fontWeight: '600',
   },
-  segmentTextActive: {},
   saveRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -516,5 +658,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     minWidth: 80,
     textAlign: 'right',
+  },
+  referenceLink: {
+    alignSelf: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  referenceLinkText: {
+    ...fonts.caption,
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'dotted',
   },
 });
