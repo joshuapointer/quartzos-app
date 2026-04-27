@@ -32,7 +32,6 @@ import Svg, {
 } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../tokens';
 import { useBleStore } from '../../state/bleStore';
@@ -645,8 +644,6 @@ interface SessionWalkthroughProps {
 }
 
 export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps) {
-  const insets = useSafeAreaInsets();
-
   const liveTempF = useBleStore((s) => s.liveTempF) ?? 72;
   const settings = useSettingsStore((s) => s.settings);
   const sessionActive = useSessionStore((s) => s.active);
@@ -743,14 +740,8 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
 
   return (
     <View style={styles.container}>
-      {/* Dark fill — this IS the backdrop now */}
-      <LinearGradient
-        colors={['rgba(5,4,3,0.98)', 'rgba(12,9,8,1)']}
-        style={StyleSheet.absoluteFillObject}
-      />
-
       {/* Header */}
-      <View style={[styles.sheetHeader, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.sheetHeader}>
         <View style={styles.headerLeft}>
           <Text style={styles.supraLabel}>{step.supra}</Text>
         </View>
@@ -793,7 +784,7 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
 
       {/* CTA footer */}
       {step.ctaLabel && (
-        <View style={[styles.ctaRow, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.ctaRow}>
           <TouchableOpacity
             onPress={handleCta}
             activeOpacity={0.8}
@@ -813,12 +804,12 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
 
       {/* Auto-advance indicator */}
       {step.autoAdvance && !step.ctaLabel && step.id === 'heat' && (
-        <View style={[styles.autoAdvanceHint, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={styles.autoAdvanceHint}>
           <Text style={styles.autoAdvanceText}>Advances automatically when timer ends</Text>
         </View>
       )}
       {step.id === 'cool' && (
-        <View style={[styles.autoAdvanceHint, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={styles.autoAdvanceHint}>
           <Text style={styles.autoAdvanceText}>Advances automatically when target is reached</Text>
         </View>
       )}
@@ -830,14 +821,14 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
 
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 0,
+    paddingTop: 8,
     paddingBottom: 12,
   },
 
@@ -1052,7 +1043,7 @@ const styles = StyleSheet.create({
   // CTA
   ctaRow: {
     paddingHorizontal: 28,
-    paddingBottom: 12,
+    paddingBottom: 16,
     paddingTop: 16,
   },
 
