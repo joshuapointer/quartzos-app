@@ -13,19 +13,13 @@ import {
   type Device,
   State as BleState,
 } from 'react-native-ble-plx';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 
 import { ChromeButton, GlassCard, QBackground } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
 import { bleManager } from '../../src/ble/BleManager';
 import { SERVICE_UUID } from '../../src/ble/constants';
 import { useBleStore } from '../../src/state/bleStore';
+import { StaticDialSilhouette, type DialSilhouetteState } from '../../src/design/components/StaticDialSilhouette';
 
 const EMPTY_TIMEOUT_MS = 10_000;
 const storage = new MMKV({ id: 'quartzos' });
@@ -37,6 +31,7 @@ export default function PairScreen() {
   const [devices, setDevices] = useState<Found[]>([]);
   const [empty, setEmpty] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [dialState, setDialState] = useState<DialSilhouetteState>('connecting');
   const scannerRef = useRef<RNBleManager | null>(null);
   const emptyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -115,7 +110,11 @@ export default function PairScreen() {
         const state = useBleStore.getState().connectionState;
         if (state === 'READY' || state === 'SUBSCRIBING' || state === 'DISCOVERING') {
           storage.set('lastDeviceId', deviceId);
-          router.replace('/(connected)/home');
+          // Flash connected state on dial for 600ms — ceremonial handoff moment
+          setDialState('connected');
+          setTimeout(() => {
+            router.replace('/(connected)/home');
+          }, 600);
         }
       } finally {
         setConnecting(null);
@@ -127,9 +126,12 @@ export default function PairScreen() {
   return (
     <View style={styles.root}>
       <QBackground />
+      {/* Dial silhouette — brightens through connecting → connected states */}
+      <View style={styles.dialLayer} pointerEvents="none">
+        <StaticDialSilhouette state={dialState} size={280} />
+      </View>
       <View style={styles.screen}>
         <GlassCard padding={24} style={styles.card}>
-          <CrystalOrb />
           <Text style={styles.title}>Scanning for Dab Rite…</Text>
           <Text style={styles.body}>
             Make sure your device is powered on and within a few feet.
@@ -165,43 +167,19 @@ export default function PairScreen() {
   );
 }
 
-function CrystalOrb() {
-  const scale = useSharedValue(1);
-  const glow = useSharedValue(0.5);
-
-  useEffect(() => {
-    scale.value = withRepeat(
-      withTiming(1.18, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
-    );
-    glow.value = withRepeat(
-      withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
-    );
-  }, [scale, glow]);
-
-  const inner = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  const ring = useAnimatedStyle(() => ({
-    opacity: glow.value,
-  }));
-
-  return (
-    <View style={styles.orbWrap}>
-      <Animated.View style={[styles.orbRing, ring]} />
-      <Animated.View style={[styles.orb, inner]} />
-    </View>
-  );
-}
-
 interface RowProps {
   device: Found;
   onPress: () => void;
   loading: boolean;
 }
+
+const BAR_ACTIVE_COLORS = [
+  colors.boneGhost, // bar 0 — weakest
+  colors.boneGhost, // bar 1
+  colors.boneDim,   // bar 2
+  colors.boneMid,   // bar 3 — strongest
+] as const;
+const BAR_INACTIVE = 'rgba(109,96,80,0.15)';
 
 function DeviceRow({ device, onPress, loading }: RowProps) {
   const bars = rssiToBars(device.rssi);
@@ -221,12 +199,15 @@ function DeviceRow({ device, onPress, loading }: RowProps) {
             key={i}
             style={[
               styles.bar,
-              { height: 6 + i * 4, opacity: i < bars ? 1 : 0.25 },
+              {
+                height: 6 + i * 4,
+                backgroundColor: i < bars ? BAR_ACTIVE_COLORS[i] : BAR_INACTIVE,
+              },
             ]}
           />
         ))}
       </View>
-      {loading ? <Text style={styles.rowStatus}>Connecting…</Text> : null}
+      {loading ? <Text style={styles.rowStatus}>Waking…</Text> : null}
     </Pressable>
   );
 }
@@ -245,6 +226,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bgDeep,
   },
+  dialLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: '5%',
+  },
   screen: {
     flex: 1,
     justifyContent: 'center',
@@ -258,7 +245,6 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
     fontWeight: '700',
     textAlign: 'center',
-    marginTop: spacing.md,
   },
   body: {
     ...fonts.body,
@@ -266,28 +252,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
     marginBottom: spacing.md,
-  },
-  orbWrap: {
-    width: 96,
-    height: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orb: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.full,
-    backgroundColor: colors.onSurface,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-  },
-  orbRing: {
-    position: 'absolute',
-    width: 96,
-    height: 96,
-    borderRadius: radius.full,
-    borderWidth: 2,
-    borderColor: colors.glassBorder,
   },
   list: {
     alignSelf: 'stretch',
@@ -326,7 +290,7 @@ const styles = StyleSheet.create({
   },
   rowStatus: {
     ...fonts.caption,
-    color: colors.primary,
+    color: colors.boneMid,
     marginLeft: spacing.sm,
   },
   bars: {
@@ -338,7 +302,8 @@ const styles = StyleSheet.create({
   bar: {
     width: 4,
     borderRadius: 2,
-    backgroundColor: colors.primary,
+    // color set per-bar in render based on signal strength
+    backgroundColor: BAR_INACTIVE,
   },
   emptyHint: {
     ...fonts.body,

@@ -404,6 +404,14 @@ function NavNodeIcon({ sceneId, active }: { sceneId: SceneId; active: boolean })
   );
 }
 
+// ─── Nav Node label map ────────────────────────────────────────────────────────
+
+const NAV_LABELS: Record<string, string> = {
+  presets: 'PRESETS',
+  history: 'HISTORY',
+  configure: 'TUNE',
+};
+
 // ─── Nav Node ─────────────────────────────────────────────────────────────────
 
 function NavNode({ sceneId, active, onPress }: { sceneId: SceneId; active: boolean; onPress: () => void }) {
@@ -418,6 +426,8 @@ function NavNode({ sceneId, active, onPress }: { sceneId: SceneId; active: boole
     transform: [{ scale: 1 + glow.value * 0.08 }],
   }));
 
+  const label = NAV_LABELS[sceneId] ?? sceneId.toUpperCase();
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -425,8 +435,9 @@ function NavNode({ sceneId, active, onPress }: { sceneId: SceneId; active: boole
       style={styles.navNodeTouch}
       hitSlop={{ top: 10, bottom: 10, left: 16, right: 16 }}
     >
-      <Animated.View style={iconAnim}>
+      <Animated.View style={[iconAnim, styles.navNodeInner]}>
         <NavNodeIcon sceneId={sceneId} active={active} />
+        <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -441,6 +452,8 @@ function PresetsContent({
   onApply,
   listProgress,
   onNewPreset,
+  sessionActive,
+  onBackToSession,
 }: {
   settings: ReturnType<typeof useSettingsStore.getState>['settings'];
   presets: Preset[];
@@ -448,6 +461,8 @@ function PresetsContent({
   onApply: (preset: Preset) => Promise<void>;
   listProgress: SharedValue<number>;
   onNewPreset: () => void;
+  sessionActive: boolean;
+  onBackToSession: () => void;
 }) {
   const floatY = useSharedValue(0);
   const floatStyle = useAnimatedStyle(() => ({
@@ -487,6 +502,18 @@ function PresetsContent({
         contentContainerStyle={styles.panelScroll}
         showsVerticalScrollIndicator={false}
       >
+        {sessionActive && (
+          <TouchableOpacity
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onBackToSession(); }}
+            style={styles.backToSessionBtn}
+            activeOpacity={0.7}
+          >
+            <Svg width={12} height={12} viewBox="0 0 12 12" style={{ marginRight: 4 }}>
+              <Path d="M8 2 L4 6 L8 10" stroke={colors.bone35} strokeWidth={1.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={styles.backToSessionText}>back to session</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Presets</Text>
           <TouchableOpacity
@@ -1048,8 +1075,9 @@ export default function HomeScreen() {
       withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) }),
       withTiming(0, { duration: 500, easing: Easing.in(Easing.quad) }),
     );
-    setTimeout(() => navigateTo('session'), 700);
-  }, [dialGlow, navigateTo, updateSetting]);
+    // Intentionally NOT auto-navigating back; user stays in Presets and
+    // chooses when to return. The dial-bloom above confirms the apply.
+  }, [dialGlow, updateSetting]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
   const dialAnimStyle = useAnimatedStyle(() => ({
@@ -1134,6 +1162,7 @@ export default function HomeScreen() {
             sessionActive={sessionActive}
             useCelsius={settings.useCelsius}
             size={DIAL_FULL}
+            scaleState={scene === 'session' ? 'full' : 'mini'}
           />
         </TouchableOpacity>
       </Animated.View>
@@ -1189,32 +1218,51 @@ export default function HomeScreen() {
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigateTo('presets'); }}
               style={styles.presetChangeBtn}
             >
-              <Text style={styles.presetChangeBtnText}>Change</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                <Text style={styles.presetChangeBtnText}>Change</Text>
+                <Svg width={12} height={12} viewBox="0 0 12 12">
+                  <Path d="M4 2 L8 6 L4 10" stroke={colors.bone50} strokeWidth={1.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </View>
             </TouchableOpacity>
           </LinearGradient>
         </View>
 
-        {/* Start session button */}
-        <Animated.View style={[styles.startSessionOuter, startSessionPressStyle]}>
-          <TouchableOpacity
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigateTo('walkthrough'); }}
-            onPressIn={() => { startSessionPress.value = withSpring(0.97, { damping: 14, stiffness: 220, mass: 0.6 }); }}
-            onPressOut={() => { startSessionPress.value = withSpring(1, { damping: 14, stiffness: 220, mass: 0.6 }); }}
-            activeOpacity={1}
-            style={styles.startSessionBtn}
-          >
-            <LinearGradient
-              colors={[colors.emberBright, colors.ember]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.startSessionGradient}
-            >
-              <Svg width={16} height={16} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
-                <Path d="M3 2 L12 7 L3 12 Z" fill="#fff" opacity={0.9} />
-              </Svg>
-              <Text style={styles.startSessionText}>Start Session</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+        {/* Start session button — ghost when standby (<250°F), ember when heating, hidden when active */}
+        {!sessionActive && (() => {
+          const isHeating = tempF >= 250;
+          return (
+            <Animated.View style={[styles.startSessionOuter, startSessionPressStyle, !isHeating && styles.startSessionOuterGhost]}>
+              <TouchableOpacity
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigateTo('walkthrough'); }}
+                onPressIn={() => { startSessionPress.value = withSpring(0.97, { damping: 14, stiffness: 220, mass: 0.6 }); }}
+                onPressOut={() => { startSessionPress.value = withSpring(1, { damping: 14, stiffness: 220, mass: 0.6 }); }}
+                activeOpacity={1}
+                style={styles.startSessionBtn}
+              >
+                {isHeating ? (
+                  <LinearGradient
+                    colors={[colors.emberBright, colors.ember]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={styles.startSessionGradient}
+                  >
+                    <Svg width={16} height={16} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
+                      <Path d="M3 2 L12 7 L3 12 Z" fill={colors.bone100} opacity={0.9} />
+                    </Svg>
+                    <Text style={styles.startSessionText}>Start Session</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.startSessionGhostInner}>
+                    <Svg width={16} height={16} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
+                      <Path d="M3 2 L12 7 L3 12 Z" fill={colors.bone100} opacity={0.9} />
+                    </Svg>
+                    <Text style={styles.startSessionTextGhost}>Start Session</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })()}
       </Animated.View>
 
       {/* ── Panel content: absolutely overlaid, animates in over session area ── */}
@@ -1234,6 +1282,8 @@ export default function HomeScreen() {
             onApply={handleApplyPreset}
             listProgress={listProgress}
             onNewPreset={() => navigateTo('new-preset')}
+            sessionActive={sessionActive}
+            onBackToSession={() => navigateTo('session')}
           />
         )}
         {scene === 'history' && (
@@ -1397,7 +1447,7 @@ const styles = StyleSheet.create({
   },
   presetChangeBtnText: {
     fontSize: 12,
-    color: colors.ember,
+    color: colors.bone50,
     fontWeight: '500',
     letterSpacing: 0.8,
   },
@@ -1414,6 +1464,12 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
+  startSessionOuterGhost: {
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 1,
+  },
   startSessionBtn: {
     borderRadius: 18,
     overflow: 'hidden',
@@ -1425,7 +1481,23 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 18,
   },
+  startSessionGhostInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.bone35,
+    backgroundColor: 'transparent',
+  },
   startSessionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.bone100,
+    letterSpacing: 0.3,
+  },
+  startSessionTextGhost: {
     fontSize: 16,
     fontWeight: '500',
     color: colors.bone100,
@@ -1437,6 +1509,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+  },
+
+  // ── Back-to-session affordance (Presets panel, session active) ───────────
+  backToSessionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    minHeight: 32,
+  },
+  backToSessionText: {
+    fontSize: 12,
+    color: colors.bone50,
+    letterSpacing: 0.3,
   },
 
   // ── Panel shared ───────────────────────────────────────────────────────────
@@ -1473,7 +1559,7 @@ const styles = StyleSheet.create({
   newBtnText: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.ember,
+    color: colors.bone50,
     letterSpacing: 0.2,
   },
 
@@ -1557,15 +1643,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 100,
-    backgroundColor: 'rgba(232,146,64,0.10)',
-    borderWidth: 0.5,
-    borderColor: colors.ember,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.bone35,
     alignItems: 'center',
     justifyContent: 'center',
   },
   applyBtnText: {
     fontSize: 12,
-    color: colors.ember,
+    color: colors.bone100,
     fontWeight: '500',
     letterSpacing: 0.3,
   },
@@ -1947,10 +2033,24 @@ const styles = StyleSheet.create({
     gap: 52,
   },
   navNodeTouch: {
-    width: 44,
-    height: 44,
+    width: 56,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  navNodeInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  navLabel: {
+    fontSize: 9,
+    fontWeight: '500',
+    letterSpacing: 1.4,
+    color: colors.bone35,
+  },
+  navLabelActive: {
+    color: colors.bone100,
   },
 
   // ── Dial glow ring (preset-apply bloom) ────────────────────────────────────

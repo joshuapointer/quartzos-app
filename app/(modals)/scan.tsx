@@ -14,6 +14,7 @@ import {
 } from 'react-native-ble-plx';
 import Animated, {
   Easing,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -31,13 +32,43 @@ const storage = new MMKV({ id: 'quartzos' });
 
 type Found = { id: string; name: string; rssi: number | null };
 
+// Scan state machine for orb tinting
+type ScanState = 'scanning' | 'devices-found' | 'connecting' | 'connected';
+
+const BAR_ACTIVE_COLORS = [
+  colors.boneGhost, // bar 0 — weakest
+  colors.boneGhost, // bar 1
+  colors.boneDim,   // bar 2
+  colors.boneMid,   // bar 3 — strongest
+] as const;
+const BAR_INACTIVE = 'rgba(109,96,80,0.15)';
+
+// Numeric indices for interpolateColor input range
+const SCAN_STATE_INDEX: Record<ScanState, number> = {
+  'scanning':      0,
+  'devices-found': 1,
+  'connecting':    2,
+  'connected':     3,
+};
+
 export default function ScanModal() {
   const router = useRouter();
   const [devices, setDevices] = useState<Found[]>([]);
   const [empty, setEmpty] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
   const scannerRef = useRef<RNBleManager | null>(null);
   const emptyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Derive scan state
+  const scanState: ScanState = connected
+    ? 'connected'
+    : connecting !== null
+      ? 'connecting'
+      : devices.length > 0
+        ? 'devices-found'
+        : 'scanning';
 
   const startScan = useCallback(() => {
     setDevices([]);
@@ -94,6 +125,7 @@ export default function ScanModal() {
     startScan();
     return () => {
       if (emptyTimerRef.current) clearTimeout(emptyTimerRef.current);
+      if (connectedTimerRef.current) clearTimeout(connectedTimerRef.current);
       scannerRef.current?.stopDeviceScan();
       scannerRef.current?.destroy();
       scannerRef.current = null;
@@ -119,7 +151,12 @@ export default function ScanModal() {
         const state = useBleStore.getState().connectionState;
         if (state === 'READY' || state === 'SUBSCRIBING' || state === 'DISCOVERING') {
           storage.set('lastDeviceId', deviceId);
-          router.replace('/(connected)/home');
+          // Brief amber flash before routing
+          setConnected(true);
+          connectedTimerRef.current = setTimeout(() => {
+            router.replace('/(connected)/home');
+          }, 600);
+          return;
         }
       } finally {
         setConnecting(null);
@@ -141,7 +178,8 @@ export default function ScanModal() {
       <QBackground />
       <View style={styles.screen}>
         <GlassCard padding={24} style={styles.card}>
-          <CrystalOrb />
+          <CrystalOrb scanState={scanState} />
+          <ScanCaption scanState={scanState} />
           <Text style={styles.title}>Find a Dab Rite</Text>
           <Text style={styles.body}>
             Tap a device to swap your active connection.
@@ -185,9 +223,16 @@ export default function ScanModal() {
   );
 }
 
-function CrystalOrb() {
+// ── CrystalOrb ──────────────────────────────────────────────────────────────
+
+interface OrbProps {
+  scanState: ScanState;
+}
+
+function CrystalOrb({ scanState }: OrbProps) {
   const scale = useSharedValue(1);
   const glow = useSharedValue(0.5);
+  const tintProgress = useSharedValue(SCAN_STATE_INDEX['scanning']);
 
   useEffect(() => {
     scale.value = withRepeat(
@@ -200,13 +245,39 @@ function CrystalOrb() {
       -1,
       true,
     );
-  }, [scale, glow]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    tintProgress.value = withTiming(SCAN_STATE_INDEX[scanState], { duration: 500 });
+  }, [scanState, tintProgress]);
 
   const inner = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+    backgroundColor: interpolateColor(
+      tintProgress.value,
+      [0, 1, 2, 3],
+      [
+        colors.quartzDim,   // scanning
+        colors.quartzMid,   // devices-found
+        colors.coldSlate,   // connecting
+        colors.firedAmber,  // connected — brief amber flash
+      ],
+    ),
   }));
+
   const ring = useAnimatedStyle(() => ({
     opacity: glow.value,
+    borderColor: interpolateColor(
+      tintProgress.value,
+      [0, 1, 2, 3],
+      [
+        colors.quartzDim,
+        colors.quartzMid,
+        colors.coldSlate,
+        colors.firedAmber,
+      ],
+    ),
   }));
 
   return (
@@ -216,6 +287,60 @@ function CrystalOrb() {
     </View>
   );
 }
+
+// ── Scan caption ─────────────────────────────────────────────────────────────
+
+interface CaptionProps {
+  scanState: ScanState;
+}
+
+function ScanCaption({ scanState }: CaptionProps) {
+  const [longEmpty, setLongEmpty] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // After 5s of scanning with no results, swap to nudge copy
+  useEffect(() => {
+    if (scanState === 'scanning') {
+      timerRef.current = setTimeout(() => setLongEmpty(true), 5000);
+    } else {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setLongEmpty(false);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [scanState]);
+
+  const captionOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    // Fade out when devices are found; fade in otherwise
+    captionOpacity.value = withTiming(
+      scanState === 'devices-found' || scanState === 'connected' ? 0 : 1,
+      { duration: 400 },
+    );
+  }, [scanState, captionOpacity]);
+
+  const captionStyle = useAnimatedStyle(() => ({
+    opacity: captionOpacity.value,
+  }));
+
+  const label = longEmpty
+    ? 'MAKE SURE YOUR RIG IS POWERED ON'
+    : scanState === 'connecting'
+      ? 'CONNECTING…'
+      : 'LISTENING FOR DAB RITE…';
+
+  const labelColor = longEmpty ? colors.boneGhost : colors.boneMid;
+
+  return (
+    <Animated.Text style={[styles.scanCaption, { color: labelColor }, captionStyle]}>
+      {label}
+    </Animated.Text>
+  );
+}
+
+// ── DeviceRow ────────────────────────────────────────────────────────────────
 
 interface RowProps {
   device: Found;
@@ -241,7 +366,10 @@ function DeviceRow({ device, onPress, loading }: RowProps) {
             key={i}
             style={[
               styles.bar,
-              { height: 6 + i * 4, opacity: i < bars ? 1 : 0.25 },
+              {
+                height: 6 + i * 4,
+                backgroundColor: i < bars ? BAR_ACTIVE_COLORS[i] : BAR_INACTIVE,
+              },
             ]}
           />
         ))}
@@ -263,7 +391,7 @@ function rssiToBars(rssi: number | null): number {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#050403',
+    backgroundColor: colors.bgDeep,
   },
   screen: {
     flex: 1,
@@ -297,7 +425,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.full,
-    backgroundColor: colors.onSurface,
     borderWidth: 1,
     borderColor: colors.glassBorder,
   },
@@ -308,6 +435,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.glassBorder,
+  },
+  scanCaption: {
+    ...fonts.labelCaps,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   list: {
     alignSelf: 'stretch',
@@ -346,7 +479,7 @@ const styles = StyleSheet.create({
   },
   rowStatus: {
     ...fonts.caption,
-    color: colors.primary,
+    color: colors.boneMid,
     marginLeft: spacing.sm,
   },
   bars: {
@@ -358,7 +491,8 @@ const styles = StyleSheet.create({
   bar: {
     width: 4,
     borderRadius: 2,
-    backgroundColor: colors.primary,
+    // color set per-bar in render based on signal strength
+    backgroundColor: BAR_INACTIVE,
   },
   emptyHint: {
     ...fonts.body,

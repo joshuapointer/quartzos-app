@@ -13,7 +13,6 @@ import {
   ChromeButton,
   CrystalToggle,
   FloatingHeader,
-  GlassCard,
   QBackground,
   SkeuSlider,
 } from '../../src/design';
@@ -167,14 +166,14 @@ export default function SettingsScreen() {
   }, [updateSetting]);
 
   const statusText = useMemo(() => {
-    if (status === 'synced') return '✓ Synced';
-    if (status === 'pending') return '⏳ Pending';
-    return '✗ Error';
+    if (status === 'synced') return 'SYNCED';
+    if (status === 'pending') return 'PENDING';
+    return 'ERROR';
   }, [status]);
 
   const statusColor = useMemo(() => {
     if (status === 'synced') return colors.success;
-    if (status === 'pending') return colors.warning;
+    if (status === 'pending') return colors.bone50;
     return colors.error;
   }, [status]);
 
@@ -190,9 +189,9 @@ export default function SettingsScreen() {
         <Text style={styles.screenTitle}>Device Config</Text>
         <Text style={styles.screenSubtitle}>Calibrate your rig parameters.</Text>
 
-        {/* DISPLAY COLORS */}
-        <GlassCard style={styles.card} padding={spacing.md}>
-          <Text style={styles.sectionTitle}>Display Colors</Text>
+        {/* LCD COLORS */}
+        <Text style={styles.sectionHeading}>LCD COLORS</Text>
+        <View style={styles.section}>
           <View style={styles.swatchRow}>
             {COLOR_SLOT_LABELS.map((label, idx) => (
               <Pressable
@@ -212,11 +211,13 @@ export default function SettingsScreen() {
               </Pressable>
             ))}
           </View>
-        </GlassCard>
+        </View>
 
-        {/* TEMPERATURES */}
-        <GlassCard style={styles.card} padding={spacing.md}>
-          <Text style={styles.sectionTitle}>Temperatures</Text>
+        <View style={styles.sectionDivider} />
+
+        {/* TEMPERATURE */}
+        <Text style={styles.sectionHeading}>TEMPERATURE</Text>
+        <View style={styles.section}>
           <SkeuSlider
             label="Dab Alarm"
             value={dabAlarmDisplay}
@@ -257,11 +258,13 @@ export default function SettingsScreen() {
               style={styles.btnHalf}
             />
           </View>
-        </GlassCard>
+        </View>
+
+        <View style={styles.sectionDivider} />
 
         {/* DEVICE CONFIG */}
-        <GlassCard style={styles.card} padding={spacing.md}>
-          <Text style={styles.sectionTitle}>Device Config</Text>
+        <Text style={styles.sectionHeading}>DEVICE CONFIG</Text>
+        <View style={styles.section}>
           <ToggleRow
             label="Opaque Mode"
             value={settings.opaqueMode}
@@ -287,13 +290,15 @@ export default function SettingsScreen() {
             value={settings.nightMode}
             onChange={(v) => updateSetting('nightMode', v)}
           />
-        </GlassCard>
+        </View>
+
+        <View style={styles.sectionDivider} />
 
         {/* SOUND */}
-        <GlassCard style={styles.card} padding={spacing.md}>
-          <Text style={styles.sectionTitle}>Sound</Text>
+        <Text style={styles.sectionHeading}>SOUND</Text>
+        <View style={styles.section}>
           <SkeuSlider
-            label={`Volume — Level ${settings.volume}`}
+            label={`Volume: Level ${settings.volume}`}
             value={settings.volume}
             min={1}
             max={3}
@@ -319,26 +324,32 @@ export default function SettingsScreen() {
             value={settings.dunkSound}
             onChange={(v) => updateSetting('dunkSound', v)}
           />
-        </GlassCard>
+        </View>
+
+        <View style={styles.sectionDivider} />
 
         {/* PHONE ALERTS */}
-        <GlassCard style={styles.card} padding={spacing.md}>
-          <Text style={styles.sectionTitle}>Phone Alerts</Text>
+        <Text style={styles.sectionHeading}>PHONE ALERTS</Text>
+        <View style={styles.section}>
           <ChromeButton
             label="Configure Phone Alerts"
             variant="secondary"
             onPress={() => router.push('/(modals)/notification-config')}
           />
-        </GlassCard>
+        </View>
 
         {/* SAVE */}
         <View style={styles.saveRow}>
           <ChromeButton
             label="Save to Device"
+            variant="secondary"
             onPress={handleSaveNow}
             style={styles.saveBtn}
           />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+          <View style={styles.statusRow}>
+            <View style={[styles.stateDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusLabel, { color: statusColor }]}>{statusText}</Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -421,9 +432,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   screenTitle: {
-    fontSize: 48,
-    letterSpacing: -1.92,
-    fontWeight: '300',
+    ...fonts.h1,
     color: colors.onSurface,
     marginBottom: 8,
   },
@@ -432,14 +441,23 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     marginBottom: 32,
   },
-  card: {
+  sectionHeading: {
+    ...fonts.labelCaps,
+    color: colors.boneGhost,
+    marginBottom: 12,
+  },
+  section: {
+    backgroundColor: colors.surface3,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(109,96,80,0.15)',
     marginBottom: spacing.md,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '400',
-    color: colors.primaryFixedDim,
-    marginBottom: 12,
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(109,96,80,0.2)',
+    marginBottom: spacing.lg,
   },
   swatchRow: {
     flexDirection: 'row',
@@ -491,11 +509,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   segmentedLabel: {
-    ...fonts.caption,
+    ...fonts.labelCaps,
     color: colors.onSurfaceVariant,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
     marginBottom: spacing.sm,
   },
   segmentedScroll: {
@@ -531,10 +546,17 @@ const styles = StyleSheet.create({
   saveBtn: {
     flex: 1,
   },
-  statusText: {
-    ...fonts.caption,
-    fontWeight: '700',
-    minWidth: 80,
-    textAlign: 'right',
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stateDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusLabel: {
+    ...fonts.labelCaps,
   },
 });

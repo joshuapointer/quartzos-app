@@ -7,16 +7,14 @@ import {
   Alert,
   Share,
   TouchableOpacity,
-  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { format, isToday, isYesterday } from 'date-fns';
-import { MaterialIcons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop } from 'react-native-svg';
 
-import { QBackground, GlassCard, ChromeButton, FloatingHeader } from '../../src/design';
-import { colors, spacing, radius, fonts } from '../../src/design/tokens';
+import { QBackground, ChromeButton, FloatingHeader } from '../../src/design';
+import { colors, spacing, fonts } from '../../src/design/tokens';
 import * as sessionsDb from '../../src/db/sessions';
 import type { SessionRecord } from '../../src/db/sessions';
 
@@ -25,41 +23,18 @@ function formatDuration(startedAt: number, endedAt: number | null): string {
   const totalSec = Math.floor(durationMs / 1000);
   const mins = Math.floor(totalSec / 60);
   const secs = totalSec % 60;
-  return `${mins}:${String(secs).padStart(2, '0')}`;
+  return `${mins}m ${String(secs).padStart(2, '0')}s`;
 }
 
-function formatDateLabel(ts: number): string {
-  const date = new Date(ts);
-  const timeStr = format(date, 'h:mm a');
-  if (isToday(date)) return `${timeStr} Today`;
-  if (isYesterday(date)) return `${timeStr} Yesterday`;
-  return `${timeStr} ${format(date, 'MMM d')}`;
-}
-
-function getCategoryFromTemp(peakTempF: number): {
-  icon: keyof typeof MaterialIcons.glyphMap;
-  label: string;
-  color: string;
-} {
-  if (peakTempF >= 500) {
-    return { icon: 'flare', label: 'DEEP FOCUS', color: colors.primary };
-  }
-  if (peakTempF >= 400) {
-    return { icon: 'auto-awesome', label: 'RESTORATION', color: colors.onSurfaceVariant };
-  }
-  return { icon: 'water-drop', label: 'LOW TEMP', color: colors.secondary };
-}
-
-interface SparklineProps {
+interface InlineSparklineProps {
   samples: sessionsDb.TempSample[];
+  width?: number;
+  height?: number;
 }
 
-function Sparkline({ samples }: SparklineProps) {
-  if (samples.length === 0) {
-    return <View style={{ height: 60 }} />;
-  }
+function InlineSparkline({ samples, width = 70, height = 16 }: InlineSparklineProps) {
+  if (samples.length < 2) return <View style={{ width, height }} />;
 
-  // Downsample: every 10th sample, max 30 points
   const downsampled: number[] = [];
   for (let i = 0; i < samples.length; i += 10) {
     downsampled.push(samples[i].f);
@@ -70,17 +45,16 @@ function Sparkline({ samples }: SparklineProps) {
   const minVal = Math.min(...dots);
   const range = maxVal - minVal || 1;
 
-  const svgHeight = 60;
-  const svgWidth = 300; // logical width; SVG will scale via preserveAspectRatio
+  const svgW = 300;
+  const svgH = 60;
 
   const points = dots.map((val, i) => {
-    const x = dots.length === 1 ? svgWidth / 2 : (i / (dots.length - 1)) * svgWidth;
+    const x = dots.length === 1 ? svgW / 2 : (i / (dots.length - 1)) * svgW;
     const normalized = (val - minVal) / range;
-    const y = svgHeight - 4 - normalized * (svgHeight - 8);
+    const y = svgH - 4 - normalized * (svgH - 8);
     return { x, y };
   });
 
-  // Build smooth cubic bezier path for line
   let linePath = `M ${points[0].x} ${points[0].y}`;
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1];
@@ -89,31 +63,29 @@ function Sparkline({ samples }: SparklineProps) {
     linePath += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
   }
 
-  // Build fill path (same curve, then close down to bottom)
   let fillPath = linePath;
-  fillPath += ` L ${points[points.length - 1].x} ${svgHeight}`;
-  fillPath += ` L ${points[0].x} ${svgHeight}`;
+  fillPath += ` L ${points[points.length - 1].x} ${svgH}`;
+  fillPath += ` L ${points[0].x} ${svgH}`;
   fillPath += ' Z';
 
   return (
     <Svg
-      width="100%"
-      height={svgHeight}
-      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${svgW} ${svgH}`}
       preserveAspectRatio="none"
-      style={styles.sparklineSvg}
     >
       <Defs>
-        <SVGGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="rgba(232,146,64,0.20)" stopOpacity={1} />
+        <SVGGradient id="inlineSparkFill" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="rgba(232,146,64,0.22)" stopOpacity={1} />
           <Stop offset="1" stopColor="rgba(232,146,64,0)" stopOpacity={1} />
         </SVGGradient>
       </Defs>
-      <Path d={fillPath} fill="url(#sparkFill)" />
+      <Path d={fillPath} fill="url(#inlineSparkFill)" />
       <Path
         d={linePath}
         stroke={colors.primaryContainer}
-        strokeWidth={2}
+        strokeWidth={3}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -122,57 +94,69 @@ function Sparkline({ samples }: SparklineProps) {
   );
 }
 
-interface SessionCardProps {
+interface JournalRowProps {
   session: SessionRecord;
+  isActive?: boolean;
   onPress: () => void;
 }
 
-function SessionCard({ session, onPress }: SessionCardProps) {
-  const category = getCategoryFromTemp(session.peakTempF);
+function JournalRow({ session, isActive, onPress }: JournalRowProps) {
+  const date = new Date(session.startedAt);
+  const dayOfMonth = format(date, 'd');
+  const month = format(date, 'MMM').toUpperCase();
+  const time = format(date, 'h:mm a');
+  const presetName = session.presetId ?? 'Session';
+  const duration = formatDuration(session.startedAt, session.endedAt);
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-      <GlassCard style={styles.card} padding={16} borderRadius={radius.md}>
-        {/* Category row */}
-        <View style={styles.categoryRow}>
-          <MaterialIcons name={category.icon} size={14} color={category.color} />
-          <Text style={[styles.categoryLabel, { color: category.color }]}>
-            {category.label}
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.row}>
+      {/* Active indicator: ember-glow left edge */}
+      {isActive && <View style={styles.activeEdge} />}
+
+      {/* Left: tabular date stack */}
+      <View style={styles.dateCol}>
+        <Text style={styles.dateDay}>{dayOfMonth}</Text>
+        <Text style={styles.dateMonth}>{month}</Text>
+        <Text style={styles.dateTime}>{time}</Text>
+      </View>
+
+      {/* Right: name + stats */}
+      <View style={styles.contentCol}>
+        <View style={styles.nameLine}>
+          <Text style={styles.presetName} numberOfLines={1} ellipsizeMode="tail">
+            {presetName}
           </Text>
+          {isActive && (
+            <Text style={styles.activePill}>ACTIVE</Text>
+          )}
         </View>
-
-        {/* Date header */}
-        <Text style={styles.dateText}>{formatDateLabel(session.startedAt)}</Text>
-
-        {/* Peak temp display */}
-        <View style={styles.peakTempBlock}>
-          <Text style={styles.peakTempValue}>{session.peakTempF}</Text>
-          <Text style={styles.peakTempUnit}>°F</Text>
-        </View>
-        <Text style={styles.peakTempLabel}>PEAK TEMP</Text>
-
-        {/* Sparkline */}
-        <Sparkline samples={session.samples} />
-
-        {/* Footer */}
-        <View style={styles.cardFooter}>
-          <Text style={styles.durationText}>
-            {formatDuration(session.startedAt, session.endedAt)}
+        <View style={styles.statsLine}>
+          <Text style={styles.statsText}>
+            {session.peakTempF}°F{'·'}{duration}
           </Text>
-          <View style={styles.chevronButton}>
-            <MaterialIcons name="chevron-right" size={18} color={colors.onSurfaceVariant} />
-          </View>
+          <InlineSparkline samples={session.samples} width={70} height={16} />
         </View>
-      </GlassCard>
+      </View>
+
+      {/* Trailing chevron */}
+      <Text style={styles.chevron}>›</Text>
     </TouchableOpacity>
   );
 }
 
-const FILTER_CHIPS = ['All Sessions', 'High Temp', 'Low Temp'];
+function EmptyState() {
+  return (
+    <View style={styles.emptyContainer}>
+      {/* Ember-tinted circle glyph */}
+      <View style={styles.emptyGlyph} />
+      <Text style={styles.emptyPrimary}>Your first session will appear here.</Text>
+      <Text style={styles.emptySecondary}>Pull a dab while connected.</Text>
+    </View>
+  );
+}
 
 export default function HistoryScreen() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [activeFilter, setActiveFilter] = useState(0);
 
   const load = useCallback(async () => {
     const all = await sessionsDb.getAll();
@@ -209,12 +193,6 @@ export default function HistoryScreen() {
     });
   }, []);
 
-  const filteredSessions = sessions.filter((s) => {
-    if (activeFilter === 1) return s.peakTempF >= 500;
-    if (activeFilter === 2) return s.peakTempF < 450;
-    return true;
-  });
-
   return (
     <View style={styles.root}>
       <QBackground />
@@ -238,51 +216,19 @@ export default function HistoryScreen() {
           </View>
         </View>
 
-        {/* Filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipsScroll}
-          contentContainerStyle={styles.chipsContainer}
-        >
-          {FILTER_CHIPS.map((label, i) => {
-            const active = i === activeFilter;
-            return (
-              <TouchableOpacity
-                key={label}
-                onPress={() => setActiveFilter(i)}
-                activeOpacity={0.7}
-                style={[
-                  styles.chip,
-                  active
-                    ? styles.chipActive
-                    : styles.chipInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    { color: active ? colors.primaryContainer : colors.onSurfaceVariant },
-                  ]}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
         <FlatList
-          data={filteredSessions}
+          data={sessions}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No sessions recorded yet.</Text>
-          }
-          renderItem={({ item }) => (
-            <SessionCard
+          contentContainerStyle={[
+            styles.listContent,
+            sessions.length === 0 && styles.listContentEmpty,
+          ]}
+          ItemSeparatorComponent={() => <View style={styles.divider} />}
+          ListEmptyComponent={<EmptyState />}
+          renderItem={({ item, index }) => (
+            <JournalRow
               session={item}
+              isActive={index === 0 && item.endedAt === null}
               onPress={() => router.push(`/(connected)/history/${item.id}`)}
             />
           )}
@@ -304,7 +250,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   pageHeader: {
-    marginBottom: 32,
+    marginBottom: 24,
     marginTop: 8,
   },
   pageHeaderTop: {
@@ -322,104 +268,126 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     flexWrap: 'wrap',
   },
-  chipsScroll: {
-    marginBottom: 16,
-    flexGrow: 0,
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingRight: spacing.md,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: radius.full,
-    borderWidth: 1,
-  },
-  chipActive: {
-    backgroundColor: 'rgba(232,146,64,0.12)',
-    borderColor: colors.primaryContainer,
-  },
-  chipInactive: {
-    backgroundColor: colors.glassFill,
-    borderColor: colors.glassBorder,
-  },
-  chipText: {
-    ...fonts.caption,
-    fontWeight: '500',
-  },
   listContent: {
     paddingBottom: spacing.md,
     flexGrow: 1,
   },
-  card: {
-    alignSelf: 'stretch',
+  listContentEmpty: {
+    justifyContent: 'flex-start',
+    paddingTop: '20%',
   },
-  categoryRow: {
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(109,96,80,0.2)',
+  },
+
+  // Journal row
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 6,
+    minHeight: 64,
+    paddingVertical: 10,
+    paddingRight: spacing.sm,
   },
-  categoryLabel: {
-    ...fonts.labelCaps,
-    fontSize: 11,
+  activeEdge: {
+    position: 'absolute',
+    left: -spacing.md,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: colors.firedAmber,
+    shadowColor: colors.firedAmber,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
-  dateText: {
-    ...fonts.h2,
-    color: colors.onSurface,
-    marginBottom: 12,
+  dateCol: {
+    width: 44,
+    alignItems: 'center',
+    marginRight: 14,
   },
-  peakTempBlock: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  peakTempValue: {
-    fontSize: 48,
-    fontWeight: '300',
-    letterSpacing: -1.92,
-    color: colors.onSurface,
+  dateDay: {
+    fontSize: 17,
+    fontWeight: '400',
+    color: colors.bone100,
+    lineHeight: 20,
     fontVariant: ['tabular-nums'],
   },
-  peakTempUnit: {
-    fontSize: 20,
-    fontWeight: '300',
-    color: colors.onSurface,
-    marginBottom: 8,
-    marginLeft: 2,
-  },
-  peakTempLabel: {
+  dateMonth: {
     ...fonts.labelCaps,
-    color: colors.onSurfaceVariant,
-    marginBottom: 8,
+    color: colors.boneMid,
+    lineHeight: 14,
   },
-  sparklineSvg: {
-    marginVertical: spacing.sm,
+  dateTime: {
+    ...fonts.caption,
+    fontSize: 10,
+    color: colors.boneGhost,
+    lineHeight: 14,
   },
-  cardFooter: {
+  contentCol: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 3,
+  },
+  nameLine: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    gap: spacing.sm,
   },
-  durationText: {
+  presetName: {
+    flex: 1,
     ...fonts.body,
-    color: colors.onSurfaceVariant,
+    fontWeight: '400',
+    color: colors.bone100,
+  },
+  activePill: {
+    ...fonts.labelCaps,
+    color: colors.firedAmber,
+    lineHeight: 12,
+  },
+  statsLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  statsText: {
+    ...fonts.caption,
+    color: colors.boneMid,
     fontVariant: ['tabular-nums'],
   },
-  chevronButton: {
+  chevron: {
+    fontSize: 18,
+    color: colors.boneGhost,
+    marginLeft: spacing.sm,
+    lineHeight: 24,
+  },
+
+  // Empty state
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 32,
+    gap: 12,
+  },
+  emptyGlyph: {
     width: 32,
     height: 32,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(244,237,228,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(232,146,64,0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(232,146,64,0.4)',
+    shadowColor: colors.firedAmber,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
   },
-  emptyText: {
-    color: colors.outline,
-    fontSize: 15,
+  emptyPrimary: {
+    ...fonts.body,
+    color: colors.boneMid,
     textAlign: 'center',
-    marginTop: spacing.xxl,
+  },
+  emptySecondary: {
+    ...fonts.caption,
+    color: colors.boneGhost,
+    textAlign: 'center',
   },
 });

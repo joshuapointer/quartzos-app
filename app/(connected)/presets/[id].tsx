@@ -77,7 +77,7 @@ export default function PresetEditorScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="Preset name…"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={colors.boneGhost}
                 autoCapitalize="words"
                 returnKeyType="done"
               />
@@ -123,7 +123,7 @@ export default function PresetEditorScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.idleDeep,
+    backgroundColor: colors.bgDeep,
   },
   safe: {
     flex: 1,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heading: {
-    color: colors.textPrimary,
+    color: colors.bone100,
     ...fonts.h1,
     fontWeight: '700',
     marginBottom: spacing.xs,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   fieldLabel: {
-    color: colors.textSecondary,
+    color: colors.boneMid,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -157,20 +157,20 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: 'rgba(244,237,228,0.10)',
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    color: colors.textPrimary,
+    color: colors.bone100,
     fontSize: 16,
   },
   settingsSummary: {
-    color: colors.textSecondary,
+    color: colors.boneMid,
     fontSize: 14,
     marginBottom: spacing.md,
   },
   settingsValue: {
-    color: colors.activeAmber,
+    color: colors.firedAmber,
     fontWeight: '600',
   },
   loadButton: {

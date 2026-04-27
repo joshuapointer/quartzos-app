@@ -18,6 +18,7 @@ import {
 import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
 import { ThemeProvider } from '../src/design/ThemeContext';
+import { colors } from '../src/design/tokens';
 
 // Keep the splash screen up until we're ready.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -74,7 +75,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#050403' },
+            contentStyle: { backgroundColor: colors.bgDeep },
           }}
         >
           <Stack.Screen name="index" />
@@ -99,4 +100,4 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#050403' } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.bgDeep } });

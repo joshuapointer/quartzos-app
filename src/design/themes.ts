@@ -21,7 +21,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
     surface1:         '#0c0908',
     surface3:         '#1c1714',
     surface6:         '#3d342e',
-    surfaceBright:    '#2a2320',
+    surfaceBright:    '#3d342e',
     glassFill:        'rgba(5,4,3,0.6)',
     glassBorder:      'rgba(244,237,228,0.08)',
     primary:          '#E89240',

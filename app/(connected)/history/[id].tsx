@@ -96,7 +96,7 @@ function TempChart({ samples, dabAlarmF, dunkAlarmF }: TempChartProps) {
         y1={dabY}
         x2={CHART_WIDTH - CHART_PAD.right}
         y2={dabY}
-        stroke={colors.activeAmber}
+        stroke={colors.firedAmber}
         strokeWidth={1}
         strokeDasharray="4 3"
         opacity={0.7}
@@ -104,7 +104,7 @@ function TempChart({ samples, dabAlarmF, dunkAlarmF }: TempChartProps) {
       <SvgText
         x={CHART_WIDTH - CHART_PAD.right - 2}
         y={dabY - 3}
-        fill={colors.activeAmber}
+        fill={colors.firedAmber}
         fontSize={9}
         textAnchor="end"
         opacity={0.85}
@@ -118,7 +118,7 @@ function TempChart({ samples, dabAlarmF, dunkAlarmF }: TempChartProps) {
         y1={dunkY}
         x2={CHART_WIDTH - CHART_PAD.right}
         y2={dunkY}
-        stroke="#5AD9FF"
+        stroke={colors.coldSlate}
         strokeWidth={1}
         strokeDasharray="4 3"
         opacity={0.7}
@@ -126,7 +126,7 @@ function TempChart({ samples, dabAlarmF, dunkAlarmF }: TempChartProps) {
       <SvgText
         x={CHART_WIDTH - CHART_PAD.right - 2}
         y={dunkY - 3}
-        fill="#5AD9FF"
+        fill={colors.coldSlate}
         fontSize={9}
         textAnchor="end"
         opacity={0.85}
@@ -138,7 +138,7 @@ function TempChart({ samples, dabAlarmF, dunkAlarmF }: TempChartProps) {
       <Polyline
         points={points}
         fill="none"
-        stroke={colors.activeAmber}
+        stroke={colors.firedAmber}
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -151,8 +151,8 @@ function TempChart({ samples, dabAlarmF, dunkAlarmF }: TempChartProps) {
           cx={c.x}
           cy={c.y}
           r={4}
-          fill={c.kind === 'dab' ? colors.activeAmber : '#5AD9FF'}
-          stroke={colors.idleDeep}
+          fill={c.kind === 'dab' ? colors.firedAmber : colors.coldSlate}
+          stroke={colors.bgDeep}
           strokeWidth={1.5}
         />
       ))}
@@ -167,7 +167,7 @@ const chartStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    color: colors.textDim,
+    color: colors.boneGhost,
     fontSize: 13,
   },
 });
@@ -246,6 +246,7 @@ export default function SessionDetailScreen() {
                 {session.presetId && (
                   <View style={styles.stat}>
                     <Text style={styles.statLabel}>PRESET</Text>
+                    {/* TODO: resolve presetId → name via preset store */}
                     <Text style={styles.statValue} numberOfLines={1}>
                       {session.presetId}
                     </Text>
@@ -272,7 +273,7 @@ export default function SessionDetailScreen() {
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Add notes about this session…"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={colors.boneGhost}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -295,7 +296,7 @@ export default function SessionDetailScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.idleDeep,
+    backgroundColor: colors.bgDeep,
   },
   safe: {
     flex: 1,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   loadingText: {
-    color: colors.textDim,
+    color: colors.boneGhost,
     fontSize: 15,
     textAlign: 'center',
     marginTop: spacing.xxl,
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   dateText: {
-    color: colors.textSecondary,
+    color: colors.boneMid,
     fontSize: 13,
     marginBottom: spacing.md,
   },
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statLabel: {
-    color: colors.textDim,
+    color: colors.boneGhost,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -343,18 +344,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   statValue: {
-    color: colors.textPrimary,
+    color: colors.bone100,
     fontSize: 18,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
   peakValue: {
-    color: colors.activeAmber,
+    color: colors.firedAmber,
     fontSize: 22,
     fontWeight: '700',
   },
   sectionLabel: {
-    color: colors.textSecondary,
+    color: colors.boneMid,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -364,11 +365,11 @@ const styles = StyleSheet.create({
   notesInput: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: colors.crystalEdge,
+    borderColor: 'rgba(244,237,228,0.10)',
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    color: colors.textPrimary,
+    color: colors.bone100,
     fontSize: 15,
     minHeight: 100,
     marginBottom: spacing.md,

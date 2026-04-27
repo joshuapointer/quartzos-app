@@ -825,12 +825,12 @@ function TuneStep({
         <Text style={styles.labelCaps}>Thermal logic</Text>
         <Text style={styles.logicLine}>
           Extract base{' '}
-          <Text style={styles.logicNum}>{extract ? `${extract.baseTemp}°` : '—'}</Text>
+          <Text style={styles.logicNum}>{extract ? `${extract.baseTemp}°` : '·'}</Text>
           {' · '}Banger modifier{' '}
           <Text style={styles.logicNum}>
             {banger
               ? `${banger.modifier > 0 ? '+' : ''}${banger.modifier}°`
-              : '—'}
+              : '·'}
           </Text>
           {' · '}your tune{' '}
           <Text style={styles.logicNum}>
@@ -918,7 +918,7 @@ function SaveStep({
           <MaterialIcons name={iconName} size={36} color={colors.bgDeep} />
         </Animated.View>
         <Text style={styles.heroSummary}>
-          {extract?.name ?? '—'} · {banger?.name ?? '—'}
+          {extract?.name ?? '·'} · {banger?.name ?? '·'}
         </Text>
         <View style={styles.heroTempRow}>
           <View style={{ alignItems: 'center' }}>

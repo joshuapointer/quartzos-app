@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(244,237,228,0.03)',
   },
   border: {
     ...StyleSheet.absoluteFillObject,

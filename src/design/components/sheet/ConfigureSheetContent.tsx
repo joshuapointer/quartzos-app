@@ -291,7 +291,7 @@ export function ConfigureSheetContent() {
       <GlassCard style={styles.card} padding={spacing.md}>
         <Text style={sectionTitleStyle}>Sound</Text>
         <SkeuSlider
-          label={`Volume — Level ${settings.volume}`}
+          label={`Volume: Level ${settings.volume}`}
           value={settings.volume}
           min={1}
           max={3}

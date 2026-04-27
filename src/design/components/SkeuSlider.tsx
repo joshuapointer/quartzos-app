@@ -46,6 +46,7 @@ export function SkeuSlider({
 }: Props) {
   const tc = useThemeColors();
   const [trackWidth, setTrackWidth] = useState(0);
+  const trackWidthSV = useSharedValue(0);
   const position = useSharedValue(0);
   const startPosition = useSharedValue(0);
   const lastHapticUnit = useSharedValue(Math.floor(value / (hapticStep ?? step)));
@@ -79,7 +80,8 @@ export function SkeuSlider({
   const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
     setTrackWidth(w);
-  }, []);
+    trackWidthSV.value = w;
+  }, [trackWidthSV]);
 
   const commitValue = useCallback(
     (p: number) => {
@@ -115,9 +117,17 @@ export function SkeuSlider({
       runOnJS(commitValue)(position.value);
     });
 
-  const fillStyle = useAnimatedStyle(() => ({
-    width: position.value,
-  }));
+  const fillStyle = useAnimatedStyle(() => {
+    const tw = trackWidthSV.value;
+    const progress = tw > 0 ? position.value / tw : 0;
+    return {
+      transform: [
+        { translateX: -tw / 2 },
+        { scaleX: progress },
+        { translateX: tw / 2 },
+      ],
+    };
+  });
 
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: position.value - THUMB / 2 }],
@@ -238,6 +248,7 @@ const styles = StyleSheet.create({
   fillWrap: {
     position: 'absolute',
     left: 0,
+    right: 0,
     top: (THUMB + 8 - TRACK_H) / 2,
     height: TRACK_H,
     borderRadius: radius.full,

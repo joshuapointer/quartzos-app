@@ -35,14 +35,10 @@ export function DataStrip({
           <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>SESSION</Text>
         </View>
 
-        <View style={[styles.divider, { backgroundColor: colors.glassBorder }]} />
-
         <View style={styles.column}>
           <Text style={[styles.value, { color: colors.onSurface }]}>{peakTempFormatted}</Text>
           <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>PEAK</Text>
         </View>
-
-        <View style={[styles.divider, { backgroundColor: colors.glassBorder }]} />
 
         <View style={styles.column}>
           <Text style={[styles.value, { color: colors.onSurface }]}>{targetRangeFormatted}</Text>
@@ -73,10 +69,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  divider: {
-    width: 1,
-    height: '60%',
+    paddingHorizontal: 12,
   },
   value: {
     fontSize: 16,

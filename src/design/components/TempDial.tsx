@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../tokens';
+import { colors, animation } from '../tokens';
 import Svg, {
   Circle,
   Line,
@@ -10,6 +10,7 @@ import Svg, {
 } from 'react-native-svg';
 import Animated, {
   useSharedValue,
+  useDerivedValue,
   useAnimatedProps,
   useAnimatedStyle,
   withSpring,
@@ -30,7 +31,7 @@ type DialState = 'idle' | 'heating' | 'target' | 'cooling' | 'dunk';
 const PALETTE: Record<DialState, { ring: string; text: string; lensTop: string; lensBottom: string }> = {
   idle:    { ring: colors.quartzDim,    text: colors.bone90,  lensTop: colors.lensIdle,    lensBottom: colors.surface1 },
   heating: { ring: colors.emberMid,     text: colors.bone100, lensTop: colors.lensHeating, lensBottom: colors.surface1 },
-  target:  { ring: colors.emberBright,  text: '#fff5e8',      lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
+  target:  { ring: colors.emberBright,  text: '#f4ede4',      lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
   cooling: { ring: colors.emberCool,    text: colors.bone90,  lensTop: colors.lensCooling, lensBottom: colors.surface1 },
   dunk:    { ring: colors.quartzBright, text: '#e6effa',      lensTop: colors.lensDunk,    lensBottom: colors.surface1 },
 };
@@ -64,6 +65,11 @@ function deriveState(
   return 'idle';
 }
 
+// Scale constants for mini state
+const FULL_SIZE = 280;
+const MINI_SIZE = 80;
+const MINI_SCALE = MINI_SIZE / FULL_SIZE; // ≈ 0.286
+
 interface Props {
   tempF: number;
   dabAlarmF: number;
@@ -71,6 +77,7 @@ interface Props {
   sessionActive: boolean;
   useCelsius?: boolean;
   size?: number;
+  scaleState?: 'full' | 'mini';
 }
 
 export function TempDial({
@@ -80,6 +87,7 @@ export function TempDial({
   sessionActive,
   useCelsius = false,
   size = 310,
+  scaleState = 'full',
 }: Props) {
   const state = deriveState(tempF, dabAlarmF, dunkAlarmF, sessionActive);
   const pal = PALETTE[state];
@@ -160,6 +168,18 @@ export function TempDial({
   const numFontSize = tempStr.length >= 3 ? size * 0.30 : size * 0.36;
   const lensSize = size * 0.78;
 
+  // ── Scale state spring (full ↔ mini) ──────────────────────────────────────
+  // Uses animation.toggleSpring: { damping: 15, stiffness: 260, mass: 0.5 }
+  // scaleProgress: 0 = full, 1 = mini
+  const scaleProgress = useDerivedValue(() =>
+    withSpring(scaleState === 'mini' ? 1 : 0, animation.toggleSpring),
+  );
+
+  const scaleStyle = useAnimatedStyle(() => {
+    const scale = interpolate(scaleProgress.value, [0, 1], [1, MINI_SCALE]);
+    return { transform: [{ scale }] };
+  });
+
   // Build tick marks: 24 total, major at multiples of 6
   const TICK_COUNT = 24;
   const ticks = React.useMemo(() => Array.from({ length: TICK_COUNT }, (_, i) => {
@@ -178,6 +198,7 @@ export function TempDial({
   }), [size]);
 
   return (
+    <Animated.View style={scaleStyle}>
     <Animated.View
       style={[
         {
@@ -366,6 +387,7 @@ export function TempDial({
           </Text>
         )}
       </View>
+    </Animated.View>
     </Animated.View>
   );
 }

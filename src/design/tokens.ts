@@ -13,7 +13,7 @@ export const colors = {
   surface4:     '#2a2320',
   surface5:     '#352c27',
   surface6:     '#3d342e',
-  surfaceBright:'#2a2320',
+  surfaceBright:'#3d342e',
 
   // ── Bone whites (warm neutral type) ────────────────────────────────────────
   bone100: '#f4ede4',
@@ -84,6 +84,25 @@ export const colors = {
   activeAmber:   '#E89240',
   activeGlow:    '#E89240',
   activeDark:    '#E89240',
+
+  // ── Semantic aliases (DESIGN.md camelCase names) ─────────────────────────────
+  voidObsidian:  '#050403',   // ↔ bgDeep
+  surfaceDeep:   '#0c0908',   // ↔ surface1
+  surfaceMid:    '#1c1714',   // ↔ surface3
+  surfaceRaised: '#2a2320',   // ↔ surface4
+  surfaceMuted:  '#352c27',   // ↔ surface5
+  // surfaceBright already defined above (corrected to #3d342e) ↔ surface6
+  warmBone:      '#f4ede4',   // ↔ bone100
+  boneMid:       '#c7b8a4',   // ↔ bone70
+  boneDim:       '#9e907e',   // ↔ bone50
+  boneGhost:     '#6d6050',   // ↔ bone35
+  firedAmber:    '#E89240',   // ↔ emberBright
+  emberGlow:     '#C97326',   // ↔ ember
+  // emberDeep already defined above (#8A4E16, no rename)
+  coldSlate:     '#9ABDD8',   // ↔ quartzBright
+  quartzMid:     '#7BA8C4',   // ↔ quartz
+  // quartzDim already defined above (#4A7490, no rename)
+  // brass already defined above (#C4AC54, no rename)
 };
 
 export const gradients = {
@@ -101,7 +120,7 @@ export const gradients = {
   secondary:   ['#9ABDD8', '#7BA8C4', '#5C8CAE'] as const,
   wordmark:    ['#f4ede4', '#c7b8a4'] as const,
   crystal:     ['rgba(244,237,228,0.08)', 'rgba(244,237,228,0.02)', 'rgba(5,4,3,0)'] as const,
-  gloss:       ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] as const,
+  gloss:       ['rgba(244,237,228,0.08)', 'rgba(244,237,228,0)'] as const,
 };
 
 export const spacing = {

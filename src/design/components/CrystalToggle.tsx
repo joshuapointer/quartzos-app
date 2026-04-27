@@ -72,8 +72,8 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
   return (
     <AnimatedPressable
       onPress={handlePress}
-      onPressIn={() => { pressScale.value = withSpring(0.96, animation.toggleSpring); }}
-      onPressOut={() => { pressScale.value = withSpring(1, animation.toggleSpring); }}
+      onPressIn={() => { pressScale.value = withSpring(0.96, animation.pressSpring); }}
+      onPressOut={() => { pressScale.value = withSpring(1, animation.pressSpring); }}
       disabled={disabled}
       style={[styles.wrap, disabled && styles.disabled, pressScaleStyle, style]}
       accessibilityRole="switch"

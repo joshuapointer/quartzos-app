@@ -12,7 +12,7 @@ export function GlossOverlay({ intensity = 1, style }: Props) {
   return (
     <View pointerEvents="none" style={[styles.wrap, style]}>
       <LinearGradient
-        colors={[`rgba(255,255,255,${alpha})`, 'rgba(255,255,255,0)'] as const}
+        colors={[`rgba(244,237,228,${alpha})`, 'rgba(244,237,228,0)'] as const}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.grad}

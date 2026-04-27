@@ -146,13 +146,13 @@ function FlameIcon({ size = 56, opacity = 1 }: { size?: number; opacity?: number
       <Svg width={s} height={s} viewBox="0 0 56 56">
         <Defs>
           <SvgGradient id="flamGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0%" stopColor="#fff5e0" stopOpacity={0.9} />
+            <Stop offset="0%" stopColor="#f4ede4" stopOpacity={0.9} />
             <Stop offset="35%" stopColor={colors.emberBright} stopOpacity={1} />
             <Stop offset="75%" stopColor={colors.ember} stopOpacity={1} />
             <Stop offset="100%" stopColor={colors.emberDeep} stopOpacity={1} />
           </SvgGradient>
           <SvgGradient id="innerFlam" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0%" stopColor="#fffbe8" stopOpacity={0.95} />
+            <Stop offset="0%" stopColor="#f4ede4" stopOpacity={0.95} />
             <Stop offset="60%" stopColor="#ffd080" stopOpacity={0.8} />
             <Stop offset="100%" stopColor={colors.emberBright} stopOpacity={0} />
           </SvgGradient>
@@ -245,7 +245,7 @@ function DabIcon({ size = 56 }: { size?: number }) {
         </Defs>
         <Path d="M28 10 C20 10 14 16 14 24 C14 32 20 40 28 46 C36 40 42 32 42 24 C42 16 36 10 28 10 Z" fill="none" stroke="url(#dabGrad)" strokeWidth={2} />
         <SvgCircle cx={28} cy={28} r={6} fill={colors.emberBright} opacity={0.85} />
-        <Path d="M28 22 L28 26 M22 28 L26 28 M28 30 L28 34 M30 28 L34 28" stroke="rgba(255,255,255,0.6)" strokeWidth={1.5} strokeLinecap="round" />
+        <Path d="M28 22 L28 26 M22 28 L26 28 M28 30 L28 34 M30 28 L34 28" stroke="rgba(244,237,228,0.6)" strokeWidth={1.5} strokeLinecap="round" />
       </Svg>
     </View>
   );
@@ -1074,7 +1074,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: '#fff',
+    color: '#f4ede4',
   },
 
   autoAdvanceHint: {

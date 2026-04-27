@@ -8,11 +8,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { BleManager as RNBleManager } from 'react-native-ble-plx';
-import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 
 import { ChromeButton, GlassCard, QBackground } from '../../src/design';
 import { colors, fonts, spacing } from '../../src/design/tokens';
 import { requestNotificationPermissions } from '../../src/notifications/channels';
+import { StaticDialSilhouette } from '../../src/design/components/StaticDialSilhouette';
 
 type PermState = 'unknown' | 'granted' | 'denied' | 'blocked';
 
@@ -84,12 +84,13 @@ export default function PermissionsScreen() {
   return (
     <View style={styles.root}>
       <QBackground />
+      {/* Dial silhouette — dim background layer matching home screen positioning */}
+      <View style={styles.dialLayer} pointerEvents="none">
+        <StaticDialSilhouette state="idle" size={280} />
+      </View>
       <View style={styles.screen}>
         <GlassCard padding={28} style={styles.card}>
-          <View style={styles.iconWrap}>
-            <CrystalBleIcon />
-          </View>
-          <Text style={styles.title}>Connect your Dab Rite</Text>
+          <Text style={styles.title}>Wake the Dab Rite</Text>
           <Text style={styles.body}>
             Quartzie reads your Dab Rite over Bluetooth and fires notifications the
             instant you hit dab or dunk temp.
@@ -119,6 +120,7 @@ export default function PermissionsScreen() {
               label="Allow Permissions"
               onPress={handleAllow}
               loading={requesting}
+              variant="secondary"
               style={styles.cta}
             />
           )}
@@ -138,39 +140,17 @@ export default function PermissionsScreen() {
   );
 }
 
-function CrystalBleIcon() {
-  return (
-    <Svg width={96} height={96} viewBox="0 0 96 96">
-      <Defs>
-        <SvgGradient id="crystal" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#f4ede4" stopOpacity={0.85} />
-          <Stop offset="0.6" stopColor="#c7b8a4" stopOpacity={0.55} />
-          <Stop offset="1" stopColor="#8A4E16" stopOpacity={0.8} />
-        </SvgGradient>
-        <SvgGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="rgba(244,237,228,0.6)" stopOpacity={1} />
-          <Stop offset="1" stopColor="rgba(244,237,228,0)" stopOpacity={1} />
-        </SvgGradient>
-      </Defs>
-      <Circle cx={48} cy={48} r={44} fill="url(#crystal)" stroke="rgba(244,237,228,0.4)" strokeWidth={1.5} />
-      <Circle cx={48} cy={36} r={28} fill="url(#gloss)" />
-      {/* Bluetooth glyph */}
-      <Path
-        d="M40 28 L56 44 L40 60 V36 L56 52 L40 68"
-        stroke="#050403"
-        strokeWidth={3}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bgDeep,
+  },
+  dialLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    // Slight upward bias so dial center sits ~45% down, matching home layout
+    justifyContent: 'center',
+    paddingTop: '5%',
   },
   screen: {
     flex: 1,
@@ -179,9 +159,6 @@ const styles = StyleSheet.create({
   },
   card: {
     alignItems: 'center',
-  },
-  iconWrap: {
-    marginBottom: spacing.md,
   },
   title: {
     ...fonts.h1,

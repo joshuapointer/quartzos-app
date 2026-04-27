@@ -3,7 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import { MMKV } from 'react-native-mmkv';
 
-import { spacing } from '../src/design/tokens';
+import { spacing, colors } from '../src/design/tokens';
 import { bleManager } from '../src/ble/BleManager';
 import { useBleStore } from '../src/state/bleStore';
 
@@ -72,7 +72,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#050403',
+    backgroundColor: colors.bgDeep,
   },
   center: {
     flex: 1,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 42,
     fontWeight: '400',
-    color: '#e8dfd2',
+    color: colors.bone90,
     letterSpacing: -0.5,
   },
   tagline: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 2.2,
     textTransform: 'uppercase',
-    color: '#9e907e',
+    color: colors.bone50,
     marginTop: 12,
   },
 });
