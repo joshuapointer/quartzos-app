@@ -1,6 +1,22 @@
-# EAS Updates only. This repo does NOT trigger EAS Build from CI.
-# Native binaries are built manually via `eas build` when a release is cut.
-# If you ever add a build step here, make it explicit and gated on a tag.
+# OTA-only workflow. Native binaries are built/submitted via eas-build.yml
+# (when configured) or manually via `eas build` for releases.
+#
+# Branch -> EAS Update branch mapping:
+#   main         -> production
+#   preview      -> preview
+#   develop(ment)-> development
+#   feature/*    -> development   (so the develop dev client receives them)
+#   anything else-> the ref name  (sandbox)
+#
+# Channel routing is set on the canonical branches so the dev client of each
+# environment subscribes to a stable channel name. Per-feature branches do
+# NOT reset the channel; they just publish into the development EAS Update
+# branch and rely on runtimeVersion to gate compatibility client-side.
+#
+# When a push to main/preview/develop(ment) contains native-affecting changes
+# (ios/, android/, app.json plugins, package.json deps, eas.json), this
+# workflow SKIPS itself and defers to the build workflow. Pure-JS pushes on
+# those branches publish OTA as usual.
 name: EAS Update
 
 on:
@@ -17,32 +33,113 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect native-affecting changes
+        id: native_changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            native:
+              - 'ios/**'
+              - 'android/**'
+              - 'app.json'
+              - 'app.config.*'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'eas.json'
+
+      - name: Compute target EAS Update branch
+        id: branch_map
+        env:
+          REF: ${{ github.ref_name }}
+        run: |
+          case "$REF" in
+            main)
+              TARGET="production"
+              ;;
+            preview)
+              TARGET="preview"
+              ;;
+            development|develop)
+              TARGET="development"
+              ;;
+            feature/*)
+              TARGET="development"
+              ;;
+            *)
+              TARGET="$REF"
+              ;;
+          esac
+          echo "branch=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Mapped ref '$REF' -> EAS Update branch '$TARGET'"
+
+      - name: Decide whether to skip (native changes on a build-tracked branch)
+        id: skip_check
+        env:
+          NATIVE_CHANGED: ${{ steps.native_changes.outputs.native }}
+          REF: ${{ github.ref_name }}
+        run: |
+          case "$REF" in
+            main|preview|development|develop)
+              if [ "$NATIVE_CHANGED" = "true" ]; then
+                echo "Native changes detected on '$REF' — deferring to build workflow."
+                echo "should_skip=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "should_skip=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            *)
+              echo "should_skip=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - uses: actions/setup-node@v4
+        if: steps.skip_check.outputs.should_skip != 'true'
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
+        if: steps.skip_check.outputs.should_skip != 'true'
         run: npm ci --legacy-peer-deps
 
       - name: Setup EAS
+        if: steps.skip_check.outputs.should_skip != 'true'
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Publish update
+      - name: Publish OTA update
+        if: steps.skip_check.outputs.should_skip != 'true'
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
-          BRANCH_NAME: ${{ github.ref_name }}
+          BRANCH_NAME: ${{ steps.branch_map.outputs.branch }}
+          REF: ${{ github.ref_name }}
         run: |
+          # Tag the message with the originating ref when publishing to a
+          # shared environment branch (e.g. feature/foo -> development).
+          if [ "$BRANCH_NAME" != "$REF" ]; then
+            FULL_MSG="[$REF] $COMMIT_MSG"
+          else
+            FULL_MSG="$COMMIT_MSG"
+          fi
           eas update \
             --branch "$BRANCH_NAME" \
-            --message "$COMMIT_MSG" \
+            --message "$FULL_MSG" \
             --platform all \
             --non-interactive
 
-      - name: Route production channel to main
-        if: github.ref_name == 'main'
-        run: eas channel:edit production --branch main --non-interactive
+      - name: Route channel to its branch (canonical envs only)
+        if: |
+          steps.skip_check.outputs.should_skip != 'true' &&
+          (github.ref_name == 'main' ||
+           github.ref_name == 'preview' ||
+           github.ref_name == 'development' ||
+           github.ref_name == 'develop')
+        env:
+          BRANCH_NAME: ${{ steps.branch_map.outputs.branch }}
+        run: |
+          eas channel:edit "$BRANCH_NAME" --branch "$BRANCH_NAME" --non-interactive
