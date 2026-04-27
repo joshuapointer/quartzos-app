@@ -91,6 +91,10 @@ export const gradients = {
   ember:       ['#E89240', '#C97326', '#8A4E16'] as const,
   quartz:      ['#9ABDD8', '#7BA8C4', '#4A7490'] as const,
   heatCore:    ['rgba(232,146,64,0)', 'rgba(232,146,64,0.25)', 'rgba(201,115,38,0.5)'] as const,
+  // Card surface gradients — use via SurfaceCard component
+  cardActive:   ['#1e170e', '#0f0b06'] as const,  // active preset, highlighted rows
+  cardInactive: ['#110d0a', '#0a0806'] as const,  // non-active items in a list
+  cardNeutral:  ['#100e0c', '#0a0806'] as const,  // config sections, history cards
   // legacy
   amethyst:    ['#9ABDD8', '#7BA8C4', '#4A7490'] as const,
   primary:     ['#E89240', '#C97326', '#8A4E16'] as const,

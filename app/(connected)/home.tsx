@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -35,7 +35,8 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { colors } from '../../src/design/tokens';
+import { colors, gradients } from '../../src/design/tokens';
+import { SurfaceCard } from '../../src/design/components/SurfaceCard';
 import { SessionWalkthrough } from '../../src/design/components/SessionWalkthrough';
 import { NewPresetWizard } from '../../src/design/components/NewPresetWizard';
 import { QBackground } from '../../src/design/components/QBackground';
@@ -90,36 +91,15 @@ function peakTempColor(peakF: number): string {
 // ─── Preset Glyph SVG ─────────────────────────────────────────────────────────
 
 const GEM_COLORS_ORDERED = ['#7BA8C4', '#9ABDD8', '#C4AC54', '#7EC8A0', '#E07070'];
-const GEM_SHAPES = ['diamond', 'circle', 'triangle', 'hexagon', 'diamond'] as const;
 
-function PresetGlyph({ preset }: { preset: Preset }) {
-  const idx = preset.iconSlot ?? 0;
-  const color = GEM_COLORS_ORDERED[idx % GEM_COLORS_ORDERED.length] ?? GEM_COLORS_ORDERED[0];
-  const shape = GEM_SHAPES[idx % 4];
-  return (
-    <Svg width={40} height={40} viewBox="0 0 40 40">
-      {shape === 'diamond' && (
-        <Path d="M20 4 L36 20 L20 36 L4 20 Z" fill="none" stroke={color} strokeWidth={1.5} />
-      )}
-      {shape === 'circle' && (
-        <>
-          <SvgCircle cx={20} cy={20} r={14} fill="none" stroke={color} strokeWidth={1.5} />
-          <SvgCircle cx={20} cy={20} r={6} fill={color} opacity={0.5} />
-        </>
-      )}
-      {shape === 'triangle' && (
-        <Path d="M20 6 L34 32 L6 32 Z" fill="none" stroke={color} strokeWidth={1.5} />
-      )}
-      {shape === 'hexagon' && (
-        <Path d="M20 8 L28 12 L32 20 L28 28 L20 32 L12 28 L8 20 L12 12 Z" fill="none" stroke={color} strokeWidth={1.5} />
-      )}
-    </Svg>
-  );
+function GemDot({ idx }: { idx: number }) {
+  const color = GEM_COLORS_ORDERED[idx % GEM_COLORS_ORDERED.length] ?? GEM_COLORS_ORDERED[0]!;
+  return <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />;
 }
 
 // ─── Waveform SVG ─────────────────────────────────────────────────────────────
 
-function Waveform({ data, target }: { data: number[]; target: number }) {
+const Waveform = React.memo(function Waveform({ data, target }: { data: number[]; target: number }) {
   const W = 320;
   const H = 50;
 
@@ -160,7 +140,7 @@ function Waveform({ data, target }: { data: number[]; target: number }) {
       <Polyline points={points} fill="none" stroke={strokeColor} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </Svg>
   );
-}
+});
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 
@@ -294,9 +274,9 @@ function ConfigSection({ title, children }: { title: string; children: React.Rea
   return (
     <View style={styles.configSection}>
       <Text style={styles.configSectionTitle}>{title}</Text>
-      <LinearGradient colors={['#100e0c', '#0a0806']} style={styles.configCard}>
+      <SurfaceCard borderRadius={16} contentStyle={styles.configCardContent}>
         {children}
-      </LinearGradient>
+      </SurfaceCard>
     </View>
   );
 }
@@ -327,10 +307,11 @@ interface PresetCardProps {
   listProgress: SharedValue<number>;
   settings: ReturnType<typeof useSettingsStore.getState>['settings'];
   isActive: boolean;
-  onApply: (preset: Preset) => void;
+  isApplying: boolean;
+  onApply: (preset: Preset) => Promise<void>;
 }
 
-function PresetCard({ preset, index, listProgress, settings, isActive, onApply }: PresetCardProps) {
+const PresetCard = React.memo(function PresetCard({ preset, index, listProgress, settings, isActive, isApplying, onApply }: PresetCardProps) {
   const delay = Math.min(index * 0.1, 0.4);
   const cardStyle = useAnimatedStyle(() => {
     const progress = Math.max(0, Math.min(1, (listProgress.value - delay) / (1 - delay || 0.001)));
@@ -342,44 +323,43 @@ function PresetCard({ preset, index, listProgress, settings, isActive, onApply }
 
   return (
     <Animated.View style={[styles.presetCardOuter, cardStyle]}>
-      <LinearGradient
-        colors={isActive ? ['#1e170e', '#0f0b06'] : ['#110d0a', '#0a0806']}
-        style={styles.presetCard}
-      >
-        <View style={[StyleSheet.absoluteFillObject, styles.presetCardBorder]} pointerEvents="none" />
+      <View style={[styles.presetCard, isActive && styles.presetCardActive]}>
+        <View
+          style={[StyleSheet.absoluteFillObject, styles.presetCardBorder, isActive && styles.presetCardBorderActive]}
+          pointerEvents="none"
+        />
         <View style={styles.presetCardLeft}>
-          <PresetGlyph preset={preset} />
+          <GemDot idx={preset.iconSlot ?? 0} />
         </View>
         <View style={styles.presetCardMid}>
-          <Text style={styles.presetCardName}>{preset.name}</Text>
-          <View style={styles.presetTempPills}>
-            <View style={[styles.tempPill, { borderColor: colors.ember }]}>
-              <Text style={[styles.tempPillText, { color: colors.ember }]}>
-                DAB {formatTemp(preset.settings.dabAlarmF, settings.useCelsius)}
-              </Text>
-            </View>
-            <View style={[styles.tempPill, { borderColor: colors.quartz }]}>
-              <Text style={[styles.tempPillText, { color: colors.quartz }]}>
-                DUNK {formatTemp(preset.settings.dunkAlarmF, settings.useCelsius)}
-              </Text>
-            </View>
+          <Text style={styles.presetCardName} numberOfLines={1}>{preset.name}</Text>
+          <View style={styles.presetTempRow}>
+            <Text style={styles.presetTempDab}>DAB {formatTemp(preset.settings.dabAlarmF, settings.useCelsius)}</Text>
+            <Text style={styles.presetTempDunk}>  DUNK {formatTemp(preset.settings.dunkAlarmF, settings.useCelsius)}</Text>
           </View>
         </View>
         <View style={styles.presetCardRight}>
           {isActive ? (
-            <View style={styles.activePill}>
-              <Text style={styles.activePillText}>ACTIVE</Text>
-            </View>
+            <Text style={styles.activePillText}>ACTIVE</Text>
           ) : (
-            <TouchableOpacity onPress={() => onApply(preset)} style={styles.applyBtn}>
-              <Text style={styles.applyBtnText}>Apply</Text>
+            <TouchableOpacity
+              onPress={() => onApply(preset)}
+              style={styles.applyBtn}
+              disabled={isApplying}
+              activeOpacity={0.75}
+            >
+              {isApplying ? (
+                <ActivityIndicator size="small" color={colors.emberBright} />
+              ) : (
+                <Text style={styles.applyBtnText}>Apply</Text>
+              )}
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
-}
+});
 
 // ─── Nav Node Icon ────────────────────────────────────────────────────────────
 
@@ -457,13 +437,15 @@ function NavNode({ sceneId, active, onPress }: { sceneId: SceneId; active: boole
 function PresetsContent({
   settings,
   presets,
+  activePresetId,
   onApply,
   listProgress,
   onNewPreset,
 }: {
   settings: ReturnType<typeof useSettingsStore.getState>['settings'];
   presets: Preset[];
-  onApply: (preset: Preset) => void;
+  activePresetId: string | null;
+  onApply: (preset: Preset) => Promise<void>;
   listProgress: SharedValue<number>;
   onNewPreset: () => void;
 }) {
@@ -471,6 +453,9 @@ function PresetsContent({
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: floatY.value }],
   }));
+
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   useEffect(() => {
     floatY.value = withRepeat(
@@ -484,57 +469,139 @@ function PresetsContent({
     return () => { cancelAnimation(floatY); };
   }, [floatY]);
 
-  const isActive = (preset: Preset) =>
-    preset.settings.dabAlarmF === settings.dabAlarmF &&
-    preset.settings.dunkAlarmF === settings.dunkAlarmF;
+  const handleApply = async (preset: Preset) => {
+    setApplyingId(preset.id);
+    setApplyError(null);
+    try {
+      await onApply(preset);
+    } catch {
+      setApplyError("Couldn't reach device");
+      setApplyingId(null);
+    }
+  };
 
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={styles.panelScroll}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>Presets</Text>
-        <TouchableOpacity
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onNewPreset();
-          }}
-          style={styles.newBtn}
-        >
-          <Text style={styles.newBtnText}>+ New</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.panelScroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Presets</Text>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNewPreset();
+            }}
+            style={styles.newBtn}
+          >
+            <Text style={styles.newBtnText}>+ New</Text>
+          </TouchableOpacity>
+        </View>
 
-      {presets.map((preset, index) => (
-        <PresetCard
-          key={preset.id}
-          preset={preset}
-          index={index}
-          listProgress={listProgress}
-          settings={settings}
-          isActive={isActive(preset)}
-          onApply={onApply}
-        />
-      ))}
+        {presets.map((preset, index) => (
+          <PresetCard
+            key={preset.id}
+            preset={preset}
+            index={index}
+            listProgress={listProgress}
+            settings={settings}
+            isActive={preset.id === activePresetId}
+            isApplying={applyingId === preset.id}
+            onApply={handleApply}
+          />
+        ))}
 
-      {presets.length === 0 && (
-        <View style={styles.emptyState}>
-          <Animated.View style={[styles.emptyGlyph, floatStyle]}>
-            <Svg width={44} height={44} viewBox="0 0 44 44">
-              <Path d="M22 4 L40 22 L22 40 L4 22 Z" stroke={colors.emberBright} strokeWidth={1} fill="none" />
-              <Path d="M22 13 L31 22 L22 31 L13 22 Z" stroke={colors.emberBright} strokeWidth={0.5} fill="none" opacity={0.5} />
-              <SvgCircle cx={22} cy={22} r={2} fill={colors.emberBright} opacity={0.6} />
-            </Svg>
-          </Animated.View>
-          <Text style={styles.emptyStateText}>No presets yet</Text>
-          <Text style={styles.emptyStateSub}>Tap + New to save a session configuration</Text>
+        {presets.length === 0 && (
+          <View style={styles.emptyState}>
+            <Animated.View style={[styles.emptyGlyph, floatStyle]}>
+              <Svg width={44} height={44} viewBox="0 0 44 44">
+                <Path d="M22 4 L40 22 L22 40 L4 22 Z" stroke={colors.emberBright} strokeWidth={1} fill="none" />
+                <Path d="M22 13 L31 22 L22 31 L13 22 Z" stroke={colors.emberBright} strokeWidth={0.5} fill="none" opacity={0.5} />
+                <SvgCircle cx={22} cy={22} r={2} fill={colors.emberBright} opacity={0.6} />
+              </Svg>
+            </Animated.View>
+            <Text style={styles.emptyStateText}>No presets yet</Text>
+            <Text style={styles.emptyStateSub}>Tap + New to save your temperatures as a preset</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {applyError !== null && (
+        <View style={styles.applyErrorToast}>
+          <Text style={styles.applyErrorText}>{applyError}</Text>
+          <TouchableOpacity onPress={() => setApplyError(null)} style={styles.applyErrorDismiss}>
+            <Text style={styles.applyErrorDismissText}>Dismiss</Text>
+          </TouchableOpacity>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
+
+// ─── Session card formatters (module scope — no re-creation per render) ───────
+
+function formatDuration(s: SessionRecord): string {
+  if (!s.endedAt) return '–';
+  const sec = Math.round((s.endedAt - s.startedAt) / 1000);
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function formatDate(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatTime(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// ─── SessionCard ─────────────────────────────────────────────────────────────
+
+interface SessionCardProps {
+  session: SessionRecord;
+  index: number;
+  listProgress: SharedValue<number>;
+  settings: ReturnType<typeof useSettingsStore.getState>['settings'];
+}
+
+const SessionCard = React.memo(function SessionCard({ session, index, listProgress, settings }: SessionCardProps) {
+  const delay = Math.min(index * 0.1, 0.4);
+  const cardStyle = useAnimatedStyle(() => {
+    const progress = Math.max(0, Math.min(1, (listProgress.value - delay) / (1 - delay || 0.001)));
+    return {
+      opacity: progress,
+      transform: [{ translateY: (1 - progress) * 10 }],
+    };
+  });
+
+  const dur = formatDuration(session);
+  const waveData = session.samples.map((s) => s.f);
+
+  return (
+    <Animated.View style={[styles.sessionCardOuter, cardStyle]}>
+      <LinearGradient colors={gradients.cardNeutral} style={styles.sessionCard}>
+        <View style={[StyleSheet.absoluteFillObject, styles.sessionCardBorder]} pointerEvents="none" />
+        <View style={styles.sessionCardHeader}>
+          <Text style={styles.sessionCardDate}>{formatDate(session.startedAt)} · {formatTime(session.startedAt)}</Text>
+          <Text style={styles.sessionCardDur}>{dur}</Text>
+        </View>
+        <Text style={[styles.sessionPeakTemp, { color: peakTempColor(session.peakTempF) }]}>
+          {formatTemp(session.peakTempF, settings.useCelsius)}
+        </Text>
+        <View style={styles.waveformWrap}>
+          <Waveform data={waveData} target={session.dabAlarmF} />
+        </View>
+        <View style={styles.sessionTimeRange}>
+          <Text style={styles.sessionTimeMono}>0:00</Text>
+          <Text style={styles.sessionTimeMono}>{dur}</Text>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+});
 
 // ─── HistoryContent ───────────────────────────────────────────────────────────
 
@@ -550,11 +617,15 @@ function HistoryContent({
   settings,
   filter,
   onFilterChange,
+  listProgress,
+  onStartSession,
 }: {
   sessions: SessionRecord[];
   settings: ReturnType<typeof useSettingsStore.getState>['settings'];
   filter: HistoryFilter;
   onFilterChange: (f: HistoryFilter) => void;
+  listProgress: SharedValue<number>;
+  onStartSession: () => void;
 }) {
   const filtered = useMemo(() => {
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -567,22 +638,6 @@ function HistoryContent({
       return true;
     });
   }, [sessions, filter]);
-
-  const formatDuration = (s: SessionRecord) => {
-    if (!s.endedAt) return '–';
-    const sec = Math.round((s.endedAt - s.startedAt) / 1000);
-    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-  };
-
-  const formatDate = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  };
 
   return (
     <ScrollView
@@ -615,31 +670,15 @@ function HistoryContent({
         ))}
       </ScrollView>
 
-      {filtered.map((session) => {
-        const dur = formatDuration(session);
-        const waveData = session.samples.map((s) => s.f);
-        return (
-          <View key={session.id} style={styles.sessionCardOuter}>
-            <LinearGradient colors={['#100e0c', '#0a0806']} style={styles.sessionCard}>
-              <View style={[StyleSheet.absoluteFillObject, styles.sessionCardBorder]} pointerEvents="none" />
-              <View style={styles.sessionCardHeader}>
-                <Text style={styles.sessionCardDate}>{formatDate(session.startedAt)} · {formatTime(session.startedAt)}</Text>
-                <Text style={styles.sessionCardDur}>{dur}</Text>
-              </View>
-              <Text style={[styles.sessionPeakTemp, { color: peakTempColor(session.peakTempF) }]}>
-                {formatTemp(session.peakTempF, settings.useCelsius)}
-              </Text>
-              <View style={styles.waveformWrap}>
-                <Waveform data={waveData} target={session.dabAlarmF} />
-              </View>
-              <View style={styles.sessionTimeRange}>
-                <Text style={styles.sessionTimeMono}>0:00</Text>
-                <Text style={styles.sessionTimeMono}>{dur}</Text>
-              </View>
-            </LinearGradient>
-          </View>
-        );
-      })}
+      {filtered.map((session, index) => (
+        <SessionCard
+          key={session.id}
+          session={session}
+          index={index}
+          listProgress={listProgress}
+          settings={settings}
+        />
+      ))}
 
       {filtered.length === 0 && (
         <View style={styles.emptyState}>
@@ -655,7 +694,14 @@ function HistoryContent({
             />
           </Svg>
           <Text style={styles.emptyStateText}>No sessions yet</Text>
-          <Text style={styles.emptyStateSub}>Connect your device to begin</Text>
+          <Text style={styles.emptyStateSub}>Start a session to see your history</Text>
+          <TouchableOpacity
+            onPress={onStartSession}
+            style={styles.emptyStateCta}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.emptyStateCtaText}>Start a Session</Text>
+          </TouchableOpacity>
         </View>
       )}
     </ScrollView>
@@ -676,6 +722,20 @@ function ConfigureContent({
   markConfirmed: () => void;
 }) {
   const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const syncedScale = useSharedValue(dirty ? 0 : 1);
+  const syncedAnimStyle = useAnimatedStyle(() => ({
+    opacity: syncedScale.value,
+    transform: [{ scale: 0.72 + syncedScale.value * 0.28 }],
+  }));
+
+  useEffect(() => {
+    if (!dirty) {
+      syncedScale.value = 0;
+      syncedScale.value = withSpring(1, { damping: 12, stiffness: 200, mass: 0.6 });
+    }
+  }, [dirty, syncedScale]);
 
   useEffect(() => {
     return () => { if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current); };
@@ -694,14 +754,19 @@ function ConfigureContent({
   );
 
   const handleSave = useCallback(async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveError(null);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await bleManager.writeSettings(settings);
       markConfirmed();
     } catch {
-      Alert.alert('Error', 'Failed to save settings. Is the device connected?');
+      setSaveError("Couldn't save — is the device connected?");
+    } finally {
+      setIsSaving(false);
     }
-  }, [settings, markConfirmed]);
+  }, [isSaving, settings, markConfirmed]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -714,7 +779,7 @@ function ConfigureContent({
           <Text style={styles.panelTitle}>Configure</Text>
         </View>
 
-        <ConfigSection title="Thresholds">
+        <ConfigSection title="Temperatures">
           <TempSlider
             label="Dab alarm" value={settings.dabAlarmF}
             min={400} max={700} accent={colors.emberBright} useCelsius={settings.useCelsius}
@@ -789,21 +854,33 @@ function ConfigureContent({
 
       {/* Save bar — sits at the bottom of the panel */}
       <View style={styles.saveBarOuter}>
-        <TouchableOpacity onPress={handleSave} activeOpacity={0.85} style={styles.saveBarBtn}>
+        {saveError !== null && (
+          <View style={[styles.applyErrorToast, { marginBottom: 8 }]}>
+            <Text style={styles.applyErrorText}>{saveError}</Text>
+            <TouchableOpacity onPress={() => setSaveError(null)} style={styles.applyErrorDismiss}>
+              <Text style={styles.applyErrorDismissText}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <TouchableOpacity onPress={handleSave} activeOpacity={0.85} style={styles.saveBarBtn} disabled={isSaving}>
           <LinearGradient
-            colors={dirty ? [colors.emberBright, colors.ember] : ['#2a2320', colors.surface3]}
+            colors={dirty ? [colors.emberBright, colors.ember] : [colors.surface4, colors.surface3]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={styles.saveBarGradient}
           >
             {dirty ? (
-              <Text style={styles.saveBarText}>Save to device</Text>
+              isSaving ? (
+                <ActivityIndicator size="small" color={colors.bone100} />
+              ) : (
+                <Text style={styles.saveBarText}>Save to device</Text>
+              )
             ) : (
-              <View style={styles.syncedRow}>
+              <Animated.View style={[styles.syncedRow, syncedAnimStyle]}>
                 <Svg width={14} height={14} viewBox="0 0 14 14">
                   <Path d="M2 7 L5.5 10.5 L12 4" stroke={colors.bone50} strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
                 <Text style={styles.syncedText}>SYNCED</Text>
-              </View>
+              </Animated.View>
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -837,6 +914,7 @@ export default function HomeScreen() {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
 
   useEffect(() => {
@@ -852,6 +930,26 @@ export default function HomeScreen() {
     );
     return () => clearInterval(interval);
   }, [sessionActive, startedAt]);
+
+  const thermalPulse = useSharedValue(0);
+  const thermalHot = useSharedValue(0);
+
+  useEffect(() => {
+    thermalPulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+    return () => { cancelAnimation(thermalPulse); };
+  }, [thermalPulse]);
+
+  useEffect(() => {
+    const isNear = tempF >= settings.dabAlarmF - 20 && tempF <= settings.dabAlarmF + 40;
+    thermalHot.value = withTiming(isNear ? 1 : 0, { duration: 800, easing: Easing.out(Easing.quad) });
+  }, [tempF, settings.dabAlarmF, thermalHot]);
 
   // ── Layout math ────────────────────────────────────────────────────────────
   const DIAL_FULL = Math.min(screenW - 64, 280);
@@ -869,10 +967,9 @@ export default function HomeScreen() {
   const panelAlpha = useSharedValue(0);
   const panelTranslateY = useSharedValue(52);
   const listProgress = useSharedValue(0);
-  const dialOpacity = useSharedValue(1);
   const navAlpha = useSharedValue(1);
-  const immersiveAlpha = useSharedValue(0);
-  const immersiveTranslateY = useSharedValue(60);
+  const dialGlow = useSharedValue(0);
+  const startSessionPress = useSharedValue(1);
 
   // ── Scene navigation ───────────────────────────────────────────────────────
   const applyScene = useCallback((nextScene: SceneId) => {
@@ -890,52 +987,10 @@ export default function HomeScreen() {
     if (nextScene === current) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const isImmersive = (s: SceneId) => s === 'walkthrough' || s === 'new-preset';
+    const isFocused = (s: SceneId) => s === 'walkthrough' || s === 'new-preset';
 
-    if (isImmersive(nextScene)) {
-      // Everything hides; immersive surface blooms up from below
-      if (current === 'session') {
-        sessionAlpha.value = withTiming(0, { duration: 140 });
-      } else {
-        panelAlpha.value = withTiming(0, { duration: 140 });
-      }
-      dialOpacity.value = withTiming(0, { duration: 160 });
-      navAlpha.value = withTiming(0, { duration: 120 });
-      immersiveAlpha.value = 0;
-      immersiveTranslateY.value = 60;
-      applyScene(nextScene);
-      immersiveAlpha.value = withDelay(100, withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }));
-      immersiveTranslateY.value = withDelay(80, withSpring(0, SPRING_PANEL));
-
-    } else if (isImmersive(current)) {
-      // Leaving immersive — surface recedes, rest restores
-      immersiveAlpha.value = withTiming(0, { duration: 180, easing: Easing.in(Easing.quad) }, (done) => {
-        'worklet';
-        if (done) {
-          runOnJS(applyScene)(nextScene);
-          immersiveTranslateY.value = 60;
-          dialOpacity.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) });
-          navAlpha.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
-          if (nextScene === 'session') {
-            dialScale.value = 1;
-            dialTranslateY.value = 0;
-            sessionAlpha.value = withDelay(80, withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) }));
-          } else {
-            dialScale.value = DIAL_MINI_SCALE;
-            dialTranslateY.value = -DIAL_DELTA_Y;
-            panelAlpha.value = 0;
-            panelTranslateY.value = 52;
-            panelAlpha.value = withDelay(60, withTiming(1, { duration: 240, easing: Easing.out(Easing.quad) }));
-            panelTranslateY.value = withDelay(40, withSpring(0, SPRING_PANEL));
-            listProgress.value = 0;
-            listProgress.value = withDelay(160, withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) }));
-          }
-        }
-      });
-      immersiveTranslateY.value = withTiming(40, { duration: 180 });
-
-    } else if (nextScene === 'session') {
-      // Panel → session
+    if (nextScene === 'session') {
+      // Any panel → session
       panelAlpha.value = withTiming(0, { duration: 130 }, (done) => {
         'worklet';
         if (done) runOnJS(applyScene)('session');
@@ -943,11 +998,13 @@ export default function HomeScreen() {
       panelTranslateY.value = withTiming(28, { duration: 130 });
       dialScale.value = withDelay(50, withSpring(1, SPRING_DIAL));
       dialTranslateY.value = withDelay(50, withSpring(0, SPRING_DIAL));
-      dialOpacity.value = withDelay(50, withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) }));
       sessionAlpha.value = withDelay(180, withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }));
+      if (isFocused(current)) {
+        navAlpha.value = withDelay(200, withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) }));
+      }
 
     } else if (current === 'session') {
-      // Session → panel
+      // Session → any panel scene
       sessionAlpha.value = withTiming(0, { duration: 160, easing: Easing.in(Easing.quad) });
       dialScale.value = withDelay(60, withSpring(DIAL_MINI_SCALE, SPRING_DIAL));
       dialTranslateY.value = withDelay(60, withSpring(-DIAL_DELTA_Y, SPRING_DIAL));
@@ -955,10 +1012,18 @@ export default function HomeScreen() {
       panelTranslateY.value = 52;
       panelAlpha.value = withDelay(150, withTiming(1, { duration: 230, easing: Easing.out(Easing.quad) }));
       panelTranslateY.value = withDelay(130, withSpring(0, SPRING_PANEL));
+      if (isFocused(nextScene)) {
+        navAlpha.value = withTiming(0, { duration: 160 });
+      }
       applyScene(nextScene);
 
     } else {
       // Panel → panel cross-fade
+      if (isFocused(nextScene) && !isFocused(current)) {
+        navAlpha.value = withTiming(0, { duration: 110 });
+      } else if (!isFocused(nextScene) && isFocused(current)) {
+        navAlpha.value = withTiming(1, { duration: 210 });
+      }
       panelAlpha.value = withTiming(0, { duration: 110 }, (done) => {
         'worklet';
         if (done) {
@@ -970,21 +1035,24 @@ export default function HomeScreen() {
       });
       panelTranslateY.value = withTiming(16, { duration: 110 });
     }
-  }, [DIAL_DELTA_Y, applyScene, dialScale, dialTranslateY, dialOpacity, sessionAlpha, panelAlpha, panelTranslateY, navAlpha, immersiveAlpha, immersiveTranslateY, listProgress]);
+  }, [DIAL_DELTA_Y, applyScene, dialScale, dialTranslateY, sessionAlpha, panelAlpha, panelTranslateY, navAlpha]);
 
   // ── Preset apply ───────────────────────────────────────────────────────────
   const handleApplyPreset = useCallback(async (preset: Preset) => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await bleManager.writeSettings(preset.settings);
-    } catch {
-      Alert.alert('Error', 'Failed to apply preset. Is the device connected?');
-    }
-  }, []);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await bleManager.writeSettings(preset.settings);
+    runOnJS(setActivePresetId)(preset.id);
+    updateSetting('dabAlarmF', preset.settings.dabAlarmF);
+    updateSetting('dunkAlarmF', preset.settings.dunkAlarmF);
+    dialGlow.value = withSequence(
+      withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) }),
+      withTiming(0, { duration: 500, easing: Easing.in(Easing.quad) }),
+    );
+    setTimeout(() => navigateTo('session'), 700);
+  }, [dialGlow, navigateTo, updateSetting]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
   const dialAnimStyle = useAnimatedStyle(() => ({
-    opacity: dialOpacity.value,
     transform: [{ translateY: dialTranslateY.value }, { scale: dialScale.value }],
   }));
 
@@ -1001,9 +1069,23 @@ export default function HomeScreen() {
     opacity: navAlpha.value,
   }));
 
-  const immersiveContentStyle = useAnimatedStyle(() => ({
-    opacity: immersiveAlpha.value,
-    transform: [{ translateY: immersiveTranslateY.value }],
+  const dialGlowStyle = useAnimatedStyle(() => ({
+    opacity: dialGlow.value,
+    transform: [{ scale: 1 + dialGlow.value * 0.12 }],
+  }));
+
+  const startSessionPressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: startSessionPress.value }],
+  }));
+
+  const thermalRingAmberStyle = useAnimatedStyle(() => ({
+    opacity: thermalHot.value * (0.06 + thermalPulse.value * 0.14),
+    transform: [{ scale: 0.97 + thermalPulse.value * 0.05 }],
+  }));
+
+  const thermalRingQuartzStyle = useAnimatedStyle(() => ({
+    opacity: (1 - thermalHot.value) * (0.04 + thermalPulse.value * 0.09),
+    transform: [{ scale: 0.98 + thermalPulse.value * 0.04 }],
   }));
 
   // ── Derived ────────────────────────────────────────────────────────────────
@@ -1012,6 +1094,8 @@ export default function HomeScreen() {
     : '0:00';
 
   const targetRangeText = `${formatTemp(settings.dabAlarmF - 20, settings.useCelsius)} – ${formatTemp(settings.dabAlarmF + 20, settings.useCelsius)}`;
+
+  const activePreset = presets.find((p) => p.id === activePresetId) ?? null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -1025,10 +1109,22 @@ export default function HomeScreen() {
 
       {/* ── Temperature dial — normal flow, transforms animated ── */}
       <Animated.View style={[styles.dialArea, dialAnimStyle]}>
+        <Animated.View
+          style={[styles.thermalRingAmber, { width: DIAL_FULL + 80, height: DIAL_FULL + 80, borderRadius: (DIAL_FULL + 80) / 2 }, thermalRingAmberStyle]}
+          pointerEvents="none"
+        />
+        <Animated.View
+          style={[styles.thermalRingQuartz, { width: DIAL_FULL + 80, height: DIAL_FULL + 80, borderRadius: (DIAL_FULL + 80) / 2 }, thermalRingQuartzStyle]}
+          pointerEvents="none"
+        />
+        <Animated.View
+          style={[styles.dialGlowRing, { width: DIAL_FULL + 40, height: DIAL_FULL + 40, borderRadius: (DIAL_FULL + 40) / 2 }, dialGlowStyle]}
+          pointerEvents="none"
+        />
         <TouchableOpacity
-          onPress={() => { if (sceneRef.current !== 'session') navigateTo('session'); }}
-          activeOpacity={scene !== 'session' ? 0.82 : 1}
-          disabled={scene === 'session'}
+          onPress={() => navigateTo('session')}
+          activeOpacity={scene !== 'session' && scene !== 'walkthrough' && scene !== 'new-preset' ? 0.82 : 1}
+          disabled={scene === 'session' || scene === 'walkthrough' || scene === 'new-preset'}
           style={styles.dialTouchable}
         >
           <TempDial
@@ -1072,7 +1168,7 @@ export default function HomeScreen() {
 
         {/* Active preset card */}
         <View style={styles.presetBarOuter}>
-          <LinearGradient colors={['#1e170e', '#0f0b06']} style={styles.presetBarCard}>
+          <LinearGradient colors={gradients.cardActive} style={styles.presetBarCard}>
             <View style={[StyleSheet.absoluteFillObject, styles.presetBarBorder]} pointerEvents="none" />
             <View style={styles.presetBarLeft}>
               <View style={styles.presetGemWrap}>
@@ -1081,10 +1177,12 @@ export default function HomeScreen() {
                 </Svg>
               </View>
               <View style={{ marginLeft: 10 }}>
-                <Text style={styles.presetBarName}>
-                  {formatTemp(settings.dabAlarmF, settings.useCelsius)}
+                <Text style={styles.presetBarName} numberOfLines={1}>
+                  {activePreset?.name ?? 'Set a preset'}
                 </Text>
-                <Text style={styles.presetBarSub}>Active preset</Text>
+                <Text style={styles.presetBarSub}>
+                  DAB {formatTemp(settings.dabAlarmF, settings.useCelsius)}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
@@ -1097,10 +1195,12 @@ export default function HomeScreen() {
         </View>
 
         {/* Start session button */}
-        <View style={styles.startSessionOuter}>
+        <Animated.View style={[styles.startSessionOuter, startSessionPressStyle]}>
           <TouchableOpacity
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigateTo('walkthrough'); }}
-            activeOpacity={0.82}
+            onPressIn={() => { startSessionPress.value = withSpring(0.97, { damping: 14, stiffness: 220, mass: 0.6 }); }}
+            onPressOut={() => { startSessionPress.value = withSpring(1, { damping: 14, stiffness: 220, mass: 0.6 }); }}
+            activeOpacity={1}
             style={styles.startSessionBtn}
           >
             <LinearGradient
@@ -1108,13 +1208,13 @@ export default function HomeScreen() {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={styles.startSessionGradient}
             >
-              <Svg width={14} height={14} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
+              <Svg width={16} height={16} viewBox="0 0 14 14" style={{ marginRight: 8 }}>
                 <Path d="M3 2 L12 7 L3 12 Z" fill="#fff" opacity={0.9} />
               </Svg>
               <Text style={styles.startSessionText}>Start Session</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </Animated.View>
 
       {/* ── Panel content: absolutely overlaid, animates in over session area ── */}
@@ -1130,6 +1230,7 @@ export default function HomeScreen() {
           <PresetsContent
             settings={settings}
             presets={presets}
+            activePresetId={activePresetId}
             onApply={handleApplyPreset}
             listProgress={listProgress}
             onNewPreset={() => navigateTo('new-preset')}
@@ -1141,6 +1242,8 @@ export default function HomeScreen() {
             settings={settings}
             filter={historyFilter}
             onFilterChange={setHistoryFilter}
+            listProgress={listProgress}
+            onStartSession={() => navigateTo('walkthrough')}
           />
         )}
         {scene === 'configure' && (
@@ -1151,20 +1254,6 @@ export default function HomeScreen() {
             markConfirmed={markConfirmed}
           />
         )}
-      </Animated.View>
-
-      {/* ── Ambient navigation nodes ── */}
-      <Animated.View style={[styles.navBar, { paddingBottom: insets.bottom }, navAlphaStyle]}>
-        <NavNode sceneId="presets" active={scene === 'presets'} onPress={() => navigateTo('presets')} />
-        <NavNode sceneId="history" active={scene === 'history'} onPress={() => navigateTo('history')} />
-        <NavNode sceneId="configure" active={scene === 'configure'} onPress={() => navigateTo('configure')} />
-      </Animated.View>
-
-      {/* ── Immersive overlay: walkthrough / new-preset ── */}
-      <Animated.View
-        style={[styles.immersiveOverlay, immersiveContentStyle]}
-        pointerEvents={(scene === 'walkthrough' || scene === 'new-preset') ? 'auto' : 'none'}
-      >
         {scene === 'walkthrough' && (
           <SessionWalkthrough
             visible={true}
@@ -1180,6 +1269,13 @@ export default function HomeScreen() {
             }}
           />
         )}
+      </Animated.View>
+
+      {/* ── Ambient navigation nodes ── */}
+      <Animated.View style={[styles.navBar, { paddingBottom: insets.bottom }, navAlphaStyle]}>
+        <NavNode sceneId="presets" active={scene === 'presets'} onPress={() => navigateTo('presets')} />
+        <NavNode sceneId="history" active={scene === 'history'} onPress={() => navigateTo('history')} />
+        <NavNode sceneId="configure" active={scene === 'configure'} onPress={() => navigateTo('configure')} />
       </Animated.View>
     </View>
   );
@@ -1210,12 +1306,12 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   metricsOuter: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
   metricsStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 14,
+    paddingTop: 16,
   },
   metricCol: {
     flex: 1,
@@ -1223,13 +1319,13 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontFamily: 'Georgia',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '400',
-    color: colors.bone90,
-    letterSpacing: -0.44,
+    color: colors.bone100,
+    letterSpacing: -0.48,
   },
   metricLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '500',
     letterSpacing: 2.2,
     textTransform: 'uppercase',
@@ -1239,7 +1335,7 @@ const styles = StyleSheet.create({
   metricDivider: {
     width: 0.5,
     height: 32,
-    backgroundColor: 'rgba(244,237,228,0.06)',
+    backgroundColor: 'rgba(244,237,228,0.10)',
   },
 
   // ── Preset bar (session) ───────────────────────────────────────────────────
@@ -1257,7 +1353,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 18,
   },
   presetBarBorder: {
@@ -1280,29 +1376,34 @@ const styles = StyleSheet.create({
   },
   presetBarName: {
     fontFamily: 'Georgia',
-    fontSize: 16,
+    fontSize: 17,
     color: colors.bone100,
-    letterSpacing: -0.32,
+    letterSpacing: -0.34,
   },
   presetBarSub: {
     fontSize: 10,
+    fontWeight: '500',
     color: colors.bone50,
-    letterSpacing: 0.5,
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
     marginTop: 1,
   },
   presetChangeBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   presetChangeBtnText: {
-    fontSize: 11,
-    color: colors.bone50,
-    letterSpacing: 0.88,
+    fontSize: 12,
+    color: colors.ember,
+    fontWeight: '500',
+    letterSpacing: 0.8,
   },
 
   // ── Start session button ───────────────────────────────────────────────────
   startSessionOuter: {
-    marginTop: 10,
+    marginTop: 8,
     marginBottom: 8,
     borderRadius: 18,
     overflow: 'hidden',
@@ -1324,9 +1425,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   startSessionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.bone100,
     letterSpacing: 0.3,
   },
 
@@ -1346,15 +1447,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingTop: 4,
+    marginBottom: 24,
+    paddingTop: 0,
   },
   panelTitle: {
     fontFamily: 'Georgia',
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '400',
     color: colors.bone100,
-    letterSpacing: -0.64,
+    letterSpacing: -0.68,
   },
   panelSubtitle: {
     fontSize: 12,
@@ -1363,11 +1464,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   newBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   newBtnText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     color: colors.ember,
     letterSpacing: 0.2,
@@ -1375,87 +1478,92 @@ const styles = StyleSheet.create({
 
   // ── Preset card ────────────────────────────────────────────────────────────
   presetCardOuter: {
-    borderRadius: 22,
+    borderRadius: 18,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5,
   },
   presetCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 22,
+    paddingVertical: 14,
+    minHeight: 72,
+    backgroundColor: colors.surface2,
+    borderRadius: 18,
+  },
+  presetCardActive: {
+    backgroundColor: 'rgba(232,146,64,0.08)',
   },
   presetCardBorder: {
-    borderRadius: 22,
+    borderRadius: 18,
     borderWidth: 0.5,
     borderColor: colors.glassBorder,
   },
+  presetCardBorderActive: {
+    borderColor: colors.emberBright,
+    borderWidth: 1.5,
+  },
   presetCardLeft: {
-    width: 48,
-    height: 48,
+    width: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  presetCardMid: { flex: 1 },
+  presetCardMid: { flex: 1, paddingLeft: 12 },
   presetCardName: {
     fontFamily: 'Georgia',
-    fontSize: 17,
+    fontSize: 18,
     color: colors.bone100,
-    letterSpacing: -0.34,
-    marginBottom: 6,
+    letterSpacing: -0.36,
+    marginBottom: 4,
   },
-  presetTempPills: {
+  presetTempRow: {
     flexDirection: 'row',
-    gap: 6,
+    alignItems: 'center',
   },
-  tempPill: {
-    borderWidth: 0.5,
-    borderRadius: 100,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  tempPillText: {
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0.8,
+  presetTempDab: {
     fontFamily: 'Menlo',
+    fontSize: 11,
+    color: colors.bone70,
+    letterSpacing: 0.3,
+  },
+  presetTempDunk: {
+    fontFamily: 'Menlo',
+    fontSize: 11,
+    color: colors.quartzDim,
+    letterSpacing: 0.3,
+    marginLeft: 10,
   },
   presetCardRight: {
     marginLeft: 12,
     alignItems: 'flex-end',
-  },
-  activePill: {
-    borderWidth: 0.5,
-    borderColor: colors.emberBright,
-    borderRadius: 100,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    justifyContent: 'center',
   },
   activePillText: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '500',
-    letterSpacing: 1.8,
+    letterSpacing: 2.2,
     color: colors.emberBright,
   },
   applyBtn: {
-    backgroundColor: colors.surface3,
-    borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.10)',
-    borderRadius: 100,
+    minHeight: 44,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
+    borderRadius: 100,
+    backgroundColor: 'rgba(232,146,64,0.10)',
+    borderWidth: 0.5,
+    borderColor: colors.ember,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   applyBtnText: {
     fontSize: 12,
-    color: colors.bone90,
-    fontWeight: '400',
+    color: colors.ember,
+    fontWeight: '500',
     letterSpacing: 0.3,
   },
 
@@ -1470,8 +1578,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(244,237,228,0.10)',
     borderRadius: 100,
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 10,
+    minHeight: 36,
     backgroundColor: 'rgba(28,23,20,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterChipActive: {
     borderColor: colors.ember,
@@ -1549,7 +1660,7 @@ const styles = StyleSheet.create({
 
   // ── Configure panel ────────────────────────────────────────────────────────
   configSection: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   configSectionTitle: {
     fontSize: 10,
@@ -1558,14 +1669,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.bone50,
     marginBottom: 8,
-    marginLeft: 2,
+    marginLeft: 0,
   },
-  configCard: {
-    borderRadius: 16,
+  configCardContent: {
     paddingHorizontal: 16,
     paddingVertical: 4,
-    borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.06)',
   },
   hairline: {
     height: 0.5,
@@ -1579,13 +1687,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sliderLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: colors.bone90,
     fontWeight: '400',
   },
   sliderValue: {
     fontFamily: 'Menlo',
-    fontSize: 13,
+    fontSize: 12,
     color: colors.bone50,
     letterSpacing: 0.3,
   },
@@ -1612,7 +1720,7 @@ const styles = StyleSheet.create({
   sliderTrack: {
     flex: 1,
     height: 3,
-    backgroundColor: '#2a2320',
+    backgroundColor: colors.surface4,
     borderRadius: 100,
     overflow: 'hidden',
   },
@@ -1627,7 +1735,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   toggleRowLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.bone90,
     fontWeight: '400',
   },
@@ -1675,7 +1783,7 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
   },
   defaultsBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.bone50,
     fontWeight: '400',
     letterSpacing: 0.2,
@@ -1695,7 +1803,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(201,115,38,0.15)',
   },
   stepPipText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.bone50,
     fontWeight: '400',
   },
@@ -1705,7 +1813,7 @@ const styles = StyleSheet.create({
   },
   soundRow: { paddingVertical: 12 },
   soundRowLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: colors.bone90,
     fontWeight: '400',
     marginBottom: 8,
@@ -1715,12 +1823,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   soundPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 36,
     borderRadius: 100,
     backgroundColor: colors.surface3,
     borderWidth: 0.5,
     borderColor: 'rgba(244,237,228,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   soundPillActive: {
     borderColor: colors.ember,
@@ -1757,8 +1868,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   saveBarText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
     color: colors.bone100,
     letterSpacing: 0.4,
   },
@@ -1768,9 +1879,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   syncedText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
-    letterSpacing: 1.8,
+    letterSpacing: 2.2,
     color: colors.bone50,
   },
 
@@ -1785,15 +1896,33 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontFamily: 'Georgia',
-    fontSize: 20,
+    fontSize: 24,
     color: colors.bone50,
-    letterSpacing: -0.4,
+    letterSpacing: -0.48,
     marginBottom: 8,
   },
   emptyStateSub: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.bone35,
-    letterSpacing: 0.2,
+    letterSpacing: 0.4,
+    marginBottom: 24,
+  },
+  emptyStateCta: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 100,
+    borderWidth: 0.5,
+    borderColor: colors.ember,
+    backgroundColor: 'rgba(232,146,64,0.08)',
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateCtaText: {
+    fontSize: 14,
+    color: colors.ember,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 
   // ── Nav bar ────────────────────────────────────────────────────────────────
@@ -1815,8 +1944,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ── Immersive overlay ──────────────────────────────────────────────────────
-  immersiveOverlay: {
-    ...StyleSheet.absoluteFillObject,
+  // ── Dial glow ring (preset-apply bloom) ────────────────────────────────────
+  dialGlowRing: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(232,146,64,0.18)',
+  },
+
+  // ── Thermal ambience rings (living breath behind dial) ─────────────────────
+  thermalRingAmber: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: colors.ember,
+  },
+  thermalRingQuartz: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: colors.quartzDim,
+  },
+
+  // ── In-surface apply error toast ───────────────────────────────────────────
+  applyErrorToast: {
+    position: 'absolute',
+    bottom: 0,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface4,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 0.5,
+    borderColor: colors.error,
+    marginBottom: 8,
+  },
+  applyErrorText: {
+    fontSize: 14,
+    color: colors.error,
+    fontWeight: '400',
+    flex: 1,
+  },
+  applyErrorDismiss: {
+    paddingLeft: 12,
+    paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  applyErrorDismissText: {
+    fontSize: 12,
+    color: colors.bone50,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 });

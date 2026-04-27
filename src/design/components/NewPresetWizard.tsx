@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   PanResponder,
   Platform,
@@ -188,6 +187,7 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
   const [presetName, setPresetName] = useState('');
   const [gemColor, setGemColor] = useState<string>(GEM_COLORS[0]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const banger = useMemo(
     () => (bangerId ? BANGERS.find((b) => b.id === bangerId) ?? null : null),
@@ -263,7 +263,7 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
       onSaved();
       onClose();
     } catch {
-      Alert.alert('Save failed', 'Could not save preset. Please try again.');
+      setSaveError('Could not save preset. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -335,6 +335,14 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
           )}
         </Animated.View>
 
+        {saveError !== null && (
+          <View style={styles.saveErrorToast}>
+            <Text style={styles.saveErrorText}>{saveError}</Text>
+            <Pressable onPress={() => setSaveError(null)} hitSlop={12}>
+              <Text style={styles.saveErrorDismiss}>Dismiss</Text>
+            </Pressable>
+          </View>
+        )}
         <WizardFooter
           label={ctaLabel}
           disabled={!canAdvance || saving}
@@ -1405,5 +1413,31 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+
+  // Save error toast
+  saveErrorToast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface4,
+    borderWidth: 0.5,
+    borderColor: colors.error,
+  },
+  saveErrorText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.error,
+  },
+  saveErrorDismiss: {
+    fontSize: 12,
+    color: colors.bone50,
+    fontWeight: '500',
+    paddingLeft: 12,
   },
 });
