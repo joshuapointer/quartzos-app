@@ -43,5 +43,5 @@ yarn-error.*
 /ios
 /android
 
-# OMC state
-.omc/state/
+# OMC state and local dev-tool artifacts
+.omc/

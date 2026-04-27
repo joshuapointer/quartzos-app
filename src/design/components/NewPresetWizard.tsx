@@ -32,6 +32,32 @@ import Svg, { Rect as SvgRect } from 'react-native-svg';
 import { colors, radius, spacing } from '../tokens';
 import * as presetsDb from '../../db/presets';
 import { DEFAULT_SETTINGS } from '../../ble/types';
+import {
+  BANGERS,
+  findBanger,
+  type Banger,
+  type BangerCategory,
+} from '../../data/bangers';
+import {
+  CONCENTRATES,
+  findConcentrate,
+  isDabbable,
+  type Concentrate,
+  type ConcentrateCategory,
+} from '../../data/concentrates';
+import { SENSORS, findSensor, type Sensor, type SensorMethod } from '../../data/sensors';
+import {
+  WALL_THICKNESSES,
+  findWallThickness,
+  type WallThickness,
+  type WallThicknessId,
+} from '../../data/wallThicknesses';
+import { computeDisplayedTarget, coldStartAvailable } from '../../utils/calibration';
+import { useDabPreferencesStore } from '../../state/dabPreferencesStore';
+import { BangerAnatomy } from './BangerAnatomy';
+import { IrAimHint } from './IrAimHint';
+import { ConcentrateTagChip } from './ConcentrateTagChip';
+import { BlockedConcentrateExplainer } from './BlockedConcentrateExplainer';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Props
@@ -43,102 +69,62 @@ interface NewPresetWizardProps {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Data
+// Static config
 // ──────────────────────────────────────────────────────────────────────────────
 
-type BangerId =
-  | 'classic'
-  | 'opaque'
-  | 'thick'
-  | 'slurper'
-  | 'controlTower'
-  | 'blender';
-
-interface Banger {
-  id: BangerId;
-  name: string;
-  modifier: number;
-  note: string;
-  spec: string;
-}
-
-const BANGERS: Banger[] = [
-  {
-    id: 'classic',
-    name: 'Classic Bucket',
-    modifier: 0,
-    note: 'Standard heat retention. IR sensor reads the bottom perfectly.',
-    spec: 'Flat 25mm bottom · Quartz · 4mm wall',
-  },
-  {
-    id: 'opaque',
-    name: 'Opaque Bottom',
-    modifier: 10,
-    note: 'Porous base speeds nucleation. Loses heat slightly faster.',
-    spec: 'Sandblasted base · Quartz · 4mm wall',
-  },
-  {
-    id: 'thick',
-    name: 'Thick Bottom',
-    modifier: -10,
-    note: 'Massive thermal mass. Resists cooling during heavy draws.',
-    spec: '8mm base · Quartz · 4mm wall',
-  },
-  {
-    id: 'slurper',
-    name: 'Terp Slurper',
-    modifier: 35,
-    note: 'Oil travels up cooler column. Dish requires temp bump.',
-    spec: 'Slotted dish · 3-tier · Quartz',
-  },
-  {
-    id: 'controlTower',
-    name: 'Control Tower',
-    modifier: 45,
-    note: 'Maximum travel distance. Requires hottest dish reading.',
-    spec: 'Multi-channel · Vertical · Quartz',
-  },
-  {
-    id: 'blender',
-    name: 'Blender',
-    modifier: 25,
-    note: 'Round bottom with spinning carb cap. Wide oil distribution.',
-    spec: 'Round bottom · 30mm · Quartz',
-  },
+const BANGER_CATEGORY_ORDER: readonly BangerCategory[] = [
+  'classic',
+  'slurper',
+  'specialty',
+  'premium',
 ];
 
-type ExtractType = 'Solventless' | 'Hydrocarbon' | 'Isolate';
+const BANGER_CATEGORY_LABELS: Readonly<Record<BangerCategory, string>> = {
+  classic: 'Classic',
+  slurper: 'Slurper Class',
+  specialty: 'Specialty',
+  premium: 'Premium',
+};
 
-interface Extract {
-  id: string;
-  name: string;
-  type: ExtractType;
-  baseTemp: number;
-  color1: string;
-  color2: string;
-}
-
-const EXTRACTS: Extract[] = [
-  // Solventless
-  { id: 'fullMelt', name: '6-Star Melt', type: 'Solventless', baseTemp: 450, color1: '#E8DEC0', color2: '#C0AC78' },
-  { id: 'rosin', name: 'Rosin', type: 'Solventless', baseTemp: 465, color1: '#B8944C', color2: '#7A5C28' },
-  { id: 'liveRosin', name: 'Live Rosin', type: 'Solventless', baseTemp: 460, color1: '#C4A860', color2: '#886030' },
-  { id: 'hashRosin', name: 'Hash Rosin', type: 'Solventless', baseTemp: 455, color1: '#C09050', color2: '#7C5420' },
-  { id: 'freshPress', name: 'Fresh Press', type: 'Solventless', baseTemp: 470, color1: '#D4C278', color2: '#A58C50' },
-  { id: 'coldCure', name: 'Cold Cure', type: 'Solventless', baseTemp: 485, color1: '#C4AC74', color2: '#7D6840' },
-  // Hydrocarbon
-  { id: 'liveResin', name: 'Live Resin', type: 'Hydrocarbon', baseTemp: 505, color1: '#B8782C', color2: '#704820' },
-  { id: 'badder', name: 'Badder', type: 'Hydrocarbon', baseTemp: 495, color1: '#CC9038', color2: '#885820' },
-  { id: 'terpSauce', name: 'Terp Sauce', type: 'Hydrocarbon', baseTemp: 510, color1: '#A86C24', color2: '#5C3810' },
-  { id: 'shatter', name: 'Shatter', type: 'Hydrocarbon', baseTemp: 515, color1: '#A06830', color2: '#604030' },
-  { id: 'crumble', name: 'Crumble', type: 'Hydrocarbon', baseTemp: 520, color1: '#946040', color2: '#583828' },
-  // Isolate
-  { id: 'diamonds', name: 'Diamonds', type: 'Isolate', baseTemp: 530, color1: '#D8E4EC', color2: '#A8C0D4' },
-  { id: 'thca', name: 'THCa Powder', type: 'Isolate', baseTemp: 540, color1: '#F0ECD8', color2: '#C8C0A8' },
-  { id: 'distillate', name: 'Distillate', type: 'Isolate', baseTemp: 545, color1: '#C8D8E8', color2: '#8898A8' },
+const CONCENTRATE_CATEGORY_ORDER: readonly ConcentrateCategory[] = [
+  'solventless',
+  'hash',
+  'hydrocarbon',
+  'distillate',
+  'novel',
 ];
 
-const EXTRACT_TYPES: ExtractType[] = ['Solventless', 'Hydrocarbon', 'Isolate'];
+const CONCENTRATE_CATEGORY_LABELS: Readonly<Record<ConcentrateCategory, string>> = {
+  solventless: 'Solventless',
+  hash: 'Hash',
+  hydrocarbon: 'Hydrocarbon',
+  distillate: 'Distillate',
+  novel: 'Novel / 2026',
+};
+
+/**
+ * Default-ish color pair per concentrate category (for swatch gradient).
+ * Keeps the wizard's existing painterly tile look without requiring explicit
+ * colors per concentrate.
+ */
+const CATEGORY_SWATCH_COLORS: Readonly<Record<ConcentrateCategory, readonly [string, string]>> = {
+  solventless: ['#C4A860', '#886030'],
+  hash: ['#A58860', '#6E5530'],
+  hydrocarbon: ['#B8782C', '#704820'],
+  distillate: ['#C8D8E8', '#8898A8'],
+  novel: ['#D8E4EC', '#A8C0D4'],
+};
+
+const SENSOR_ORDER: readonly SensorMethod[] = ['ir', 'contact', 'enail', 'visual'];
+
+const SENSOR_SHORT_LABEL: Readonly<Record<SensorMethod, string>> = {
+  ir: 'IR',
+  contact: 'Probe',
+  enail: 'E-nail',
+  visual: 'Visual',
+};
+
+const WALL_ORDER: readonly WallThicknessId[] = ['thin', 'standard', 'thick', 'unknown'];
 
 function tempColorFor(offset: number): string {
   const t = offset / TEMP_RANGE;
@@ -172,51 +158,140 @@ const GEM_ICONS: Record<string, keyof typeof MaterialIcons.glyphMap> = {
 const CARD_W = 240;
 const CARD_H = 280;
 const CARD_GAP = 16;
-const STEP_COUNT = 4;
+const STEP_COUNT = 6;
 const TEMP_RANGE = 30;
 const PX_PER_DEGREE = 4;
+
+const STEP_TITLES: readonly string[] = [
+  'Pick your hardware',
+  'How do you measure?',
+  'Wall thickness',
+  'What are you dabbing?',
+  'Tune your window',
+  'Save your preset',
+];
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Banger group ordering — preserves source order within each category.
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface BangerGroup {
+  readonly category: BangerCategory;
+  readonly bangers: readonly Banger[];
+}
+
+function buildBangerGroups(): readonly BangerGroup[] {
+  return BANGER_CATEGORY_ORDER.map((category) => ({
+    category,
+    bangers: BANGERS.filter((b) => b.category === category),
+  })).filter((g) => g.bangers.length > 0);
+}
+
+const BANGER_GROUPS: readonly BangerGroup[] = buildBangerGroups();
+
+/** Flat ordered list mirroring the visual carousel order (group by category). */
+const ORDERED_BANGERS: readonly Banger[] = BANGER_GROUPS.flatMap((g) => g.bangers);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Component
 // ──────────────────────────────────────────────────────────────────────────────
 
 export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
+  const preferredSensorMethod = useDabPreferencesStore((s) => s.preferredSensor);
+  const preferredWallId = useDabPreferencesStore((s) => s.preferredWall);
+  const coldStartByDefault = useDabPreferencesStore((s) => s.coldStartByDefault);
+
   const [step, setStep] = useState(0);
-  const [bangerId, setBangerId] = useState<BangerId | null>(null);
-  const [extractId, setExtractId] = useState<string | null>(null);
-  const [tempOffset, setTempOffset] = useState(0);
+  const [bangerId, setBangerId] = useState<string | null>(null);
+  const [sensorId, setSensorId] = useState<string>(() => {
+    const match = SENSORS.find((s) => s.method === preferredSensorMethod);
+    return match?.id ?? SENSORS[0].id;
+  });
+  const [wallId, setWallId] = useState<WallThicknessId>(preferredWallId);
+  const [concentrateId, setConcentrateId] = useState<string | null>(null);
+  const [tuneOffset, setTuneOffset] = useState(0);
   const [presetName, setPresetName] = useState('');
   const [gemColor, setGemColor] = useState<string>(GEM_COLORS[0]);
+  const [useColdStart, setUseColdStart] = useState<boolean>(false);
+  const [coldStartTouched, setColdStartTouched] = useState<boolean>(false);
+  const [blockedModalId, setBlockedModalId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const banger = useMemo(
-    () => (bangerId ? BANGERS.find((b) => b.id === bangerId) ?? null : null),
-    [bangerId]
+  const banger = useMemo<Banger | null>(
+    () => (bangerId ? findBanger(bangerId) ?? null : null),
+    [bangerId],
   );
-  const extract = useMemo(
-    () => (extractId ? EXTRACTS.find((e) => e.id === extractId) ?? null : null),
-    [extractId]
+  const sensor = useMemo<Sensor>(() => findSensor(sensorId) ?? SENSORS[0], [sensorId]);
+  const wall = useMemo<WallThickness>(
+    () => findWallThickness(wallId) ?? WALL_THICKNESSES[1],
+    [wallId],
+  );
+  const concentrate = useMemo<Concentrate | null>(
+    () => (concentrateId ? findConcentrate(concentrateId) ?? null : null),
+    [concentrateId],
   );
 
-  const baseTemp = banger && extract ? extract.baseTemp + banger.modifier : 0;
-  const finalTemp = baseTemp + tempOffset;
-  const dunkTemp = Math.max(200, Math.min(320, finalTemp - 280));
+  const blockedModalConcentrate = useMemo<Concentrate | null>(
+    () => (blockedModalId ? findConcentrate(blockedModalId) ?? null : null),
+    [blockedModalId],
+  );
 
-  // Auto-name when banger + extract chosen the first time
+  const concentrateIsBlocked = concentrate != null && !isDabbable(concentrate);
+
+  const calibration = useMemo(() => {
+    if (!banger || !concentrate || concentrateIsBlocked) return null;
+    try {
+      return computeDisplayedTarget({
+        concentrate,
+        banger,
+        sensor,
+        wall,
+        tuneOffsetF: tuneOffset,
+      });
+    } catch {
+      return null;
+    }
+  }, [banger, concentrate, concentrateIsBlocked, sensor, wall, tuneOffset]);
+
+  const finalTemp = calibration?.displayedF ?? 0;
+  const dunkTemp = calibration?.dunkF ?? 250;
+
+  // Cold-start availability + default management
+  const coldStartCompatible =
+    banger && concentrate && !concentrateIsBlocked
+      ? coldStartAvailable(concentrate, banger)
+      : false;
+
+  // Default cold-start toggle when newly compatible & user hasn't touched it.
   useEffect(() => {
-    if (banger && extract && !presetName) {
-      setPresetName(`${extract.name} · ${banger.name.split(' ')[0]}`);
+    if (coldStartTouched) return;
+    setUseColdStart(coldStartCompatible && coldStartByDefault);
+  }, [coldStartCompatible, coldStartByDefault, coldStartTouched]);
+
+  // Reset cold-start when no longer compatible.
+  useEffect(() => {
+    if (!coldStartCompatible && useColdStart) {
+      setUseColdStart(false);
+    }
+  }, [coldStartCompatible, useColdStart]);
+
+  // Auto-name when banger + concentrate chosen the first time
+  useEffect(() => {
+    if (banger && concentrate && !concentrateIsBlocked && !presetName) {
+      setPresetName(`${concentrate.name} · ${banger.name.split(' ')[0]}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bangerId, extractId]);
+  }, [bangerId, concentrateId, concentrateIsBlocked]);
 
   const canAdvance = useMemo(() => {
     if (step === 0) return bangerId !== null;
-    if (step === 1) return extractId !== null;
-    if (step === 2) return true;
-    if (step === 3) return presetName.trim().length > 0;
+    if (step === 1) return sensorId.length > 0;
+    if (step === 2) return wallId.length > 0;
+    if (step === 3) return concentrateId !== null && !concentrateIsBlocked;
+    if (step === 4) return true;
+    if (step === 5) return presetName.trim().length > 0;
     return false;
-  }, [step, bangerId, extractId, presetName]);
+  }, [step, bangerId, sensorId, wallId, concentrateId, concentrateIsBlocked, presetName]);
 
   const stepOpacity = useSharedValue(1);
   const stepSlide = useSharedValue(0);
@@ -246,19 +321,26 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
   const handleSave = useCallback(async () => {
     const trimmed = presetName.trim();
     if (!trimmed) return;
+    if (!banger || !concentrate || concentrateIsBlocked || !calibration) return;
     setSaving(true);
     try {
       const settings = {
         ...DEFAULT_SETTINGS,
-        dabAlarmF: finalTemp,
-        dunkAlarmF: dunkTemp,
-        opaqueMode: bangerId === 'opaque',
+        dabAlarmF: calibration.displayedF,
+        dunkAlarmF: calibration.dunkF,
+        // Preserve legacy mapping: opaque-bottom bangers turn on the IR opaque mode flag.
+        opaqueMode: banger.id === 'opaque-bottom',
       };
       const saved = await presetsDb.create(trimmed, settings);
       const gemIdx = GEM_COLORS.indexOf(gemColor);
       if (gemIdx >= 0) {
         await presetsDb.update(saved.id, { iconSlot: gemIdx });
       }
+      // TODO(phase-2d): persist the (banger.id, sensor.id, wall.id, concentrate.id,
+      // useColdStart) tuple alongside the preset so SessionWalkthrough can recover
+      // banger metadata. We deliberately do NOT extend `DeviceSettings` here, and a
+      // marker-in-name hack would corrupt user-visible copy. Phase 2D's walkthrough
+      // falls back to default banger metadata when the marker is missing — known gap.
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSaved();
       onClose();
@@ -267,7 +349,16 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
     } finally {
       setSaving(false);
     }
-  }, [presetName, finalTemp, dunkTemp, bangerId, gemColor, onSaved, onClose]);
+  }, [
+    presetName,
+    banger,
+    concentrate,
+    concentrateIsBlocked,
+    calibration,
+    gemColor,
+    onSaved,
+    onClose,
+  ]);
 
   const goNext = useCallback(() => {
     if (!canAdvance) return;
@@ -289,8 +380,25 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
     stepSlide.value = withTiming(0, { duration: 240, easing: Easing.out(Easing.cubic) });
   }, [step, stepOpacity, stepSlide]);
 
-  const stepTitle = ['Pick your hardware', 'What are you dabbing?', 'Tune your window', 'Save your preset'][step];
+  const stepTitle = STEP_TITLES[step] ?? '';
   const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue →';
+
+  const handleConcentrateSelect = useCallback(
+    (id: string) => {
+      const c = findConcentrate(id);
+      if (!c) return;
+      if (!isDabbable(c)) {
+        setBlockedModalId(id);
+        // Don't keep blocked id selected — `extractId` stays null per spec.
+        setConcentrateId(null);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setConcentrateId(id);
+    },
+    [],
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -298,39 +406,49 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <WizardHeader
-          title={stepTitle}
-          onBack={goBack}
-          onClose={goClose}
-        />
+        <WizardHeader title={stepTitle} onBack={goBack} onClose={goClose} />
         <StepIndicator step={step} />
 
         <Animated.View style={[styles.body, stepStyle]}>
-          {step === 0 && (
-            <BangerStep bangerId={bangerId} onSelect={setBangerId} />
-          )}
+          {step === 0 && <BangerStep bangerId={bangerId} onSelect={setBangerId} />}
           {step === 1 && (
-            <ExtractStep extractId={extractId} onSelect={setExtractId} />
-          )}
-          {step === 2 && (
-            <TuneStep
+            <SensorStep
+              sensorId={sensorId}
+              onSelect={setSensorId}
               banger={banger}
-              extract={extract}
-              tempOffset={tempOffset}
-              onChangeOffset={setTempOffset}
-              finalTemp={finalTemp}
+              sensor={sensor}
             />
           )}
+          {step === 2 && <WallStep wallId={wallId} onSelect={setWallId} />}
           {step === 3 && (
+            <ConcentrateStep
+              concentrateId={concentrateId}
+              onSelect={handleConcentrateSelect}
+            />
+          )}
+          {step === 4 && (
+            <TuneStep
+              calibration={calibration}
+              tempOffset={tuneOffset}
+              onChangeOffset={setTuneOffset}
+            />
+          )}
+          {step === 5 && (
             <SaveStep
               presetName={presetName}
               onChangeName={setPresetName}
               banger={banger}
-              extract={extract}
+              concentrate={concentrate}
               finalTemp={finalTemp}
               dunkTemp={dunkTemp}
               gemColor={gemColor}
               onSelectGem={setGemColor}
+              coldStartCompatible={coldStartCompatible}
+              useColdStart={useColdStart}
+              onToggleColdStart={() => {
+                setColdStartTouched(true);
+                setUseColdStart((v) => !v);
+              }}
             />
           )}
         </Animated.View>
@@ -342,6 +460,14 @@ export function NewPresetWizard({ onClose, onSaved }: NewPresetWizardProps) {
           onPress={goNext}
         />
       </KeyboardAvoidingView>
+
+      {blockedModalConcentrate ? (
+        <BlockedConcentrateExplainer
+          concentrate={blockedModalConcentrate}
+          visible={blockedModalId !== null}
+          onClose={() => setBlockedModalId(null)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -385,10 +511,7 @@ function StepIndicator({ step }: { step: number }) {
               colors={[colors.emberBright, colors.ember]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[
-                styles.stepSegment,
-                active && styles.stepSegmentActive,
-              ]}
+              style={[styles.stepSegment, active && styles.stepSegmentActive]}
             />
           );
         }
@@ -426,12 +549,7 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
             style={StyleSheet.absoluteFill}
           />
         ) : null}
-        <Text
-          style={[
-            styles.ctaLabel,
-            disabled && styles.ctaLabelDisabled,
-          ]}
-        >
+        <Text style={[styles.ctaLabel, disabled && styles.ctaLabelDisabled]}>
           {loading ? 'Saving preset…' : label}
         </Text>
       </Pressable>
@@ -444,8 +562,8 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface BangerStepProps {
-  bangerId: BangerId | null;
-  onSelect: (id: BangerId) => void;
+  bangerId: string | null;
+  onSelect: (id: string) => void;
 }
 
 function BangerStep({ bangerId, onSelect }: BangerStepProps) {
@@ -454,10 +572,14 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
   const stride = CARD_W + CARD_GAP;
   const sidePad = (windowWidth - CARD_W) / 2;
 
+  // Build a flat carousel order = ORDERED_BANGERS (already grouped by category).
+  // Each card carries a category divider header above the first banger of its group.
+  const cards = ORDERED_BANGERS;
+
   const activeIndex = useMemo(() => {
-    const idx = BANGERS.findIndex((b) => b.id === bangerId);
+    const idx = cards.findIndex((b) => b.id === bangerId);
     return idx === -1 ? 0 : idx;
-  }, [bangerId]);
+  }, [bangerId, cards]);
 
   // Auto-scroll to selection when it changes via tap
   useEffect(() => {
@@ -468,15 +590,15 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / stride);
-    const clamped = Math.max(0, Math.min(BANGERS.length - 1, index));
-    const target = BANGERS[clamped];
+    const clamped = Math.max(0, Math.min(cards.length - 1, index));
+    const target = cards[clamped];
     if (target && target.id !== bangerId) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onSelect(target.id);
     }
   };
 
-  const banger = BANGERS.find((b) => b.id === bangerId) ?? null;
+  const banger = bangerId ? findBanger(bangerId) ?? null : null;
 
   return (
     <View style={styles.stepRoot}>
@@ -494,8 +616,10 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
         }}
         onMomentumScrollEnd={handleScrollEnd}
       >
-        {BANGERS.map((b) => {
+        {cards.map((b, idx) => {
           const active = b.id === bangerId;
+          const prev = idx > 0 ? cards[idx - 1] : null;
+          const showCategoryBadge = !prev || prev.category !== b.category;
           return (
             <Pressable
               key={b.id}
@@ -509,14 +633,21 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
                 { transform: [{ scale: active ? 1.0 : 0.94 }] },
               ]}
             >
+              {showCategoryBadge ? (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>
+                    {BANGER_CATEGORY_LABELS[b.category]}
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.bangerDiagramFrame}>
-                <BangerDiagram id={b.id} active={active} />
+                <BangerAnatomy banger={b} size={80} />
               </View>
               <Text style={styles.bangerName} numberOfLines={1}>
                 {b.name}
               </Text>
               <Text style={styles.bangerSpec} numberOfLines={2}>
-                {b.spec}
+                {b.geometry} · {b.surface_temp_range_f[0]}–{b.surface_temp_range_f[1]}°F
               </Text>
             </Pressable>
           );
@@ -524,7 +655,7 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
       </ScrollView>
 
       <View style={styles.dotRow}>
-        {BANGERS.map((b, i) => (
+        {cards.map((b, i) => (
           <View
             key={b.id}
             style={[
@@ -536,14 +667,27 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
       </View>
 
       <View style={styles.thermalPanel}>
-        <Text style={styles.labelCaps}>Thermal modifier</Text>
+        <Text style={styles.labelCaps}>About this banger</Text>
         {banger ? (
           <>
-            <Text style={styles.thermalValue}>
-              {banger.modifier > 0 ? '+' : ''}
-              {banger.modifier}°F
+            <Text style={styles.bangerGeometryLine}>
+              {banger.geometry.toUpperCase()} · {banger.cold_start_compatible === 'NO'
+                ? 'No cold start'
+                : banger.cold_start_compatible === 'YES'
+                  ? 'Cold start ready'
+                  : 'Cold start optional'}
             </Text>
-            <Text style={styles.thermalNote}>{banger.note}</Text>
+            <Text style={styles.thermalNote}>{banger.description}</Text>
+            <View style={styles.bangerSpecRow}>
+              <View style={styles.bangerSpecCell}>
+                <Text style={styles.labelCaps}>Heat</Text>
+                <Text style={styles.bangerSpecValue}>{banger.heat_time_seconds}s</Text>
+              </View>
+              <View style={styles.bangerSpecCell}>
+                <Text style={styles.labelCaps}>Cool</Text>
+                <Text style={styles.bangerSpecValue}>{banger.cooldown_seconds}s</Text>
+              </View>
+            </View>
           </>
         ) : (
           <Text style={styles.thermalNote}>
@@ -555,160 +699,24 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
   );
 }
 
-// Simple View-based diagram of the banger shape
-function BangerDiagram({ id, active }: { id: BangerId; active: boolean }) {
-  const stroke = active ? colors.emberBright : colors.bone35;
-  const glow = active
-    ? {
-        shadowColor: colors.emberBright,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-      }
-    : null;
-
-  if (id === 'classic') {
-    return (
-      <View style={[styles.diagBox, glow]}>
-        <View
-          style={{
-            width: 80,
-            height: 60,
-            borderColor: stroke,
-            borderWidth: 0,
-            borderLeftWidth: 2,
-            borderRightWidth: 2,
-            borderBottomWidth: 4,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 14,
-          }}
-        />
-      </View>
-    );
-  }
-  if (id === 'opaque') {
-    return (
-      <View style={[styles.diagBox, glow]}>
-        <View
-          style={{
-            width: 80,
-            height: 60,
-            borderColor: stroke,
-            borderLeftWidth: 2,
-            borderRightWidth: 2,
-            borderBottomWidth: 6,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 14,
-            backgroundColor: 'rgba(255,255,255,0.04)',
-          }}
-        />
-      </View>
-    );
-  }
-  if (id === 'thick') {
-    return (
-      <View style={[styles.diagBox, glow]}>
-        <View
-          style={{
-            width: 80,
-            height: 60,
-            borderColor: stroke,
-            borderLeftWidth: 2,
-            borderRightWidth: 2,
-            borderBottomWidth: 10,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 14,
-          }}
-        />
-      </View>
-    );
-  }
-  if (id === 'slurper') {
-    return (
-      <View style={[styles.diagBox, glow]}>
-        <View
-          style={{
-            width: 18,
-            height: 50,
-            borderColor: stroke,
-            borderWidth: 2,
-            borderRadius: 4,
-            marginBottom: 4,
-          }}
-        />
-        <View
-          style={{
-            width: 70,
-            height: 14,
-            borderColor: stroke,
-            borderWidth: 2,
-            borderRadius: 8,
-          }}
-        />
-      </View>
-    );
-  }
-  if (id === 'controlTower') {
-    return (
-      <View style={[styles.diagBox, glow]}>
-        <View
-          style={{
-            width: 10,
-            height: 56,
-            borderColor: stroke,
-            borderWidth: 2,
-            borderRadius: 3,
-            marginBottom: 4,
-          }}
-        />
-        <View
-          style={{
-            width: 60,
-            height: 12,
-            borderColor: stroke,
-            borderWidth: 2,
-            borderRadius: 6,
-          }}
-        />
-      </View>
-    );
-  }
-  // blender
-  return (
-    <View style={[styles.diagBox, glow]}>
-      <View
-        style={{
-          width: 12,
-          height: 28,
-          borderColor: stroke,
-          borderWidth: 2,
-          borderRadius: 3,
-          marginBottom: 2,
-        }}
-      />
-      <View
-        style={{
-          width: 60,
-          height: 60,
-          borderColor: stroke,
-          borderWidth: 2,
-          borderRadius: 30,
-        }}
-      />
-    </View>
-  );
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
-// STEP 1 — Extract
+// STEP 1 — Sensor
 // ──────────────────────────────────────────────────────────────────────────────
 
-interface ExtractStepProps {
-  extractId: string | null;
+interface SensorStepProps {
+  sensorId: string;
   onSelect: (id: string) => void;
+  banger: Banger | null;
+  sensor: Sensor;
 }
 
-function ExtractStep({ extractId, onSelect }: ExtractStepProps) {
+function SensorStep({ sensorId, onSelect, banger, sensor }: SensorStepProps) {
+  const orderedSensors = useMemo<readonly Sensor[]>(() => {
+    return SENSOR_ORDER.map((m) => SENSORS.find((s) => s.method === m)).filter(
+      (s): s is Sensor => s !== undefined,
+    );
+  }, []);
+
   return (
     <ScrollView
       style={styles.stepRoot}
@@ -719,70 +727,260 @@ function ExtractStep({ extractId, onSelect }: ExtractStepProps) {
       }}
       showsVerticalScrollIndicator={false}
     >
-      {EXTRACT_TYPES.map((type) => {
-        const items = EXTRACTS.filter((e) => e.type === type);
-        return (
-          <View key={type} style={{ gap: spacing.sm }}>
-            <Text style={styles.labelCaps}>{type}</Text>
-            <View style={styles.swatchGrid}>
-              {items.map((e) => {
-                const active = e.id === extractId;
-                return (
-                  <Pressable
-                    key={e.id}
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      onSelect(e.id);
-                    }}
-                    style={[styles.swatch, active && styles.swatchActive]}
-                  >
-                    <LinearGradient
-                      colors={[e.color1, e.color2]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.swatchGradient}
-                    />
-                    <View style={styles.swatchTextWrap}>
-                      <Text style={styles.swatchName} numberOfLines={1}>
-                        {e.name}
-                      </Text>
-                      <Text style={styles.swatchTemp}>{e.baseTemp}°F</Text>
-                    </View>
-                    {active ? (
-                      <View style={styles.checkBadge}>
-                        <MaterialIcons name="check" size={14} color={colors.bgDeep} />
-                      </View>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        );
-      })}
+      <View style={styles.chipRow}>
+        {orderedSensors.map((s) => {
+          const active = s.id === sensorId;
+          return (
+            <Pressable
+              key={s.id}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onSelect(s.id);
+              }}
+              style={[styles.chip, active && styles.chipActive]}
+            >
+              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
+                {SENSOR_SHORT_LABEL[s.method]}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {banger ? (
+        <IrAimHint banger={banger} sensor={sensor} />
+      ) : (
+        <View style={styles.thermalPanel}>
+          <Text style={styles.thermalNote}>Pick a banger first to preview IR aim guidance.</Text>
+        </View>
+      )}
+
+      <View style={styles.thermalPanel}>
+        <Text style={styles.labelCaps}>{sensor.name}</Text>
+        <Text style={styles.thermalNote}>{sensor.description}</Text>
+        <Text style={styles.calibrationNote}>{sensor.calibration_note}</Text>
+      </View>
     </ScrollView>
   );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// STEP 2 — Tune
+// STEP 2 — Wall thickness
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface WallStepProps {
+  wallId: WallThicknessId;
+  onSelect: (id: WallThicknessId) => void;
+}
+
+function WallStep({ wallId, onSelect }: WallStepProps) {
+  const orderedWalls = useMemo<readonly WallThickness[]>(() => {
+    return WALL_ORDER.map((id) => WALL_THICKNESSES.find((w) => w.id === id)).filter(
+      (w): w is WallThickness => w !== undefined,
+    );
+  }, []);
+
+  const active = orderedWalls.find((w) => w.id === wallId) ?? orderedWalls[1];
+
+  return (
+    <ScrollView
+      style={styles.stepRoot}
+      contentContainerStyle={{
+        paddingHorizontal: spacing.md,
+        paddingBottom: spacing.lg,
+        gap: spacing.lg,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.chipRow}>
+        {orderedWalls.map((w) => {
+          const isActive = w.id === wallId;
+          return (
+            <Pressable
+              key={w.id}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onSelect(w.id);
+              }}
+              style={[styles.chip, isActive && styles.chipActive]}
+            >
+              <Text style={[styles.chipLabel, isActive && styles.chipLabelActive]}>
+                {w.id === 'unknown' ? '?' : w.id.charAt(0).toUpperCase() + w.id.slice(1)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.wallStripPanel}>
+        <ThermalStrip thickness={active.id} />
+        <View style={styles.wallStripText}>
+          <Text style={styles.wallStripTitle}>{active.name}</Text>
+          <Text style={styles.wallStripModifier}>
+            {active.modifier_f === 0 ? '0' : active.modifier_f > 0 ? `+${active.modifier_f}` : active.modifier_f}°F modifier
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.thermalPanel}>
+        <Text style={styles.thermalNote}>{active.description}</Text>
+        {active.thickness_mm_range ? (
+          <Text style={styles.calibrationNote}>Range: {active.thickness_mm_range} mm</Text>
+        ) : null}
+      </View>
+    </ScrollView>
+  );
+}
+
+// Visual quartz strip that gets thicker as the wall grows — pure SVG.
+function ThermalStrip({ thickness }: { thickness: WallThicknessId }) {
+  // Map each id to a stroke width visually.
+  const strokeMap: Record<WallThicknessId, number> = {
+    thin: 4,
+    standard: 8,
+    thick: 14,
+    unknown: 8,
+  };
+  const w = strokeMap[thickness];
+  return (
+    <Svg width={88} height={56} viewBox="0 0 88 56">
+      <SvgRect
+        x={(88 - w) / 2}
+        y={6}
+        width={w}
+        height={44}
+        rx={2}
+        fill={colors.surface5}
+        stroke={colors.bone35}
+        strokeWidth={1}
+      />
+    </Svg>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// STEP 3 — Concentrate
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface ConcentrateStepProps {
+  concentrateId: string | null;
+  onSelect: (id: string) => void;
+}
+
+function ConcentrateStep({ concentrateId, onSelect }: ConcentrateStepProps) {
+  const groups = useMemo(() => {
+    return CONCENTRATE_CATEGORY_ORDER.map((category) => ({
+      category,
+      items: CONCENTRATES.filter((c) => c.category === category),
+    })).filter((g) => g.items.length > 0);
+  }, []);
+
+  return (
+    <ScrollView
+      style={styles.stepRoot}
+      contentContainerStyle={{
+        paddingHorizontal: spacing.md,
+        paddingBottom: spacing.lg,
+        gap: spacing.lg,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      {groups.map((g) => (
+        <View key={g.category} style={{ gap: spacing.sm }}>
+          <Text style={styles.labelCaps}>{CONCENTRATE_CATEGORY_LABELS[g.category]}</Text>
+          <View style={styles.swatchGrid}>
+            {g.items.map((c) => (
+              <ConcentrateSwatch
+                key={c.id}
+                concentrate={c}
+                active={c.id === concentrateId}
+                onSelect={onSelect}
+              />
+            ))}
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+interface ConcentrateSwatchProps {
+  concentrate: Concentrate;
+  active: boolean;
+  onSelect: (id: string) => void;
+}
+
+function ConcentrateSwatch({ concentrate, active, onSelect }: ConcentrateSwatchProps) {
+  const dabbable = isDabbable(concentrate);
+  const [color1, color2] = CATEGORY_SWATCH_COLORS[concentrate.category];
+  const hasWarning = concentrate.warning != null;
+  const topTags = concentrate.tags.slice(0, 2);
+
+  return (
+    <Pressable
+      onPress={() => onSelect(concentrate.id)}
+      style={[
+        styles.swatch,
+        active && dabbable && styles.swatchActive,
+        !dabbable && styles.swatchBlocked,
+      ]}
+    >
+      <LinearGradient
+        colors={[color1, color2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.swatchGradient, !dabbable && styles.swatchGradientBlocked]}
+      />
+      <View style={styles.swatchTextWrap}>
+        <Text
+          style={[styles.swatchName, !dabbable && styles.swatchNameBlocked]}
+          numberOfLines={2}
+        >
+          {concentrate.name}
+        </Text>
+        {dabbable && concentrate.surface_temp_optimal_f != null ? (
+          <Text style={styles.swatchTemp}>{concentrate.surface_temp_optimal_f}°F</Text>
+        ) : (
+          <Text style={[styles.swatchTemp, styles.swatchTempBlocked]}>Not dabbable</Text>
+        )}
+        {dabbable && topTags.length > 0 ? (
+          <View style={styles.swatchTagRow}>
+            {topTags.map((t) => (
+              <ConcentrateTagChip key={t} tag={t} />
+            ))}
+          </View>
+        ) : null}
+      </View>
+      {active && dabbable ? (
+        <View style={styles.checkBadge}>
+          <MaterialIcons name="check" size={14} color={colors.bgDeep} />
+        </View>
+      ) : null}
+      {hasWarning && dabbable ? (
+        <View style={styles.warnBadge}>
+          <Text style={styles.warnBadgeText}>⚠︎</Text>
+        </View>
+      ) : null}
+      {!dabbable ? (
+        <View style={styles.blockedBadge}>
+          <MaterialIcons name="block" size={14} color={colors.error} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// STEP 4 — Tune
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface TuneStepProps {
-  banger: Banger | null;
-  extract: Extract | null;
+  calibration: ReturnType<typeof computeDisplayedTarget> | null;
   tempOffset: number;
   onChangeOffset: (n: number) => void;
-  finalTemp: number;
 }
 
-function TuneStep({
-  banger,
-  extract,
-  tempOffset,
-  onChangeOffset,
-  finalTemp,
-}: TuneStepProps) {
+function TuneStep({ calibration, tempOffset, onChangeOffset }: TuneStepProps) {
   const startOffsetRef = useRef(0);
   const lastDegRef = useRef(0);
   const lastHapticBucketRef = useRef(0);
@@ -800,7 +998,7 @@ function TuneStep({
         const delta = -Math.round(gesture.dy / PX_PER_DEGREE);
         const next = Math.max(
           -TEMP_RANGE,
-          Math.min(TEMP_RANGE, startOffsetRef.current + delta)
+          Math.min(TEMP_RANGE, startOffsetRef.current + delta),
         );
         if (next !== lastDegRef.current) {
           const bucket = Math.floor(Math.abs(next) / 5);
@@ -815,7 +1013,7 @@ function TuneStep({
       onPanResponderRelease: () => {
         startOffsetRef.current = lastDegRef.current;
       },
-    })
+    }),
   ).current;
 
   // Keep refs synced if outer state changes (e.g. step re-entry)
@@ -824,7 +1022,8 @@ function TuneStep({
     startOffsetRef.current = tempOffset;
   }, [tempOffset]);
 
-  const baseTemp = banger && extract ? extract.baseTemp + banger.modifier : 0;
+  const finalTemp = calibration?.displayedF ?? 0;
+  const trace = calibration?.trace ?? [];
 
   return (
     <ScrollView
@@ -838,32 +1037,34 @@ function TuneStep({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.tempBlock} {...panResponder.panHandlers}>
-        <Text style={[styles.tempValue, { color: tempColorFor(tempOffset) }]}>{finalTemp}°</Text>
+        <Text style={[styles.tempValue, { color: tempColorFor(tempOffset) }]}>
+          {finalTemp}°
+        </Text>
         <Text style={styles.tempHint}>DRAG UP WARMER · DOWN COOLER</Text>
         <ThermalGauge offset={tempOffset} />
       </View>
 
       <View style={styles.thermalPanel}>
-        <Text style={styles.labelCaps}>Thermal logic</Text>
-        <Text style={styles.logicLine}>
-          Extract base{' '}
-          <Text style={styles.logicNum}>{extract ? `${extract.baseTemp}°` : '—'}</Text>
-          {' · '}Banger modifier{' '}
-          <Text style={styles.logicNum}>
-            {banger
-              ? `${banger.modifier > 0 ? '+' : ''}${banger.modifier}°`
-              : '—'}
+        <Text style={styles.labelCaps}>Calibration breakdown</Text>
+        {trace.length > 0 ? (
+          trace.map((line, idx) => (
+            <Text key={idx} style={styles.traceLine}>
+              {line}
+            </Text>
+          ))
+        ) : (
+          <Text style={styles.thermalNote}>
+            Pick a banger and concentrate to see the displayed-target math.
           </Text>
-          {' · '}your tune{' '}
-          <Text style={styles.logicNum}>
-            {tempOffset > 0 ? '+' : ''}
-            {tempOffset}°
-          </Text>
-          {' = '}
-          <Text style={styles.logicTotal}>{finalTemp}°F</Text>
-        </Text>
-        {baseTemp > 0 ? (
-          <Text style={styles.logicSub}>Computed base before tune: {baseTemp}°F</Text>
+        )}
+        {calibration && calibration.warnings.length > 0 ? (
+          <View style={styles.warningBlock}>
+            {calibration.warnings.map((w, idx) => (
+              <Text key={idx} style={styles.warningText}>
+                ⚠︎ {w}
+              </Text>
+            ))}
+          </View>
         ) : null}
       </View>
     </ScrollView>
@@ -871,29 +1072,35 @@ function TuneStep({
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// STEP 3 — Save
+// STEP 5 — Save
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface SaveStepProps {
   presetName: string;
   onChangeName: (s: string) => void;
   banger: Banger | null;
-  extract: Extract | null;
+  concentrate: Concentrate | null;
   finalTemp: number;
   dunkTemp: number;
   gemColor: string;
   onSelectGem: (c: string) => void;
+  coldStartCompatible: boolean;
+  useColdStart: boolean;
+  onToggleColdStart: () => void;
 }
 
 function SaveStep({
   presetName,
   onChangeName,
   banger,
-  extract,
+  concentrate,
   finalTemp,
   dunkTemp,
   gemColor,
   onSelectGem,
+  coldStartCompatible,
+  useColdStart,
+  onToggleColdStart,
 }: SaveStepProps) {
   const iconName = GEM_ICONS[gemColor] ?? 'diamond';
 
@@ -936,11 +1143,17 @@ function SaveStep({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.heroSection}>
-        <Animated.View style={[styles.heroOrb, { backgroundColor: gemColor, shadowColor: gemColor }, orbStyle]}>
+        <Animated.View
+          style={[
+            styles.heroOrb,
+            { backgroundColor: gemColor, shadowColor: gemColor },
+            orbStyle,
+          ]}
+        >
           <MaterialIcons name={iconName} size={36} color={colors.bgDeep} />
         </Animated.View>
         <Text style={styles.heroSummary}>
-          {extract?.name ?? '—'} · {banger?.name ?? '—'}
+          {concentrate?.name ?? '—'} · {banger?.name ?? '—'}
         </Text>
         <View style={styles.heroTempRow}>
           <View style={{ alignItems: 'center' }}>
@@ -977,10 +1190,7 @@ function SaveStep({
               <Pressable
                 key={c}
                 onPress={() => onSelectGem(c)}
-                style={[
-                  styles.gemRing,
-                  active && styles.gemRingActive,
-                ]}
+                style={[styles.gemRing, active && styles.gemRingActive]}
               >
                 <View style={[styles.gemDot, { backgroundColor: c }]} />
               </Pressable>
@@ -988,6 +1198,39 @@ function SaveStep({
           })}
         </View>
       </View>
+
+      <Pressable
+        onPress={coldStartCompatible ? onToggleColdStart : undefined}
+        disabled={!coldStartCompatible}
+        style={[
+          styles.coldStartRow,
+          !coldStartCompatible && styles.coldStartRowDisabled,
+          useColdStart && coldStartCompatible && styles.coldStartRowActive,
+        ]}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.coldStartLabel}>Use cold start</Text>
+          <Text style={styles.coldStartHint}>
+            {coldStartCompatible
+              ? 'Load now, heat low — protects terps on this combo.'
+              : 'Not compatible with this banger × concentrate.'}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.toggle,
+            useColdStart && coldStartCompatible && styles.toggleOn,
+            !coldStartCompatible && styles.toggleDisabled,
+          ]}
+        >
+          <View
+            style={[
+              styles.toggleKnob,
+              useColdStart && coldStartCompatible && styles.toggleKnobOn,
+            ]}
+          />
+        </View>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -1011,8 +1254,8 @@ function ThermalGauge({ offset }: { offset: number }) {
   const cursorColor = isWarm
     ? colors.emberBright
     : offset < 0
-    ? colors.quartzBright
-    : colors.bone35;
+      ? colors.quartzBright
+      : colors.bone35;
 
   return (
     <Svg width={GAUGE_W} height={28} style={{ marginTop: 12 }}>
@@ -1188,16 +1431,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  diagBox: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: 90,
-  },
   bangerName: {
     color: colors.bone100,
     fontSize: 16,
     fontWeight: '500',
     marginTop: spacing.sm,
+    textAlign: 'center',
   },
   bangerSpec: {
     color: colors.bone50,
@@ -1205,11 +1444,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+  bangerGeometryLine: {
+    color: colors.bone90,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    fontWeight: '500',
+  },
+  bangerSpecRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  bangerSpecCell: {
+    gap: 2,
+  },
+  bangerSpecValue: {
+    color: colors.bone100,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface5,
+    borderWidth: 0.5,
+    borderColor: colors.bone35,
+  },
+  categoryBadgeText: {
+    fontSize: 9,
+    fontWeight: '500',
+    letterSpacing: 1.4,
+    color: colors.bone90,
+    textTransform: 'uppercase',
+  },
   dotRow: {
     flexDirection: 'row',
     alignSelf: 'center',
     gap: 6,
     marginVertical: spacing.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
   },
   dot: {
     width: 6,
@@ -1231,18 +1510,77 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
   },
-  thermalValue: {
-    color: colors.emberBright,
-    fontSize: 28,
-    fontWeight: '300',
-  },
   thermalNote: {
     color: colors.bone70,
     fontSize: 13,
     lineHeight: 18,
   },
+  calibrationNote: {
+    color: colors.bone50,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: spacing.xs,
+  },
 
-  // Extract step
+  // Sensor / Wall chips
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    borderWidth: 0.5,
+    borderColor: colors.bone35,
+    backgroundColor: colors.surface3,
+  },
+  chipActive: {
+    borderColor: colors.emberBright,
+    borderWidth: 1.5,
+    backgroundColor: colors.surface4,
+    shadowColor: colors.emberBright,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  chipLabel: {
+    color: colors.bone70,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  chipLabelActive: {
+    color: colors.bone100,
+  },
+
+  // Wall strip panel
+  wallStripPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface3,
+    borderWidth: 0.5,
+    borderColor: colors.bone35,
+  },
+  wallStripText: {
+    flex: 1,
+    gap: 2,
+  },
+  wallStripTitle: {
+    color: colors.bone100,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  wallStripModifier: {
+    color: colors.emberBright,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  // Concentrate / extract step
   labelCaps: {
     ...labelCaps,
   },
@@ -1253,7 +1591,7 @@ const styles = StyleSheet.create({
   },
   swatch: {
     width: '48%',
-    height: 72,
+    minHeight: 96,
     borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 0.5,
@@ -1268,23 +1606,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
+  swatchBlocked: {
+    borderColor: colors.bone20,
+    opacity: 0.55,
+  },
   swatchGradient: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.4,
   },
+  swatchGradientBlocked: {
+    opacity: 0.12,
+  },
   swatchTextWrap: {
     flex: 1,
     padding: spacing.sm,
+    gap: spacing.xs,
     justifyContent: 'space-between',
   },
   swatchName: {
     color: colors.bone100,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
+  },
+  swatchNameBlocked: {
+    color: colors.bone50,
   },
   swatchTemp: {
     color: colors.bone90,
     fontSize: 12,
+  },
+  swatchTempBlocked: {
+    color: colors.error,
+    fontStyle: 'italic',
+  },
+  swatchTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   checkBadge: {
     position: 'absolute',
@@ -1294,6 +1652,35 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: colors.emberBright,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  warnBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.warning,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  warnBadgeText: {
+    color: colors.bgDeep,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  blockedBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.surface5,
+    borderWidth: 1,
+    borderColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1316,23 +1703,23 @@ const styles = StyleSheet.create({
     ...labelCaps,
     marginTop: spacing.sm,
   },
-  logicLine: {
-    color: colors.bone70,
-    fontSize: 13,
-    lineHeight: 19,
+  traceLine: {
+    color: colors.bone90,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
   },
-  logicNum: {
-    color: colors.bone100,
-    fontWeight: '500',
+  warningBlock: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.bone20,
+    gap: spacing.xs,
   },
-  logicTotal: {
-    color: colors.emberBright,
-    fontWeight: '600',
-  },
-  logicSub: {
-    color: colors.bone50,
-    fontSize: 11,
-    marginTop: 2,
+  warningText: {
+    color: colors.warning,
+    fontSize: 12,
+    lineHeight: 16,
   },
   input: {
     height: 48,
@@ -1405,5 +1792,60 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+  // Cold-start toggle
+  coldStartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface3,
+    borderWidth: 0.5,
+    borderColor: colors.bone35,
+  },
+  coldStartRowDisabled: {
+    opacity: 0.55,
+  },
+  coldStartRowActive: {
+    borderColor: colors.emberBright,
+  },
+  coldStartLabel: {
+    color: colors.bone100,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  coldStartHint: {
+    color: colors.bone70,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  toggle: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surface5,
+    borderWidth: 0.5,
+    borderColor: colors.bone35,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleOn: {
+    backgroundColor: colors.ember,
+    borderColor: colors.emberBright,
+  },
+  toggleDisabled: {
+    backgroundColor: colors.surface3,
+  },
+  toggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.bone70,
+    alignSelf: 'flex-start',
+  },
+  toggleKnobOn: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.bone100,
   },
 });

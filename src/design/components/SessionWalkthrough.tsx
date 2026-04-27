@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,6 @@ import Animated, {
   withSequence,
   withRepeat,
   Easing,
-  interpolate,
-  Extrapolation,
   runOnJS,
   cancelAnimation,
 } from 'react-native-reanimated';
@@ -23,12 +21,8 @@ import Svg, {
   Circle as SvgCircle,
   Path,
   Defs,
-  RadialGradient,
   LinearGradient as SvgGradient,
   Stop,
-  G,
-  ClipPath,
-  Rect,
 } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -38,20 +32,123 @@ import { colors } from '../tokens';
 import { useBleStore } from '../../state/bleStore';
 import { useSettingsStore } from '../../state/settingsStore';
 import { useSessionStore } from '../../state/sessionStore';
+import { useDabPreferencesStore } from '../../state/dabPreferencesStore';
 import { formatTemp } from '../../utils/temperature';
+import {
+  findBanger,
+  type Banger,
+  type BangerId,
+  type HeatTimeStage,
+} from '../../data/bangers';
+import {
+  findConcentrate,
+  type Concentrate,
+  type ConcentrateId,
+} from '../../data/concentrates';
+import { findSensor, type Sensor } from '../../data/sensors';
+import { findWallThickness, type WallThickness } from '../../data/wallThicknesses';
+import {
+  coldStartAvailable,
+  inverseInterior,
+  ENAIL_DEFAULT_MIDPOINT_F,
+} from '../../utils/calibration';
+import { BangerAnatomy } from './BangerAnatomy';
+import { IrAimHint } from './IrAimHint';
+import { StageTimer } from './StageTimer';
 
 const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const TORCH_DURATION_S = 30;
+const DEFAULT_HEAT_FALLBACK_S = 30;
 const RING_RADIUS = 110;
 const RING_STROKE = 6;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
+// ─── Fallback context — when no preset banger / concentrate is wired ────────
+
+function mustFind<T>(value: T | undefined, label: string): T {
+  if (!value) throw new Error(`SessionWalkthrough: required catalog entry missing: ${label}`);
+  return value;
+}
+
+const FALLBACK_BANGER = mustFind(findBanger('flat-top'), 'banger:flat-top');
+const FALLBACK_CONCENTRATE = mustFind(findConcentrate('live-resin'), 'concentrate:live-resin');
+const FALLBACK_SENSOR = mustFind(findSensor('ir'), 'sensor:ir');
+const FALLBACK_WALL = mustFind(findWallThickness('standard'), 'wall:standard');
+
+// ─── Range parsing helpers ──────────────────────────────────────────────────
+
+/**
+ * Parse a "20-40" / "55-90" range string into the midpoint in seconds.
+ * Handles "30" (single value), "20-40 host (or 10-25 cold-start)" (free text)
+ * and bad data by falling back to `fallback`.
+ */
+function parseRangeMidpoint(range: string, fallback: number): number {
+  if (!range) return fallback;
+  // Strip everything but the first <num>-<num> or <num> match.
+  const match = range.match(/(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?/);
+  if (!match) return fallback;
+  const lo = Number.parseFloat(match[1]);
+  const hi = match[2] != null ? Number.parseFloat(match[2]) : lo;
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return fallback;
+  return Math.round((lo + hi) / 2);
+}
+
+function parseHeatSeconds(range: string): number {
+  return parseRangeMidpoint(range, DEFAULT_HEAT_FALLBACK_S);
+}
+
+/**
+ * Compute a PID setpoint for a given interior surface target. Uses the
+ * banger's `pid_offset_midpoint_f` when present (e-bangers), otherwise the
+ * +50°F community midpoint.
+ */
+function pidSetpointFor(banger: Banger, interiorF: number): number {
+  if (banger.geometry === 'enail') {
+    return Math.round(interiorF + banger.pid_offset_midpoint_f);
+  }
+  return Math.round(interiorF + ENAIL_DEFAULT_MIDPOINT_F);
+}
+
+/**
+ * For a slurper-class banger with a `heat_time_breakdown`, return a stable
+ * sum of every stage's duration. Otherwise return the parsed midpoint.
+ */
+function totalHeatSeconds(banger: Banger): number {
+  if (banger.heat_time_breakdown && banger.heat_time_breakdown.length > 0) {
+    return banger.heat_time_breakdown.reduce(
+      (acc: number, stage: HeatTimeStage) => acc + stage.duration_seconds,
+      0,
+    );
+  }
+  return parseHeatSeconds(banger.heat_time_seconds);
+}
+
+/** Find the active stage index given cumulative elapsed seconds. */
+function activeStageFromElapsed(
+  breakdown: readonly HeatTimeStage[],
+  elapsed: number,
+): number {
+  let consumed = 0;
+  for (let i = 0; i < breakdown.length; i += 1) {
+    consumed += breakdown[i].duration_seconds;
+    if (elapsed < consumed) return i;
+  }
+  return breakdown.length - 1;
+}
+
 // ─── Step definitions ────────────────────────────────────────────────────────
 
-type StepId = 'prepare' | 'heat' | 'cool' | 'dab' | 'dunk' | 'complete';
+type StepId =
+  | 'prepare'
+  | 'heat'
+  | 'cool'
+  | 'cold-load'
+  | 'cold-heat'
+  | 'dab'
+  | 'dunk'
+  | 'complete';
 
 interface Step {
   id: StepId;
@@ -62,60 +159,146 @@ interface Step {
   autoAdvance?: boolean;
 }
 
-const STEPS: Step[] = [
-  {
-    id: 'prepare',
-    supra: 'STEP 1 OF 5',
-    title: 'Prepare',
-    body: 'Load your material into your cap and set your torch within reach.',
-    ctaLabel: "I'm Ready",
-  },
-  {
-    id: 'heat',
-    supra: 'STEP 2 OF 5',
-    title: 'Torch It',
-    body: 'Apply heat evenly around the bottom and sides of your banger.',
-    autoAdvance: true,
-  },
-  {
-    id: 'cool',
-    supra: 'STEP 3 OF 5',
-    title: 'Cool Down',
-    body: 'Set the torch down and let your banger settle to the target temperature.',
-    autoAdvance: true,
-  },
-  {
-    id: 'dab',
-    supra: 'STEP 4 OF 5',
-    title: 'Dab',
-    body: 'Drop your material and inhale slowly. The dunk alarm will cue your next step.',
-    ctaLabel: 'Done',
-    autoAdvance: true,
-  },
-  {
-    id: 'dunk',
-    supra: 'STEP 5 OF 5',
-    title: 'Dunk',
-    body: 'While the banger is still warm, swab the inside to remove residue.',
-    ctaLabel: 'All Done',
-  },
-  {
-    id: 'complete',
-    supra: 'SESSION',
-    title: 'Complete',
-    body: '',
-    ctaLabel: 'Finish',
-  },
-];
+interface BuildStepsArgs {
+  readonly banger: Banger;
+  readonly concentrate: Concentrate;
+  readonly sensor: Sensor;
+  readonly displayedTargetF: number;
+  readonly interiorTargetF: number;
+  readonly pidSetpointF: number;
+  readonly useCelsius: boolean;
+  readonly coldStart: boolean;
+}
 
-const STEP_INDEX: Record<StepId, number> = {
-  prepare: 0,
-  heat: 1,
-  cool: 2,
-  dab: 3,
-  dunk: 4,
-  complete: 5,
-};
+function buildHeatBody(banger: Banger): string {
+  const torchPattern = banger.torch_pattern.replace(/_/g, ' ');
+  if (banger.torch_distance_inches != null) {
+    return `Apply the torch using a ${torchPattern} sweep, ${banger.torch_distance_inches}" from quartz.`;
+  }
+  return `Apply the torch using a ${torchPattern} sweep.`;
+}
+
+function buildCoolBody(args: {
+  readonly banger: Banger;
+  readonly sensor: Sensor;
+  readonly displayedTargetF: number;
+  readonly interiorTargetF: number;
+  readonly pidSetpointF: number;
+  readonly useCelsius: boolean;
+}): string {
+  const { banger, sensor, displayedTargetF, interiorTargetF, pidSetpointF, useCelsius } = args;
+  switch (sensor.method) {
+    case 'ir':
+      return `Aim ${sensor.name} at ${banger.ir_aim_location}. Dab on the descent through ${formatTemp(displayedTargetF, useCelsius)} — not at peak torch.`;
+    case 'contact':
+      return `Probe contact reads surface truth. Dab when probe shows ${formatTemp(interiorTargetF, useCelsius)}.`;
+    case 'enail':
+      return `PID is set & forget. When the coil shows ${formatTemp(pidSetpointF, useCelsius)}, you're ready.`;
+    case 'visual':
+    default:
+      return `Watch for: ${banger.visual_cue}. Counted timing fills the gap.`;
+  }
+}
+
+function buildDabBody(concentrate: Concentrate): string {
+  const tip = concentrate.notes[0] ?? '';
+  return tip ? `Drop ${concentrate.name}. ${tip}` : `Drop ${concentrate.name}.`;
+}
+
+function buildSteps(args: BuildStepsArgs): Step[] {
+  const { banger, concentrate, sensor, useCelsius } = args;
+  const heatBody = buildHeatBody(banger);
+  const coolBody = buildCoolBody(args);
+  const dabBody = buildDabBody(concentrate);
+  const completeSummary = `${banger.name} · ${concentrate.name} · ${sensor.name}`;
+
+  if (args.coldStart) {
+    return [
+      {
+        id: 'prepare',
+        supra: 'STEP 1 OF 4',
+        title: 'Prepare',
+        body: 'Cold-start ready. Set your torch within reach and grab your cap.',
+        ctaLabel: "I'm Ready",
+      },
+      {
+        id: 'cold-load',
+        supra: 'STEP 2 OF 4',
+        title: 'Cold Load',
+        body: 'Load your concentrate cold into the bucket. Cap on, torch ready.',
+        ctaLabel: 'Loaded',
+      },
+      {
+        id: 'cold-heat',
+        supra: 'STEP 3 OF 4',
+        title: 'Light Heat',
+        body: 'Light heat from below for 10–20 seconds. Pull torch when oil starts to bubble.',
+        autoAdvance: true,
+      },
+      {
+        id: 'dab',
+        supra: 'STEP 4 OF 4',
+        title: 'Dab',
+        body: dabBody,
+        ctaLabel: 'Done',
+        autoAdvance: true,
+      },
+      {
+        id: 'complete',
+        supra: 'SESSION',
+        title: 'Complete',
+        body: completeSummary,
+        ctaLabel: 'Finish',
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 'prepare',
+      supra: 'STEP 1 OF 5',
+      title: 'Prepare',
+      body: 'Load your material into your cap and set your torch within reach.',
+      ctaLabel: "I'm Ready",
+    },
+    {
+      id: 'heat',
+      supra: 'STEP 2 OF 5',
+      title: 'Torch It',
+      body: heatBody,
+      autoAdvance: true,
+    },
+    {
+      id: 'cool',
+      supra: 'STEP 3 OF 5',
+      title: 'Cool Down',
+      body: coolBody,
+      autoAdvance: true,
+    },
+    {
+      id: 'dab',
+      supra: 'STEP 4 OF 5',
+      title: 'Dab',
+      body: dabBody,
+      ctaLabel: 'Done',
+      autoAdvance: true,
+    },
+    {
+      id: 'dunk',
+      supra: 'STEP 5 OF 5',
+      title: 'Dunk',
+      body: `While the banger is still warm, swab the inside to remove residue.`,
+      ctaLabel: 'All Done',
+    },
+    {
+      id: 'complete',
+      supra: 'SESSION',
+      title: 'Complete',
+      body: completeSummary,
+      ctaLabel: 'Finish',
+    },
+  ];
+}
 
 // ─── Flame icon ──────────────────────────────────────────────────────────────
 
@@ -325,14 +508,17 @@ function CompleteIcon({ size = 56 }: { size?: number }) {
 interface TorchTimerProps {
   durationSeconds: number;
   onComplete: () => void;
+  onElapsedChange?: (elapsedSec: number) => void;
 }
 
-function TorchTimer({ durationSeconds, onComplete }: TorchTimerProps) {
+function TorchTimer({ durationSeconds, onComplete, onElapsedChange }: TorchTimerProps) {
   const progress = useSharedValue(0);
   const [remaining, setRemaining] = useState(durationSeconds);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAt = useRef(Date.now());
   const completedRef = useRef(false);
+  const onElapsedChangeRef = useRef(onElapsedChange);
+  onElapsedChangeRef.current = onElapsedChange;
 
   const advanceStep = useCallback(() => {
     if (!completedRef.current) {
@@ -359,6 +545,7 @@ function TorchTimer({ durationSeconds, onComplete }: TorchTimerProps) {
       const elapsed = (Date.now() - startedAt.current) / 1000;
       const rem = Math.max(0, Math.ceil(durationSeconds - elapsed));
       setRemaining(rem);
+      onElapsedChangeRef.current?.(elapsed);
       if (rem === 0 && intervalRef.current) {
         clearInterval(intervalRef.current);
       }
@@ -484,11 +671,10 @@ function LiveTempBadge({ dabAlarmF, useCelsius }: { dabAlarmF: number; useCelsiu
 
 // ─── Step dots ──────────────────────────────────────────────────────────────
 
-function StepDots({ current }: { current: number }) {
-  const totalDots = 5; // steps 0-4, complete is not a dot
+function StepDots({ current, total }: { current: number; total: number }) {
   return (
     <View style={styles.dotsRow}>
-      {Array.from({ length: totalDots }, (_, i) => {
+      {Array.from({ length: total }, (_, i) => {
         const isDone = i < current;
         const isActive = i === current;
         return (
@@ -519,6 +705,9 @@ interface StepBodyProps {
   useCelsius: boolean;
   peakF: number;
   walkthroughStartedAt: number;
+  banger: Banger;
+  concentrate: Concentrate;
+  sensor: Sensor;
 }
 
 function StepBody({
@@ -532,8 +721,12 @@ function StepBody({
   useCelsius,
   peakF,
   walkthroughStartedAt,
+  banger,
+  concentrate,
+  sensor,
 }: StepBodyProps) {
   const [elapsed, setElapsed] = useState(0);
+  const [heatElapsed, setHeatElapsed] = useState(0);
 
   useEffect(() => {
     if (step.id !== 'complete') return;
@@ -552,28 +745,60 @@ function StepBody({
   if (step.id === 'prepare') {
     return (
       <View style={styles.stepCenterIcon}>
-        <Svg width={72} height={72} viewBox="0 0 72 72">
-          <Defs>
-            <SvgGradient id="prepGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-              <Stop offset="0%" stopColor={colors.bone90} stopOpacity={0.9} />
-              <Stop offset="100%" stopColor={colors.bone50} stopOpacity={0.6} />
-            </SvgGradient>
-          </Defs>
-          {/* Banger silhouette */}
-          <Path d="M36 18 C36 18 24 22 24 34 C24 46 30 54 36 54 C42 54 48 46 48 34 C48 22 36 18 36 18 Z" fill="none" stroke="url(#prepGrad)" strokeWidth={2} />
-          <Path d="M28 30 C28 30 32 36 36 36 C40 36 44 30 44 30" stroke={colors.bone70} strokeWidth={1.5} fill="none" strokeLinecap="round" />
-          <SvgCircle cx={36} cy={42} r={4} fill={colors.bone50} opacity={0.6} />
-          {/* Gleam */}
-          <Path d="M30 24 L32 20" stroke={colors.bone90} strokeWidth={1.5} strokeLinecap="round" opacity={0.4} />
-        </Svg>
+        <BangerAnatomy banger={banger} size={140} />
       </View>
     );
   }
 
-  if (step.id === 'heat') {
+  if (step.id === 'heat' || step.id === 'cold-heat') {
+    const breakdown = banger.heat_time_breakdown;
+    const hasBreakdown =
+      step.id === 'heat' && breakdown != null && breakdown.length > 0;
+    const activeStageIdx =
+      hasBreakdown && breakdown
+        ? activeStageFromElapsed(breakdown, heatElapsed)
+        : undefined;
+
     return (
       <View style={styles.stepCenterIcon}>
-        <TorchTimer key={stepIndex} durationSeconds={torchDuration} onComplete={onTorchComplete} />
+        <View style={styles.heatRow}>
+          <TorchTimer
+            key={stepIndex}
+            durationSeconds={torchDuration}
+            onComplete={onTorchComplete}
+            onElapsedChange={hasBreakdown ? setHeatElapsed : undefined}
+          />
+          {step.id === 'heat' ? (
+            <View style={styles.bangerSlot}>
+              <BangerAnatomy
+                banger={banger}
+                size={120}
+                showZones
+                activeZoneIdx={activeStageIdx}
+              />
+            </View>
+          ) : null}
+        </View>
+        {hasBreakdown && breakdown ? (
+          <View style={styles.stageTimerSlot}>
+            <StageTimer
+              breakdown={breakdown}
+              activeStageIdx={activeStageIdx ?? 0}
+              elapsedSec={heatElapsed}
+            />
+          </View>
+        ) : null}
+        {step.id === 'heat' ? (
+          <Text style={styles.visualCue}>Stop when: {banger.visual_cue}</Text>
+        ) : null}
+      </View>
+    );
+  }
+
+  if (step.id === 'cold-load') {
+    return (
+      <View style={styles.stepCenterIcon}>
+        <BangerAnatomy banger={banger} size={140} />
       </View>
     );
   }
@@ -581,12 +806,16 @@ function StepBody({
   if (step.id === 'cool') {
     return (
       <View style={styles.stepCenterIcon}>
-        <CoolIcon size={72} />
-        <View style={{ height: 24 }} />
+        <CoolIcon size={64} />
+        <View style={{ height: 18 }} />
         <LiveTempBadge dabAlarmF={dabAlarmF} useCelsius={useCelsius} />
         <View style={{ height: 12 }} />
         <View style={styles.targetPill}>
           <Text style={styles.targetPillText}>TARGET  {formatTemp(dabAlarmF, useCelsius)}</Text>
+        </View>
+        <View style={{ height: 16 }} />
+        <View style={styles.aimHintSlot}>
+          <IrAimHint banger={banger} sensor={sensor} />
         </View>
       </View>
     );
@@ -595,13 +824,16 @@ function StepBody({
   if (step.id === 'dab') {
     return (
       <View style={styles.stepCenterIcon}>
-        <DabIcon size={72} />
-        <View style={{ height: 24 }} />
+        <DabIcon size={64} />
+        <View style={{ height: 18 }} />
         <LiveTempBadge dabAlarmF={dabAlarmF} useCelsius={useCelsius} />
         <View style={{ height: 12 }} />
         <View style={[styles.targetPill, { borderColor: colors.quartz + '44' }]}>
           <Text style={[styles.targetPillText, { color: colors.quartz }]}>DUNK AT  {formatTemp(dunkAlarmF, useCelsius)}</Text>
         </View>
+        {concentrate.notes[0] ? (
+          <Text style={styles.visualCue}>{concentrate.notes[0]}</Text>
+        ) : null}
       </View>
     );
   }
@@ -642,9 +874,24 @@ function StepBody({
 interface SessionWalkthroughProps {
   visible: boolean;
   onClose: () => void;
+  /** Active banger for this session. Falls back to `flat-top` if omitted. */
+  bangerId?: BangerId;
+  /** Active concentrate for this session. Falls back to `live-resin`. */
+  concentrateId?: ConcentrateId;
+  /**
+   * Force cold-start flow on/off. Defaults to the user's
+   * `coldStartByDefault` preference, gated by `coldStartAvailable`.
+   */
+  coldStart?: boolean;
 }
 
-export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps) {
+export function SessionWalkthrough({
+  visible,
+  onClose,
+  bangerId,
+  concentrateId,
+  coldStart,
+}: SessionWalkthroughProps) {
   const insets = useSafeAreaInsets();
 
   const liveTempF = useBleStore((s) => s.liveTempF) ?? 72;
@@ -654,12 +901,68 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   const endSession = useSessionStore((s) => s.endSession);
   const dunkAlertFired = useSessionStore((s) => s.dunkAlertFired);
 
+  // Pull active banger/concentrate/sensor/wall context (Phase 2D fallbacks).
+  const preferredSensor = useDabPreferencesStore((s) => s.preferredSensor);
+  const preferredWall = useDabPreferencesStore((s) => s.preferredWall);
+  const coldStartByDefault = useDabPreferencesStore((s) => s.coldStartByDefault);
+
+  const sensor = findSensor(preferredSensor) ?? FALLBACK_SENSOR;
+  const wall = findWallThickness(preferredWall) ?? FALLBACK_WALL;
+  const banger =
+    (bangerId != null ? findBanger(bangerId) : undefined) ?? FALLBACK_BANGER;
+  const concentrate =
+    (concentrateId != null ? findConcentrate(concentrateId) : undefined) ??
+    FALLBACK_CONCENTRATE;
+
   const walkthroughStartedAt = useRef<number>(Date.now());
   const hasHeatedRef = useRef(false);
   const [capturedPeakF, setCapturedPeakF] = useState(0);
 
   const [stepIndex, setStepIndex] = useState(0);
-  const torchDuration = TORCH_DURATION_S;
+
+  // Heat duration sourced from banger metadata (slurper sums breakdown stages).
+  const torchDuration = totalHeatSeconds(banger);
+
+  // Resolve cold-start flow eligibility.
+  const coldStartCompatible = coldStartAvailable(concentrate, banger);
+  const coldStartEnabled =
+    coldStartCompatible && (coldStart ?? coldStartByDefault);
+
+  // Compute targets for sensor-aware cool-step copy.
+  // displayedTargetF reflects the user's instrument; interiorTargetF is the
+  // surface truth (probe target); pidSetpointF is the e-nail coil setpoint.
+  const displayedTargetF = settings.dabAlarmF;
+  const interiorTargetF =
+    concentrate.surface_temp_optimal_f ??
+    Math.round(inverseInterior({ displayedF: displayedTargetF, banger, sensor, wall }));
+  const pidSetpointF = pidSetpointFor(banger, interiorTargetF);
+
+  const steps = useMemo(
+    () =>
+      buildSteps({
+        banger,
+        concentrate,
+        sensor,
+        displayedTargetF,
+        interiorTargetF,
+        pidSetpointF,
+        useCelsius: settings.useCelsius,
+        coldStart: coldStartEnabled,
+      }),
+    [
+      banger,
+      concentrate,
+      sensor,
+      displayedTargetF,
+      interiorTargetF,
+      pidSetpointF,
+      settings.useCelsius,
+      coldStartEnabled,
+    ],
+  );
+
+  // Number of progress dots — every step except `complete`.
+  const totalDots = steps.length - 1;
 
   // Step transition animations
   const stepOpacity = useSharedValue(1);
@@ -674,7 +977,8 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
     }
   }, [visible]);
 
-  const step = STEPS[stepIndex] ?? STEPS[0];
+  const safeStepIndex = Math.min(stepIndex, steps.length - 1);
+  const step = steps[safeStepIndex] ?? steps[0];
 
   const transitionToStep = useCallback((nextIndex: number) => {
     stepOpacity.value = withTiming(0, { duration: 180 }, () => {
@@ -687,14 +991,14 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   }, []);
 
   const advance = useCallback(() => {
-    const next = stepIndex + 1;
-    if (next < STEPS.length) {
-      if (STEPS[next]?.id === 'complete') {
+    const next = safeStepIndex + 1;
+    if (next < steps.length) {
+      if (steps[next]?.id === 'complete') {
         setCapturedPeakF(peakF);
       }
       transitionToStep(next);
     }
-  }, [stepIndex, transitionToStep, peakF]);
+  }, [safeStepIndex, steps, transitionToStep, peakF]);
 
   const handleClose = useCallback(() => {
     onClose();
@@ -766,7 +1070,7 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
       </View>
 
       {/* Step dots */}
-      <StepDots current={stepIndex} />
+      <StepDots current={safeStepIndex} total={totalDots} />
 
       {/* Animated step */}
       <Animated.View style={[styles.stepArea, stepStyle]}>
@@ -779,7 +1083,7 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
         {/* Icon / Timer / Live temp area */}
         <StepBody
           step={step}
-          stepIndex={stepIndex}
+          stepIndex={safeStepIndex}
           torchDuration={torchDuration}
           onTorchComplete={advance}
           onCta={handleCta}
@@ -788,6 +1092,9 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
           useCelsius={settings.useCelsius}
           peakF={capturedPeakF}
           walkthroughStartedAt={walkthroughStartedAt.current}
+          banger={banger}
+          concentrate={concentrate}
+          sensor={sensor}
         />
       </Animated.View>
 
@@ -812,7 +1119,7 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
       )}
 
       {/* Auto-advance indicator */}
-      {step.autoAdvance && !step.ctaLabel && step.id === 'heat' && (
+      {step.autoAdvance && !step.ctaLabel && (step.id === 'heat' || step.id === 'cold-heat') && (
         <View style={[styles.autoAdvanceHint, { paddingBottom: insets.bottom + 20 }]}>
           <Text style={styles.autoAdvanceText}>Advances automatically when timer ends</Text>
         </View>
@@ -919,6 +1226,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     flex: 1,
+  },
+
+  heatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  bangerSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  stageTimerSlot: {
+    width: '100%',
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+
+  aimHintSlot: {
+    width: '100%',
+    paddingHorizontal: 4,
+    marginTop: 4,
+  },
+
+  visualCue: {
+    fontSize: 12,
+    color: colors.bone50,
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    marginTop: 14,
+    paddingHorizontal: 12,
+    maxWidth: 280,
   },
 
   // Torch timer

@@ -26,6 +26,7 @@ const { height: SCREEN_H } = Dimensions.get('window');
 export interface MainBottomSheetHandle {
   openToPresets: () => void;
   openToHistory: () => void;
+  openToReference: () => void;
   collapse: () => void;
 }
 
@@ -33,11 +34,12 @@ export interface MainBottomSheetProps {
   presetsContent: React.ReactNode;
   historyContent: React.ReactNode;
   configureContent: React.ReactNode;
+  referenceContent: React.ReactNode;
   onExpand?: () => void;
   onCollapse?: () => void;
 }
 
-type TabKey = 'presets' | 'history' | 'configure';
+type TabKey = 'presets' | 'history' | 'configure' | 'reference';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -99,7 +101,7 @@ export const MainBottomSheet = React.forwardRef<
   MainBottomSheetHandle,
   MainBottomSheetProps
 >(function MainBottomSheet(
-  { presetsContent, historyContent, configureContent, onExpand, onCollapse },
+  { presetsContent, historyContent, configureContent, referenceContent, onExpand, onCollapse },
   ref,
 ) {
   const theme = useThemeColors();
@@ -129,6 +131,10 @@ export const MainBottomSheet = React.forwardRef<
     },
     openToHistory() {
       setSelectedTab('history');
+      expandSheet();
+    },
+    openToReference() {
+      setSelectedTab('reference');
       expandSheet();
     },
     collapse() {
@@ -163,6 +169,7 @@ export const MainBottomSheet = React.forwardRef<
     { key: 'presets', label: 'Presets' },
     { key: 'history', label: 'History' },
     { key: 'configure', label: 'Configure' },
+    { key: 'reference', label: 'Reference' },
   ];
 
   return (
@@ -222,6 +229,7 @@ export const MainBottomSheet = React.forwardRef<
         {selectedTab === 'presets' && presetsContent}
         {selectedTab === 'history' && historyContent}
         {selectedTab === 'configure' && configureContent}
+        {selectedTab === 'reference' && referenceContent}
       </View>
     </Animated.View>
   );
