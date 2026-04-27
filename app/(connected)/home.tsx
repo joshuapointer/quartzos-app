@@ -742,13 +742,14 @@ function ConfigureContent({
   updateSetting,
   dirty,
   markConfirmed,
+  writeDebounceRef,
 }: {
   settings: DeviceSettings;
   updateSetting: <K extends keyof DeviceSettings>(key: K, val: DeviceSettings[K]) => void;
   dirty: boolean;
   markConfirmed: () => void;
+  writeDebounceRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
 }) {
-  const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const syncedScale = useSharedValue(dirty ? 0 : 1);
@@ -925,6 +926,7 @@ export default function HomeScreen() {
   // ── State ──────────────────────────────────────────────────────────────────
   const [scene, setScene] = useState<SceneId>('session');
   const sceneRef = useRef<SceneId>('session');
+  const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── BLE / Store ────────────────────────────────────────────────────────────
   const tempF = useBleStore((s) => s.liveTempF) ?? 72;
@@ -944,10 +946,32 @@ export default function HomeScreen() {
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
 
-  useEffect(() => {
-    presetsDb.getAll().then(setPresets).catch(() => {});
+  const refreshSessions = useCallback(() => {
     sessionsDb.getAll().then(setSessions).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    presetsDb.getAll().then(setPresets).catch(() => {});
+    refreshSessions();
+  }, [refreshSessions]);
+
+  // Refresh history whenever a session ends. BleManager flips active=false
+  // BEFORE its async sessionsDb.end() write completes, so we refresh once
+  // immediately (catches any prior writes) and again after a short delay
+  // to read the just-persisted endedAt + peakTempF + samples.
+  useEffect(() => {
+    if (sessionActive) return;
+    refreshSessions();
+    const t = setTimeout(refreshSessions, 600);
+    return () => clearTimeout(t);
+  }, [sessionActive, refreshSessions]);
+
+  // Refresh history when the user navigates to the History panel or returns
+  // from the walkthrough — covers cases where the BLE-driven end happened
+  // while the user was on a different scene.
+  useEffect(() => {
+    if (scene === 'history' || scene === 'session') refreshSessions();
+  }, [scene, refreshSessions]);
 
   useEffect(() => {
     if (!sessionActive || !startedAt) { setElapsedSec(0); return; }
@@ -1066,6 +1090,11 @@ export default function HomeScreen() {
 
   // ── Preset apply ───────────────────────────────────────────────────────────
   const handleApplyPreset = useCallback(async (preset: Preset) => {
+    // Cancel any pending settings debounce so it doesn't fire AFTER the preset write.
+    if (writeDebounceRef.current) {
+      clearTimeout(writeDebounceRef.current);
+      writeDebounceRef.current = null;
+    }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await bleManager.writeSettings(preset.settings);
     runOnJS(setActivePresetId)(preset.id);
@@ -1302,6 +1331,7 @@ export default function HomeScreen() {
             updateSetting={updateSetting}
             dirty={dirty}
             markConfirmed={markConfirmed}
+            writeDebounceRef={writeDebounceRef}
           />
         )}
         {scene === 'walkthrough' && (

@@ -1,6 +1,21 @@
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
+import { MMKV } from 'react-native-mmkv';
 import { useSessionStore } from '../state/sessionStore';
+
+const phoneAlertStorage = new MMKV({ id: 'quartzos' });
+
+/**
+ * Resolve the user's phone-side alarm thresholds and toggles. Falls back to
+ * the device-side thresholds if the user hasn't customized phone alerts.
+ */
+function readPhoneAlertConfig(deviceDabF: number, deviceDunkF: number) {
+  const dabEnabled = phoneAlertStorage.getBoolean('dabAlertEnabled') ?? true;
+  const dunkEnabled = phoneAlertStorage.getBoolean('dunkAlertEnabled') ?? true;
+  const dabF = phoneAlertStorage.getNumber('phoneDabAlarmF') ?? deviceDabF;
+  const dunkF = phoneAlertStorage.getNumber('phoneDunkAlarmF') ?? deviceDunkF;
+  return { dabEnabled, dunkEnabled, dabF, dunkF };
+}
 
 export class AlarmService {
   private lastTempF = 0;
@@ -17,24 +32,40 @@ export class AlarmService {
   /**
    * Call this on every temperature update.
    * Manages dab-ready (rising edge) and dunk-ready (falling edge after dab) alerts.
+   *
+   * The dab/dunk thresholds passed in are the device-side defaults; the
+   * service overlays the user's phone-alert preferences from MMKV (set via
+   * the Phone Alerts modal) so the user can customize phone notifications
+   * independently from on-device alarm temps.
    */
-  onTemp(tempF: number, dabAlarmF: number, dunkAlarmF: number): void {
-    // Dab alarm: rising edge through dabAlarmF
-    if (!this.dabFired && tempF >= dabAlarmF && this.lastTempF < dabAlarmF) {
+  onTemp(tempF: number, deviceDabF: number, deviceDunkF: number): void {
+    const { dabEnabled, dunkEnabled, dabF, dunkF } = readPhoneAlertConfig(
+      deviceDabF,
+      deviceDunkF,
+    );
+
+    // Dab alarm: rising edge through dabF
+    if (dabEnabled && !this.dabFired && tempF >= dabF && this.lastTempF < dabF) {
       this.dabReached = true;
       this.fireDabAlert();
     }
     // Re-arm dab after cooldown (temp dropped 5°F below alarm)
-    if (this.dabFired && tempF < dabAlarmF - this.HYSTERESIS_F) {
+    if (this.dabFired && tempF < dabF - this.HYSTERESIS_F) {
       this.dabFired = false;
     }
 
-    // Dunk alarm: falling edge through dunkAlarmF, only after dab was reached this session
-    if (this.dabReached && !this.dunkFired && tempF <= dunkAlarmF && this.lastTempF > dunkAlarmF) {
+    // Dunk alarm: falling edge through dunkF, only after dab was reached this session
+    if (
+      dunkEnabled &&
+      this.dabReached &&
+      !this.dunkFired &&
+      tempF <= dunkF &&
+      this.lastTempF > dunkF
+    ) {
       this.fireDunkAlert();
     }
     // Re-arm dunk
-    if (this.dunkFired && tempF > dunkAlarmF + this.HYSTERESIS_F) {
+    if (this.dunkFired && tempF > dunkF + this.HYSTERESIS_F) {
       this.dunkFired = false;
     }
 

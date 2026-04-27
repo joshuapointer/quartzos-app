@@ -32,8 +32,10 @@ export default function PairScreen() {
   const [empty, setEmpty] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [dialState, setDialState] = useState<DialSilhouetteState>('connecting');
+  const [connectError, setConnectError] = useState<string | null>(null);
   const scannerRef = useRef<RNBleManager | null>(null);
   const emptyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startScan = useCallback(() => {
     setDevices([]);
@@ -91,6 +93,7 @@ export default function PairScreen() {
     startScan();
     return () => {
       if (emptyTimerRef.current) clearTimeout(emptyTimerRef.current);
+      if (handoffTimerRef.current) clearTimeout(handoffTimerRef.current);
       scannerRef.current?.stopDeviceScan();
       scannerRef.current?.destroy();
       scannerRef.current = null;
@@ -100,6 +103,7 @@ export default function PairScreen() {
   const handleConnect = useCallback(
     async (deviceId: string) => {
       setConnecting(deviceId);
+      setConnectError(null);
       // Stop scanning — do NOT call destroy() here; it resets the shared native
       // BLE singleton and leaves the global bleManager unable to connect.
       scannerRef.current?.stopDeviceScan();
@@ -112,10 +116,16 @@ export default function PairScreen() {
           storage.set('lastDeviceId', deviceId);
           // Flash connected state on dial for 600ms — ceremonial handoff moment
           setDialState('connected');
-          setTimeout(() => {
+          if (handoffTimerRef.current) clearTimeout(handoffTimerRef.current);
+          handoffTimerRef.current = setTimeout(() => {
+            handoffTimerRef.current = null;
             router.replace('/(connected)/home');
           }, 600);
+        } else {
+          setConnectError("Couldn't reach device. Try again.");
         }
+      } catch {
+        setConnectError("Couldn't reach device. Try again.");
       } finally {
         setConnecting(null);
       }
@@ -150,6 +160,9 @@ export default function PairScreen() {
               <Text style={styles.emptyHint}>
                 No devices found. Make sure your Dab Rite is on and nearby.
               </Text>
+            ) : null}
+            {connectError ? (
+              <Text style={styles.errorHint}>{connectError}</Text>
             ) : null}
           </ScrollView>
 
@@ -310,6 +323,12 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     textAlign: 'center',
     paddingVertical: spacing.lg,
+  },
+  errorHint: {
+    ...fonts.caption,
+    color: colors.error,
+    textAlign: 'center',
+    paddingVertical: spacing.sm,
   },
   retry: {
     marginTop: spacing.md,

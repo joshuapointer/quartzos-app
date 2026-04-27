@@ -51,6 +51,7 @@ class CommandQueue {
   private queue: QueuedCommand[] = [];
   private inflight: QueuedCommand | null = null;
   private ackTimer: ReturnType<typeof setTimeout> | null = null;
+  private ackReceived = false;
 
   constructor(
     private readonly send: (frame: Uint8Array) => Promise<void>,
@@ -63,9 +64,12 @@ class CommandQueue {
     });
   }
 
-  /** Called by BleManager on WRITE_ACK arrival. */
+  /** Called by BleManager on WRITE_ACK arrival. Guards against duplicate ACKs
+   *  when both FF01 and FF02 deliver the same WRITE_ACK notification. */
   resolveAck(): void {
     if (!this.inflight) return;
+    if (this.ackReceived) return;  // duplicate ACK from FF02 echo — ignore
+    this.ackReceived = true;
     this.clearAckTimer();
     const done = this.inflight;
     this.inflight = null;
@@ -96,6 +100,7 @@ class CommandQueue {
     const next = this.queue.shift();
     if (!next) return;
     this.inflight = next;
+    this.ackReceived = false;  // reset for each new in-flight command
 
     try {
       await this.send(next.frame);
@@ -229,6 +234,13 @@ export class BleManager {
       } catch (e) {
         // Non-fatal — log and continue
         console.warn('[BLE] requestConnectionPriority failed:', e);
+      }
+
+      try {
+        const negotiated = await device.requestMTU(185);
+        console.log('[BLE] MTU negotiated to', negotiated.mtu);
+      } catch (e) {
+        console.warn('[BLE] MTU negotiation not supported; using default 23', e);
       }
 
       this.setState('READY');

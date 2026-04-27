@@ -646,9 +646,7 @@ interface SessionWalkthroughProps {
 export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps) {
   const liveTempF = useBleStore((s) => s.liveTempF) ?? 72;
   const settings = useSettingsStore((s) => s.settings);
-  const sessionActive = useSessionStore((s) => s.active);
   const peakF = useSessionStore((s) => s.peakF);
-  const endSession = useSessionStore((s) => s.endSession);
   const dunkAlertFired = useSessionStore((s) => s.dunkAlertFired);
 
   const walkthroughStartedAt = useRef<number>(Date.now());
@@ -698,9 +696,13 @@ export function SessionWalkthrough({ visible, onClose }: SessionWalkthroughProps
   }, [onClose]);
 
   const handleFinish = useCallback(() => {
-    if (sessionActive) endSession();
+    // Note: do NOT call endSession() here. BleManager owns session lifecycle
+    // (auto-ends when temp = 0 for 30 s) and is the only path that persists
+    // peak temp + samples to the DB via sessionsDb.end(). Calling
+    // endSession() in the UI would clear peakF/samples before the BLE
+    // teardown writes them, leaving the persisted row blank.
     onClose();
-  }, [sessionActive, endSession, onClose]);
+  }, [onClose]);
 
   // Auto-advance: cool step — detect falling edge through dabAlarmF (temp must first rise above alarm + 25)
   useEffect(() => {

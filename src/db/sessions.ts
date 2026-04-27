@@ -1,5 +1,25 @@
 import { getDb } from './connection';
 
+// Portable UUID v4 — Hermes/React Native's `crypto.randomUUID` is not
+// reliably available across runtimes, so we generate locally. Sufficient
+// for SQLite primary keys (collision risk for ~10^15 ids is negligible).
+function uuidv4(): string {
+  const hex = '0123456789abcdef';
+  let out = '';
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) {
+      out += '-';
+    } else if (i === 14) {
+      out += '4';
+    } else if (i === 19) {
+      out += hex[(Math.random() * 4) | 0 | 8];
+    } else {
+      out += hex[(Math.random() * 16) | 0];
+    }
+  }
+  return out;
+}
+
 export interface TempSample { t: number; f: number; }
 export interface AlertRecord { kind: 'dab' | 'dunk'; at: number; }
 
@@ -66,7 +86,7 @@ export async function create(
   partial: Omit<SessionRecord, 'id' | 'endedAt'>
 ): Promise<SessionRecord> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = uuidv4();
   await db.runAsync(
     `INSERT INTO sessions
        (id, started_at, ended_at, peak_temp_f, dab_alarm_f, dunk_alarm_f,

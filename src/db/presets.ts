@@ -2,6 +2,28 @@ import { getDb } from './connection';
 import { DEFAULT_SETTINGS } from '../ble/types';
 import type { DeviceSettings } from '../ble/types';
 
+// Portable UUID v4 — Hermes/React Native's `crypto.randomUUID` is not
+// reliably available across runtimes, so we generate locally. Sufficient
+// for SQLite primary keys (collision risk for ~10^15 ids is negligible).
+function uuidv4(): string {
+  // Pattern: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // y is one of 8/9/a/b
+  const hex = '0123456789abcdef';
+  let out = '';
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) {
+      out += '-';
+    } else if (i === 14) {
+      out += '4';
+    } else if (i === 19) {
+      out += hex[(Math.random() * 4) | 0 | 8];
+    } else {
+      out += hex[(Math.random() * 16) | 0];
+    }
+  }
+  return out;
+}
+
 export interface Preset {
   id: string;
   name: string;
@@ -56,7 +78,7 @@ export async function create(
   settings: DeviceSettings
 ): Promise<Preset> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = uuidv4();
   const now = Date.now();
   await db.runAsync(
     'INSERT INTO presets (id, name, settings_json, created_at, updated_at, is_builtin) VALUES (?, ?, ?, ?, ?, 0)',

@@ -1,3 +1,6 @@
+# EAS Updates only. This repo does NOT trigger EAS Build from CI.
+# Native binaries are built manually via `eas build` when a release is cut.
+# If you ever add a build step here, make it explicit and gated on a tag.
 name: EAS Update
 
 on:

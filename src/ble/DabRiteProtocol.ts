@@ -7,9 +7,12 @@ import {
   CONFIG_BIT_OPAQUE_MODE,
   CONFIG_BIT_SOUND_ALERT,
   CONFIG_BIT_USE_CELSIUS,
+  DAB_SOUND_LABELS,
+  DUNK_SOUND_LABELS,
   FRAME_SETTINGS_LEN,
   FRAME_TEMP_LEN,
   FRAME_WRITE_COLORS_LEN,
+  KEY_TONE_LABELS,
   OPCODE_QUERY,
   OPCODE_WRITE,
   PREAMBLE_APP_HI,
@@ -41,6 +44,10 @@ export function rgb565to888(v: number): { r: number; g: number; b: number } {
 }
 
 // --- internal helpers --------------------------------------------------------
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 function writeBE16(buf: Uint8Array, offset: number, value: number): void {
   buf[offset]     = (value >> 8) & 0xFF;
@@ -107,16 +114,19 @@ export function encodeWriteAll(s: DeviceSettings): Uint8Array {
   buf[0] = PREAMBLE_APP_HI;
   buf[1] = PREAMBLE_APP_LO;
   buf[2] = OPCODE_WRITE;
-  writeBE16(buf, 3,  s.colors[0]);
-  writeBE16(buf, 5,  s.colors[1]);
-  writeBE16(buf, 7,  s.colors[2]);
-  writeBE16(buf, 9,  s.colors[3]);
-  writeBE16(buf, 11, s.dabAlarmF);
-  writeBE16(buf, 13, s.dunkAlarmF);
+  writeBE16(buf, 3,  clamp(s.colors[0], 0, 0xFFFF));
+  writeBE16(buf, 5,  clamp(s.colors[1], 0, 0xFFFF));
+  writeBE16(buf, 7,  clamp(s.colors[2], 0, 0xFFFF));
+  writeBE16(buf, 9,  clamp(s.colors[3], 0, 0xFFFF));
+  writeBE16(buf, 11, clamp(s.dabAlarmF,  100, 900));
+  writeBE16(buf, 13, clamp(s.dunkAlarmF, 100, 900));
   buf[15] = packConfigByte(s);
-  buf[16] = packSoundByte(s.keyTone, s.volume);
-  buf[17] = s.dabSound  & 0xFF;
-  buf[18] = s.dunkSound & 0xFF;
+  buf[16] = packSoundByte(
+    clamp(s.keyTone,  0, KEY_TONE_LABELS.length - 1),
+    clamp(s.volume,   1, 3),
+  );
+  buf[17] = clamp(s.dabSound,  0, DAB_SOUND_LABELS.length  - 1) & 0xFF;
+  buf[18] = clamp(s.dunkSound, 0, DUNK_SOUND_LABELS.length - 1) & 0xFF;
   buf[20] = 0x0D;
   buf[21] = 0x0A;
   // checksum = sum(bytes[0..18, 20..21]) & 0xFF
@@ -136,10 +146,10 @@ export function encodeWriteColors(
   buf[0] = PREAMBLE_APP_HI;
   buf[1] = PREAMBLE_APP_LO;
   buf[2] = OPCODE_WRITE;
-  writeBE16(buf, 3, colors[0]);
-  writeBE16(buf, 5, colors[1]);
-  writeBE16(buf, 7, colors[2]);
-  writeBE16(buf, 9, colors[3]);
+  writeBE16(buf, 3, clamp(colors[0], 0, 0xFFFF));
+  writeBE16(buf, 5, clamp(colors[1], 0, 0xFFFF));
+  writeBE16(buf, 7, clamp(colors[2], 0, 0xFFFF));
+  writeBE16(buf, 9, clamp(colors[3], 0, 0xFFFF));
   buf[12] = 0x0D;
   buf[13] = 0x0A;
   // checksum = sum(bytes[0..10, 12..13]) & 0xFF
