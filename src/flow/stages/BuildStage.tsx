@@ -26,6 +26,7 @@ import Animated, {
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -39,7 +40,7 @@ import WallChooser from './WallChooser';
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
 
-const STEP_LABELS = ['BANGER', 'HASH', 'WALL', 'REVIEW'] as const;
+const STEP_LABELS = ['BANGER', 'CONCENTRATE', 'WALL', 'REVIEW'] as const;
 const STEP_TITLES = [
   'Pick your vessel.',
   'What are you dabbing?',
@@ -131,6 +132,12 @@ export default function BuildStage() {
     return true;
   })();
 
+  const continueScale = useSharedValue(1);
+  const continueAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: continueScale.value }],
+    flex: 1,
+  }));
+
   function handleBack() {
     void Haptics.selectionAsync();
     builderBack();
@@ -139,6 +146,13 @@ export default function BuildStage() {
     if (!ready) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     builderNext();
+  }
+  function handleContinuePressIn() {
+    if (!ready) return;
+    continueScale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
+  }
+  function handleContinuePressOut() {
+    continueScale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
 
   const continueLabel = step < 3 ? 'Continue →' : 'Start sesh →';
@@ -173,34 +187,38 @@ export default function BuildStage() {
         >
           <Text style={styles.backText}>← Back</Text>
         </Pressable>
-        <Pressable
-          onPress={handleNext}
-          disabled={!ready}
-          style={styles.continuePressable}
-          accessibilityRole="button"
-          accessibilityLabel={continueLabel}
-          accessibilityState={{ disabled: !ready }}
-        >
-          {ready ? (
-            <LinearGradient
-              colors={[THEME.ember.base, THEME.ember.deep]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={[StyleSheet.absoluteFill, styles.continueBg]}
-            />
-          ) : (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                styles.continueBg,
-                styles.continueBgDisabled,
-              ]}
-            />
-          )}
-          <Text style={[styles.continueText, !ready && styles.continueTextDisabled]}>
-            {continueLabel}
-          </Text>
-        </Pressable>
+        <Animated.View style={continueAnimStyle}>
+          <Pressable
+            onPress={handleNext}
+            onPressIn={handleContinuePressIn}
+            onPressOut={handleContinuePressOut}
+            disabled={!ready}
+            style={[styles.continuePressable, { flex: undefined, width: '100%' }]}
+            accessibilityRole="button"
+            accessibilityLabel={continueLabel}
+            accessibilityState={{ disabled: !ready }}
+          >
+            {ready ? (
+              <LinearGradient
+                colors={[THEME.ember.base, THEME.ember.deep]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={[StyleSheet.absoluteFill, styles.continueBg]}
+              />
+            ) : (
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.continueBg,
+                  styles.continueBgDisabled,
+                ]}
+              />
+            )}
+            <Text style={[styles.continueText, !ready && styles.continueTextDisabled]}>
+              {continueLabel}
+            </Text>
+          </Pressable>
+        </Animated.View>
       </View>
     </View>
   );

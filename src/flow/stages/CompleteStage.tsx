@@ -8,6 +8,7 @@
  */
 
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -15,6 +16,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -78,10 +80,10 @@ function ActionButton({
   }));
 
   function handlePressIn() {
-    scale.value = withTiming(0.96, { duration: 80 });
+    scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
-    scale.value = withTiming(1, { duration: 120 });
+    scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
   async function handlePress() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -89,17 +91,25 @@ function ActionButton({
   }
 
   return (
-    <Animated.View style={animStyle}>
-      <Pressable
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={handlePress}
-        style={styles.actionBtn}
-        accessibilityRole="button"
-        accessibilityLabel="Start a new sesh"
+    <Animated.View style={[styles.actionShadow, animStyle]}>
+      <LinearGradient
+        colors={[THEME.ember.base, THEME.ember.deep]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.actionGradient}
       >
-        <Text style={styles.actionBtnText}>{label}</Text>
-      </Pressable>
+        <View style={styles.actionHighlight} />
+        <Pressable
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handlePress}
+          style={styles.actionPressable}
+          accessibilityRole="button"
+          accessibilityLabel="Start a new sesh"
+        >
+          <Text style={styles.actionBtnText}>{label}</Text>
+        </Pressable>
+      </LinearGradient>
     </Animated.View>
   );
 }
@@ -228,24 +238,39 @@ const styles = StyleSheet.create({
     marginTop: 24,
     width: '100%',
   },
-  actionBtn: {
+  actionShadow: {
+    borderRadius: RADIUS.pill,
+    shadowColor: THEME.ember.base,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 22,
+    elevation: 8,
+  },
+  actionGradient: {
+    borderRadius: RADIUS.pill,
+    overflow: 'hidden',
+  },
+  actionHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 240, 220, 0.45)',
+    borderTopLeftRadius: RADIUS.pill,
+    borderTopRightRadius: RADIUS.pill,
+    zIndex: 1,
+  },
+  actionPressable: {
     width: '100%',
     paddingVertical: 14,
     paddingHorizontal: 26,
-    borderRadius: RADIUS.pill,
-    backgroundColor: THEME.ember.base,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: THEME.ember.base,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 22,
-    elevation: 8,
   },
   actionBtnText: {
     fontFamily: FONTS.sans + '_600SemiBold',
     fontSize: 13,
-    fontWeight: '600',
     letterSpacing: 0.26,
     color: '#fff5e8',
   },

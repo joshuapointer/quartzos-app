@@ -148,7 +148,7 @@ function SetupGrid({
 }: SetupGridProps) {
   const rows: Array<{ k: string; v: string }> = [
     { k: 'BANGER', v: banger.name },
-    { k: 'HASH', v: concentrate.name },
+    { k: 'CONCENTRATE', v: concentrate.name },
     { k: 'SENSOR', v: sensorName },
     { k: 'WALL', v: wall.name },
     { k: 'IR AIM', v: banger.ir_aim },

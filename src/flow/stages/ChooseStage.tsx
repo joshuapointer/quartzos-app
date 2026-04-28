@@ -328,15 +328,19 @@ export default function ChooseStage() {
           contentContainerStyle={st.listContent}
         >
           <NewSeshCard onPress={startBuilder} />
-          <Divider />
-          {SAVED_PRESETS.map((preset, i) => (
-            <StaggeredPresetRow
-              key={preset.id}
-              preset={preset}
-              idx={i + 2}
-              onApply={() => applyPreset(preset.id)}
-            />
-          ))}
+          {SAVED_PRESETS.length > 0 && (
+            <>
+              <Divider />
+              {SAVED_PRESETS.map((preset, i) => (
+                <StaggeredPresetRow
+                  key={preset.id}
+                  preset={preset}
+                  idx={i + 2}
+                  onApply={() => applyPreset(preset.id)}
+                />
+              ))}
+            </>
+          )}
         </ScrollView>
       </Animated.View>
 

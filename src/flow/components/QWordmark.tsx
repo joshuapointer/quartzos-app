@@ -7,6 +7,7 @@
  * Tokens: src/flow/theme.ts
  */
 
+import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -119,7 +120,15 @@ export default function QWordmark({ connected, onDisconnect }: QWordmarkProps) {
 
       {/* Right: disconnect button OR status pill */}
       {onDisconnect ? (
-        <Pressable onPress={onDisconnect} style={styles.disconnectBtn} accessibilityRole="button" accessibilityLabel="Disconnect">
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onDisconnect();
+          }}
+          style={styles.disconnectBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Disconnect"
+        >
           <AnimatedDot connected={connected} size={5} />
           <Text style={styles.disconnectText}>Disconnect</Text>
         </Pressable>
