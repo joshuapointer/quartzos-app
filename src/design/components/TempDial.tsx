@@ -31,9 +31,9 @@ type DialState = 'idle' | 'heating' | 'target' | 'cooling' | 'dunk';
 const PALETTE: Record<DialState, { ring: string; text: string; lensTop: string; lensBottom: string }> = {
   idle:    { ring: colors.quartzDim,    text: colors.bone90,  lensTop: colors.lensIdle,    lensBottom: colors.surface1 },
   heating: { ring: colors.emberMid,     text: colors.bone100, lensTop: colors.lensHeating, lensBottom: colors.surface1 },
-  target:  { ring: colors.emberBright,  text: '#f4ede4',      lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
+  target:  { ring: colors.emberBright,  text: '#f6ded2',      lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
   cooling: { ring: colors.emberCool,    text: colors.bone90,  lensTop: colors.lensCooling, lensBottom: colors.surface1 },
-  dunk:    { ring: colors.quartzBright, text: '#e6effa',      lensTop: colors.lensDunk,    lensBottom: colors.surface1 },
+  dunk:    { ring: colors.quartzBright, text: '#cde5ff',      lensTop: colors.lensDunk,    lensBottom: colors.surface1 },
 };
 
 const STATE_LABELS: Record<DialState, string> = {

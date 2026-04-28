@@ -136,7 +136,7 @@ function ConnectButton({
   return (
     <Animated.View style={[btnStyles.shadowWrapper, animStyle]}>
       <LinearGradient
-        colors={['#e3801f', '#a85e1a']}
+        colors={['#ff7a00', '#5c2800']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={btnStyles.gradient}
@@ -161,7 +161,7 @@ function ConnectButton({
 const btnStyles = StyleSheet.create({
   shadowWrapper: {
     borderRadius: 100,
-    shadowColor: '#e3801f',
+    shadowColor: '#ff7a00',
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 28,
     shadowOpacity: 0.55,
@@ -191,7 +191,7 @@ const btnStyles = StyleSheet.create({
     fontFamily: 'Geist_500Medium',
     fontSize: 13,
     letterSpacing: 0.52,
-    color: '#fff5e8',
+    color: '#f6ded2',
   },
   ghost: {
     paddingVertical: 14,
@@ -300,8 +300,8 @@ const st = StyleSheet.create({
     textAlign: 'center',
   },
   accentAmber: {
-    color: '#ffae5a',
-    textShadowColor: 'rgba(255, 174, 90, 0.6)',
+    color: '#ffb68b',
+    textShadowColor: 'rgba(255, 182, 139, 0.6)',
     textShadowRadius: 24,
     textShadowOffset: { width: 0, height: 0 },
   },

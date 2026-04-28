@@ -48,7 +48,7 @@ function SphereGlyph() {
             <Stop offset="0%" stopColor={THEME.ember.bright} stopOpacity="1" />
             <Stop offset="36%" stopColor={THEME.ember.bright} stopOpacity="1" />
             <Stop offset="50%" stopColor={THEME.ember.deep} stopOpacity="1" />
-            <Stop offset="100%" stopColor="#02060e" stopOpacity="1" />
+            <Stop offset="100%" stopColor="#160c06" stopOpacity="1" />
           </RadialGradient>
           {/* Bone shimmer highlight */}
           <RadialGradient id="sphereShimmer" cx="32%" cy="26%" r="36%" fx="32%" fy="26%">
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     // iOS glow
-    shadowColor: '#e3801f',
+    shadowColor: '#ff7a00',
     shadowRadius: 14,
     shadowOpacity: 0.55,
     shadowOffset: { width: 0, height: 0 },

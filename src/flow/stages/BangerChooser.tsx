@@ -149,7 +149,7 @@ function CheckBadge() {
       <Circle cx={10} cy={10} r={9.5} fill={THEME.ember.base} />
       <Path
         d="M5.5 10l3.5 3.5L14.5 7"
-        stroke="#1a1208"
+        stroke="#160c06"
         strokeWidth={1.8}
         fill="none"
         strokeLinecap="round"
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     height: CARD_H,
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#080c18',
+    backgroundColor: '#160c06',
   },
   cardShadow: {
     shadowColor: THEME.ember.base,

@@ -33,8 +33,8 @@ function QBackground({ children }: Props) {
         pointerEvents="none"
       >
         <Defs>
-          {/* Base fill — near-black deep navy */}
-          {/* Layer 1: top-edge navy bloom at 50% -10% */}
+          {/* Base fill — near-black warm obsidian */}
+          {/* Layer 1: top-edge warm obsidian bloom at 50% -10% */}
           <RadialGradient
             id="rg-navy-top"
             cx="50%"
@@ -44,11 +44,11 @@ function QBackground({ children }: Props) {
             gradientUnits="userSpaceOnUse"
             gradientTransform="translate(0 0) scale(1 1)"
           >
-            <Stop offset="0" stopColor="#0c1a30" stopOpacity="0.35" />
-            <Stop offset="1" stopColor="#0c1a30" stopOpacity="0" />
+            <Stop offset="0" stopColor="#291d16" stopOpacity="0.35" />
+            <Stop offset="1" stopColor="#291d16" stopOpacity="0" />
           </RadialGradient>
 
-          {/* Layer 2: bottom-edge navy at 50% 110% */}
+          {/* Layer 2: bottom-edge warm obsidian at 50% 110% */}
           <RadialGradient
             id="rg-navy-bottom"
             cx="50%"
@@ -57,8 +57,8 @@ function QBackground({ children }: Props) {
             ry="62%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0" stopColor="#081224" stopOpacity="0.40" />
-            <Stop offset="1" stopColor="#081224" stopOpacity="0" />
+            <Stop offset="0" stopColor="#1c110a" stopOpacity="0.40" />
+            <Stop offset="1" stopColor="#1c110a" stopOpacity="0" />
           </RadialGradient>
 
           {/* Layer 3: ember deep-right at 82% 72% */}
@@ -70,9 +70,9 @@ function QBackground({ children }: Props) {
             ry="52%"
             gradientUnits="userSpaceOnUse"
           >
-            {/* oklch(0.30 0.14 38 / 0.18) ≈ #5c2a08 at 18% */}
-            <Stop offset="0" stopColor="#5c2a08" stopOpacity="0.18" />
-            <Stop offset="1" stopColor="#5c2a08" stopOpacity="0" />
+            {/* on-primary-container ember deep at 18% */}
+            <Stop offset="0" stopColor="#5c2800" stopOpacity="0.18" />
+            <Stop offset="1" stopColor="#5c2800" stopOpacity="0" />
           </RadialGradient>
 
           {/* Layer 4: ember bright-left at 22% 28% */}
@@ -84,14 +84,14 @@ function QBackground({ children }: Props) {
             ry="55%"
             gradientUnits="userSpaceOnUse"
           >
-            {/* oklch(0.36 0.12 50 / 0.22) ≈ #7a3c10 at 22% */}
-            <Stop offset="0" stopColor="#7a3c10" stopOpacity="0.22" />
-            <Stop offset="1" stopColor="#7a3c10" stopOpacity="0" />
+            {/* primary-container ember base at 22% */}
+            <Stop offset="0" stopColor="#ff7a00" stopOpacity="0.22" />
+            <Stop offset="1" stopColor="#ff7a00" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
         {/* Base fill */}
-        <Rect x="0" y="0" width="100" height="100" fill="#02050c" />
+        <Rect x="0" y="0" width="100" height="100" fill="#160c06" />
         {/* Navy top bloom */}
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-top)" />
         {/* Navy bottom edge */}

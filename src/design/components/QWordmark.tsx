@@ -60,12 +60,12 @@ export function QWordmark({ connected = true, state = 'idle' }: Props) {
   const dotColor = !connected
     ? 'transparent'
     : state === 'dunk'
-    ? '#9ABDD8'  // quartzBright
+    ? '#95ccff'  // quartzBright
     : state === 'heating' || state === 'target'
-    ? '#E89240'  // emberBright
-    : '#6d6050'; // bone35 — static idle
+    ? '#ffb68b'  // emberBright
+    : '#a78b7c'; // outline — static idle
 
-  const glowColor = state === 'dunk' ? '#9ABDD8' : '#E89240';
+  const glowColor = state === 'dunk' ? '#95ccff' : '#ffb68b';
 
   return (
     <View style={styles.container}>
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontStyle: 'italic',
     fontSize: 22,
-    color: '#e8dfd2',
+    color: '#f6ded2',
     letterSpacing: -0.2,
   },
   statusRow: {
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_500Medium',
     fontSize: 9.5,
     letterSpacing: 2.2,
-    color: '#9e907e',
+    color: '#a78b7c',
   },
 });

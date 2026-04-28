@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     top: (THUMB + 8 - TRACK_H) / 2,
     borderRadius: radius.full,
     overflow: 'hidden',
-    backgroundColor: '#05030A',
+    backgroundColor: '#160c06',
     borderWidth: 1,
     borderColor: 'rgba(244,237,228,0.05)',
   },

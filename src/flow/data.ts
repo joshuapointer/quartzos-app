@@ -1106,8 +1106,8 @@ export function computeOrbProps(
 
   // Default fallback
   const defaults: OrbProps = {
-    color: '#888888',
-    glowColor: 'rgba(136,136,136,0.3)',
+    color: '#a78b7c',
+    glowColor: 'rgba(167,139,124,0.3)',
     pulseScale: 1.0,
     label: '—',
     sublabel: '',
@@ -1117,8 +1117,8 @@ export function computeOrbProps(
   if (stage === 'idle') {
     return {
       ...defaults,
-      color: '#4A4A5A',
-      glowColor: 'rgba(74,74,90,0.2)',
+      color: '#7a5c4b',
+      glowColor: 'rgba(122,92,75,0.2)',
       pulseScale: 0.9,
       label: 'Ready',
       sublabel: 'Select your setup',
@@ -1128,8 +1128,8 @@ export function computeOrbProps(
   if (stage === 'heat') {
     const tempLabel = currentTemp != null ? `${Math.round(currentTemp)}°` : '—';
     return {
-      color: '#FF6B35',
-      glowColor: 'rgba(255,107,53,0.5)',
+      color: '#ff7a00',
+      glowColor: 'rgba(255,122,0,0.5)',
       pulseScale: phase === 'active' ? 1.15 : 1.0,
       label: 'Heating',
       sublabel: tempLabel,
@@ -1142,8 +1142,8 @@ export function computeOrbProps(
     const tempLabel = currentTemp != null ? `${Math.round(currentTemp)}°` : '—';
     const atTemp = target != null && currentTemp != null && currentTemp <= target + 15;
     return {
-      color: atTemp ? '#5BC8AF' : '#F5A623',
-      glowColor: atTemp ? 'rgba(91,200,175,0.45)' : 'rgba(245,166,35,0.4)',
+      color: atTemp ? '#7EC8A0' : '#ffb68b',
+      glowColor: atTemp ? 'rgba(126,200,160,0.45)' : 'rgba(255,182,139,0.4)',
       pulseScale: atTemp ? 1.1 : 1.0,
       label: atTemp ? 'At Temp' : 'Cooling',
       sublabel: tempLabel,
@@ -1153,8 +1153,8 @@ export function computeOrbProps(
 
   if (stage === 'ready') {
     return {
-      color: '#5BC8AF',
-      glowColor: 'rgba(91,200,175,0.6)',
+      color: '#7EC8A0',
+      glowColor: 'rgba(126,200,160,0.6)',
       pulseScale: 1.12,
       label: 'Dab!',
       sublabel: calib ? `${calib.low}–${calib.high}°` : '',
@@ -1165,8 +1165,8 @@ export function computeOrbProps(
   if (stage === 'dab') {
     const tempLabel = currentTemp != null ? `${Math.round(currentTemp)}°` : '—';
     return {
-      color: '#7B68EE',
-      glowColor: 'rgba(123,104,238,0.5)',
+      color: '#95ccff',
+      glowColor: 'rgba(149,204,255,0.5)',
       pulseScale: phase === 'active' ? 1.08 : 1.0,
       label: 'Dabbing',
       sublabel: tempLabel,
@@ -1176,8 +1176,8 @@ export function computeOrbProps(
 
   if (stage === 'done') {
     return {
-      color: '#4A4A5A',
-      glowColor: 'rgba(74,74,90,0.2)',
+      color: '#7a5c4b',
+      glowColor: 'rgba(122,92,75,0.2)',
       pulseScale: 0.95,
       label: 'Done',
       sublabel: 'Nice one',

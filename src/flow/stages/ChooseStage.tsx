@@ -64,7 +64,7 @@ function NewSeshGlyph() {
           <RadialGradient id="newSeshMain" cx="35%" cy="30%" r="70%" fx="35%" fy="30%">
             <Stop offset="0%" stopColor={THEME.ember.bright} stopOpacity="1" />
             <Stop offset="45%" stopColor={THEME.ember.deep} stopOpacity="1" />
-            <Stop offset="100%" stopColor="#0a0402" stopOpacity="1" />
+            <Stop offset="100%" stopColor="#160c06" stopOpacity="1" />
           </RadialGradient>
           <RadialGradient id="newSeshShimmer" cx="32%" cy="26%" r="36%" fx="32%" fy="26%">
             <Stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
@@ -84,7 +84,7 @@ function NewSeshGlyph() {
         />
         <Path
           d="M22 15v14M15 22h14"
-          stroke="#fff5e8"
+          stroke="#f6ded2"
           strokeWidth={1.5}
           strokeLinecap="round"
         />
@@ -382,8 +382,8 @@ const st = StyleSheet.create({
     letterSpacing: -0.98,
   },
   accentAmber: {
-    color: '#ffae5a',
-    textShadowColor: 'rgba(255, 174, 90, 0.6)',
+    color: '#ffb68b',
+    textShadowColor: 'rgba(255, 182, 139, 0.6)',
     textShadowRadius: 24,
     textShadowOffset: { width: 0, height: 0 },
   },

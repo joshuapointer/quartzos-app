@@ -59,17 +59,17 @@ function PresetGlyph({ kind, size = 44 }: { kind: GlyphKind; size?: number }) {
     quartz: {
       cx: '35%', cy: '30%',
       stops: [
-        { offset: '0%',   color: '#ffcf82', opacity: 1 },
-        { offset: '45%',  color: '#c8821a', opacity: 1 },
-        { offset: '100%', color: '#1a0e02', opacity: 1 },
+        { offset: '0%',   color: '#ffb68b', opacity: 1 },
+        { offset: '45%',  color: '#ff7a00', opacity: 1 },
+        { offset: '100%', color: '#5c2800', opacity: 1 },
       ],
     },
     opaque: {
       cx: '35%', cy: '30%',
       stops: [
-        { offset: '0%',   color: '#d4d8e0', opacity: 1 },
-        { offset: '45%',  color: '#8a93a3', opacity: 1 },
-        { offset: '100%', color: '#1a1d24', opacity: 1 },
+        { offset: '0%',   color: '#95ccff', opacity: 1 },
+        { offset: '45%',  color: '#00a8ff', opacity: 1 },
+        { offset: '100%', color: '#003a5c', opacity: 1 },
       ],
     },
     low: {
@@ -85,13 +85,13 @@ function PresetGlyph({ kind, size = 44 }: { kind: GlyphKind; size?: number }) {
       stops: [
         { offset: '0%',   color: THEME.ember.bright, opacity: 1 },
         { offset: '45%',  color: THEME.ember.deep,   opacity: 1 },
-        { offset: '100%', color: '#0a0402',           opacity: 1 },
+        { offset: '100%', color: '#160c06',           opacity: 1 },
       ],
     },
   };
 
   const g = gradients[kind];
-  const glowColor = kind === 'custom' ? THEME.ember.base : kind === 'quartz' ? '#c8821a' : kind === 'low' ? THEME.quartz.base : THEME.bone[50];
+  const glowColor = kind === 'custom' ? THEME.ember.base : kind === 'quartz' ? '#ff7a00' : kind === 'low' ? THEME.quartz.base : THEME.bone[50];
 
   return (
     <View

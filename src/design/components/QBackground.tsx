@@ -34,7 +34,7 @@ export function QBackground() {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#050403' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#160c06' }]} />
       <Animated.View style={[StyleSheet.absoluteFill, warmStyle]}>
         <LinearGradient
           colors={['rgba(42,22,6,0.6)', 'transparent']}

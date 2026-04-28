@@ -15,20 +15,21 @@ export interface ThemeColors {
   outline: string;
 }
 
+// design.md — warm obsidian (apr 2026)
 export const themes: Record<ThemeName, ThemeColors> = {
   obsidian: {
-    bgDeep:           '#050403',
-    surface1:         '#0c0908',
-    surface3:         '#1c1714',
-    surface6:         '#3d342e',
-    surfaceBright:    '#3d342e',
-    glassFill:        'rgba(5,4,3,0.6)',
-    glassBorder:      'rgba(244,237,228,0.08)',
-    primary:          '#E89240',
-    primaryContainer: '#9ABDD8',
-    onSurface:        '#f4ede4',
-    onSurfaceVariant: '#c7b8a4',
-    outline:          '#6d6050',
+    bgDeep:           '#1c110a',
+    surface1:         '#160c06',
+    surface3:         '#291d16',
+    surface6:         '#45362e',  // matches tokens.surface6 / surfaceBright
+    surfaceBright:    '#45362e',
+    glassFill:        'rgba(28,17,10,0.6)',
+    glassBorder:      'rgba(246,222,210,0.08)',
+    primary:          '#ffb68b',
+    primaryContainer: '#ff7a00',
+    onSurface:        '#f6ded2',
+    onSurfaceVariant: '#e0c0af',
+    outline:          '#a78b7c',
   },
 };
 

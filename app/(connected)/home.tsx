@@ -86,13 +86,13 @@ const SPRING_PANEL = { damping: 24, stiffness: 180, mass: 1 } as const;
 function peakTempColor(peakF: number): string {
   if (peakF >= 540) return colors.emberBright;
   if (peakF >= 500) return colors.ember;
-  if (peakF >= 460) return '#9B6030';
+  if (peakF >= 460) return colors.emberMid;
   return colors.quartzBright;
 }
 
 // ─── Preset Glyph SVG ─────────────────────────────────────────────────────────
 
-const GEM_COLORS_ORDERED = ['#7BA8C4', '#9ABDD8', '#C4AC54', '#7EC8A0', '#E07070'];
+const GEM_COLORS_ORDERED = ['#00a8ff', '#95ccff', '#C4AC54', '#7EC8A0', '#ffb4ab'];
 
 function GemDot({ idx }: { idx: number }) {
   const color = GEM_COLORS_ORDERED[idx % GEM_COLORS_ORDERED.length] ?? GEM_COLORS_ORDERED[0]!;
@@ -165,7 +165,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
     >
       <Animated.View style={[styles.toggleThumbWrap, thumbStyle]}>
         <LinearGradient
-          colors={value ? [colors.bone100, '#d8cfc2'] : ['#2a2320', colors.surface3]}
+          colors={value ? [colors.bone100, '#ecceb9'] : ['#35271f', colors.surface3]}
           style={styles.toggleThumb}
         />
       </Animated.View>

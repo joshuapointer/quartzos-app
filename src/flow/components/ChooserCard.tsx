@@ -46,7 +46,7 @@ function CheckBadge() {
       <Circle cx={7} cy={7} r={6.5} fill={THEME.ember.bright} />
       <Path
         d="M3.5 7l2.5 2.5L10.5 4.5"
-        stroke="#1a1208"
+        stroke="#160c06"
         strokeWidth={1.5}
         fill="none"
         strokeLinecap="round"
@@ -102,7 +102,7 @@ function ChooserCardInner({
   // Determine background style.
   const backgroundEl = active ? (
     <LinearGradient
-      colors={['#1d2638', '#0d1120']}
+      colors={['#291d16', '#160c06']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={StyleSheet.absoluteFill}
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     ...(TYPE.mono as object),
     fontSize: 9,
     letterSpacing: 0.14 * 9,
-    color: '#ad6359',
+    color: '#a78b7c',
   } as const,
   sub: {
     fontFamily: 'Geist_400Regular',
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Geist_400Regular',
     fontStyle: 'italic',
     fontSize: 10.5,
-    color: '#bd7a6f',
+    color: '#e0c0af',
     lineHeight: 10.5 * 1.4,
     marginTop: 4,
   },

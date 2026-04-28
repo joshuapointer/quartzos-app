@@ -95,7 +95,7 @@ function CheckBadge() {
       <Circle cx={10} cy={10} r={9.5} fill={THEME.ember.base} />
       <Path
         d="M5.5 10l3.5 3.5L14.5 7"
-        stroke="#1a1208"
+        stroke="#160c06"
         strokeWidth={1.8}
         fill="none"
         strokeLinecap="round"
@@ -170,7 +170,7 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
         ) : (
           // Fallback warm tint
           <LinearGradient
-            colors={['#1a0e04', '#0c1220']}
+            colors={['#291d16', '#160c06']}
             start={{ x: 0.2, y: 0 }}
             end={{ x: 0.8, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     height: TILE_H,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#080c18',
+    backgroundColor: '#160c06',
   },
   tileShadow: {
     shadowColor: THEME.ember.base,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     ...(TYPE.mono as object),
     fontSize: 8,
     letterSpacing: 0.16 * 8,
-    color: '#bd7a6f',
+    color: '#e0c0af',
     textTransform: 'uppercase',
   } as const,
   tileBottom: {
