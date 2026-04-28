@@ -1,0 +1,118 @@
+# EAS Update publisher. Called only by ci-router.yml when the diff is
+# JS/asset-only and expo-updates is configured.
+#
+# Branch -> EAS Update branch mapping (preserved from the prior
+# standalone workflow so dev clients of each environment keep
+# subscribing to the same channel name):
+#
+#   main          -> production
+#   preview       -> preview
+#   develop(ment) -> development
+#   feature/*     -> development   (so the develop dev client picks them up)
+#   anything else -> the ref name  (sandbox)
+#
+# Channel routing is asserted on canonical branches so a stale
+# `eas channel:edit` cannot leave traffic pointing at the wrong branch.
+
+name: EAS Update
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Optional explicit ref name override (debugging only).
+        required: false
+        type: string
+    secrets:
+      EXPO_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Publish OTA update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Verify expo-updates is configured
+        id: precheck
+        run: |
+          if ! grep -q '"expo-updates"' package.json; then
+            echo "expo-updates not in package.json; skipping OTA."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! grep -q '"updates"' app.json; then
+            echo "expo.updates block missing from app.json; skipping OTA."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Compute target EAS Update branch
+        if: steps.precheck.outputs.skip != 'true'
+        id: branch_map
+        env:
+          REF: ${{ inputs.ref || github.ref_name }}
+        run: |
+          case "$REF" in
+            main)                TARGET="production"  ;;
+            preview)             TARGET="preview"     ;;
+            development|develop) TARGET="development"  ;;
+            feature/*)           TARGET="development"  ;;
+            *)                   TARGET="$REF"        ;;
+          esac
+          echo "branch=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Mapped ref '$REF' -> EAS Update branch '$TARGET'"
+
+      - uses: actions/setup-node@v4
+        if: steps.precheck.outputs.skip != 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.precheck.outputs.skip != 'true'
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup EAS
+        if: steps.precheck.outputs.skip != 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish OTA update
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          BRANCH_NAME: ${{ steps.branch_map.outputs.branch }}
+          REF: ${{ inputs.ref || github.ref_name }}
+        run: |
+          if [ "$BRANCH_NAME" != "$REF" ]; then
+            FULL_MSG="[$REF] $COMMIT_MSG"
+          else
+            FULL_MSG="$COMMIT_MSG"
+          fi
+          eas update \
+            --branch "$BRANCH_NAME" \
+            --message "$FULL_MSG" \
+            --platform all \
+            --non-interactive
+
+      - name: Route channel to its branch (canonical envs only)
+        if: |
+          steps.precheck.outputs.skip != 'true' &&
+          (github.ref_name == 'main' ||
+           github.ref_name == 'preview' ||
+           github.ref_name == 'development' ||
+           github.ref_name == 'develop')
+        env:
+          BRANCH_NAME: ${{ steps.branch_map.outputs.branch }}
+        run: |
+          eas channel:edit "$BRANCH_NAME" --branch "$BRANCH_NAME" --non-interactive

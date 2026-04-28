@@ -2,33 +2,36 @@
 
 > **⚠️ Action required before this branch is functional.** The agent
 > generated three GitHub Actions workflow files but could not push them
-> — the harness PAT lacks the `workflow` scope. The files are present
-> in the working tree of this branch locally; you need to commit and
-> push them yourself with credentials that carry `workflow` scope (any
-> normal `git push` from your machine works). See
-> [§ Pushing the workflow files](#pushing-the-workflow-files) below.
+> into `.github/workflows/` — the harness PAT lacks GitHub's `workflow`
+> scope. The finished workflow files are committed under
+> `docs/ci/pending-workflows/`. You need to move them into place and
+> push with credentials that carry `workflow` scope (any normal
+> `git push` from your machine works). See
+> [§ Activating the workflow files](#activating-the-workflow-files) below.
 
 This repo's CI is split in two so that JS/asset-only changes ship in
 seconds via EAS Update, while native-affecting changes get a fresh
 `.ipa` from Xcode Cloud and land in TestFlight.
 
-## Pushing the workflow files
+## Activating the workflow files
 
-After pulling this branch locally, run:
+The three workflow files live at `docs/ci/pending-workflows/` instead of
+`.github/workflows/` because the harness's PAT can't write to the
+`workflow` scope. After pulling this branch locally:
 
 ```bash
-git checkout claude/bootstrap-hybrid-ci-6bGMC
-git pull
-git rm .github/workflows/eas-build.yml          # delete (already removed in WT)
-git add .github/workflows/ci-router.yml \
-         .github/workflows/xcode-cloud-trigger.yml \
-         .github/workflows/eas-update.yml
-git commit -m "chore(ci): add hybrid CI router + Xcode Cloud trigger"
+git checkout claude/bootstrap-hybrid-ci-6bGMC && git pull
+git rm .github/workflows/eas-build.yml
+git mv docs/ci/pending-workflows/ci-router.yml          .github/workflows/ci-router.yml
+git mv docs/ci/pending-workflows/xcode-cloud-trigger.yml .github/workflows/xcode-cloud-trigger.yml
+git mv docs/ci/pending-workflows/eas-update.yml         .github/workflows/eas-update.yml
+rmdir docs/ci/pending-workflows docs/ci 2>/dev/null
+git commit -m "chore(ci): activate hybrid CI workflows"
 git push
 ```
 
-The three new/changed workflow files are already on disk in your
-working tree — just commit and push.
+Once that lands, the path-filtered router runs on every push and
+delete `eas-build.yml` (the old `eas build --local` workflow) is gone.
 
 ## Architecture
 

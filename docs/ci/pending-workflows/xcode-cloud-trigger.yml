@@ -1,0 +1,87 @@
+# Xcode Cloud trigger fan-out. Called by ci-router.yml when the diff
+# contains native-affecting paths.
+#
+# For each enabled platform, force-push the current commit to
+# `xcode-cloud-trigger/<platform>`. Each Xcode Cloud workflow is
+# configured (manually, in App Store Connect) to start on pushes to its
+# corresponding trigger branch.
+#
+# Authentication:
+#   - Default GITHUB_TOKEN is fine for pushing branches in the same
+#     repo. The trigger branch push will NOT cascade-trigger any other
+#     GitHub Actions workflow (GITHUB_TOKEN-driven pushes don't fire
+#     `on: push` workflows), which is what we want.
+#   - If you switch to a deploy key or PAT, set it as the secret
+#     XCODE_CLOUD_TRIGGER_TOKEN and uncomment the block below.
+
+name: Xcode Cloud trigger
+
+on:
+  workflow_call:
+    secrets:
+      # Optional: override default GITHUB_TOKEN with a PAT/deploy key
+      # if your org policy disallows GITHUB_TOKEN pushing.
+      XCODE_CLOUD_TRIGGER_TOKEN:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  fan-out:
+    name: Force-push trigger branches
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ios]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # Use a token with push rights. Default GITHUB_TOKEN works
+          # for same-repo branch pushes.
+          token: ${{ secrets.XCODE_CLOUD_TRIGGER_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Force-push to xcode-cloud-trigger/${{ matrix.platform }}
+        env:
+          TRIGGER_BRANCH: xcode-cloud-trigger/${{ matrix.platform }}
+        run: |
+          # On PRs, github.sha is the merge commit; we want the head ref
+          # so Xcode Cloud builds the actual proposed code.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            TARGET_SHA="${{ github.sha }}"
+          fi
+          echo "Force-pushing $TARGET_SHA -> $TRIGGER_BRANCH"
+          git push --force origin "$TARGET_SHA:refs/heads/$TRIGGER_BRANCH"
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const platforms = ${{ toJSON(matrix.platform) }};
+            const body = [
+              '🛠️ **Native changes detected** — Xcode Cloud build queued for: `' +
+                platforms + '`',
+              '',
+              'Trigger branch `xcode-cloud-trigger/' + platforms +
+                '` was force-pushed to `' +
+                context.payload.pull_request.head.sha.slice(0, 7) + '`.',
+              '',
+              'Watch progress in App Store Connect → Xcode Cloud.',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            });

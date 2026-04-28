@@ -1,0 +1,141 @@
+# Hybrid CI router.
+#
+# On every push and PR, classify the diff and route:
+#
+#                       ┌──────────────┐
+#                       │  push / PR   │
+#                       └──────┬───────┘
+#                              ▼
+#                  ┌───────────────────────┐
+#                  │   ci-router.yml       │
+#                  │   (paths-filter)      │
+#                  └─────────┬─────────────┘
+#                ┌───────────┴────────────┐
+#                ▼                        ▼
+#       native_changed=true      js_changed=true
+#       (or both, native wins)   AND native_changed=false
+#                ▼                        ▼
+#   xcode-cloud-trigger.yml          eas-update.yml
+#   (force-push to                   (publish OTA via
+#    xcode-cloud-trigger/<plat>)      eas update --branch …)
+#                ▼                        ▼
+#         Xcode Cloud                Expo update servers
+#         → TestFlight               → installed dev clients
+#
+# When BOTH native_changed and js_changed are true, only the native path
+# runs. Once the new .ipa lands in TestFlight a follow-up commit (or
+# manual `eas update`) ships the JS layer; we don't OTA against a
+# binary that's still building.
+#
+# Trigger pattern is "Pattern A": each Xcode Cloud workflow listens on
+# its own xcode-cloud-trigger/<platform> branch. The router force-pushes
+# that branch to the current commit only when native paths changed,
+# giving us full control over Xcode Cloud minute spend.
+
+name: CI router
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    name: Classify diff
+    runs-on: ubuntu-latest
+    outputs:
+      native_changed: ${{ steps.filter.outputs.native }}
+      js_changed: ${{ steps.filter.outputs.js_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          # Order matters for `dorny/paths-filter`: a path matches the
+          # FIRST filter that lists it. Native is declared first so any
+          # ambiguous file (e.g. a TS file inside plugins/) gets routed
+          # to the native path — safer to over-build than ship an OTA
+          # against an incompatible binary.
+          filters: |
+            native:
+              - 'package.json'
+              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
+              - 'yarn.lock'
+              - 'app.json'
+              - 'app.config.*'
+              - 'eas.json'
+              - 'ios/**'
+              - 'android/**'
+              - 'plugins/**'
+              - 'patches/**'
+              - 'assets/**/*.ttf'
+              - 'assets/**/*.otf'
+              - 'assets/sounds/**'
+              - '**/*.podspec'
+              - '**/Podfile'
+              - '**/Podfile.lock'
+              - '**/Podfile.properties.json'
+              - '**/Gemfile'
+              - '**/Gemfile.lock'
+              - 'ci_scripts/**'
+              - '.github/workflows/**'
+              - '.nvmrc'
+              - '.tool-versions'
+              - 'mise.toml'
+            js_only:
+              - 'app/**'
+              - 'src/**'
+              - '*.ts'
+              - '*.tsx'
+              - '*.js'
+              - '*.jsx'
+              - '!babel.config.js'
+              - 'assets/**'
+              - '!assets/**/*.ttf'
+              - '!assets/**/*.otf'
+              - '!assets/sounds/**'
+              - 'docs/**'
+              - '**/*.md'
+              - '**/__tests__/**'
+              - '**/*.test.ts'
+              - '**/*.test.tsx'
+
+      - name: Summary
+        run: |
+          {
+            echo "## CI router classification"
+            echo ""
+            echo "| Filter | Triggered |"
+            echo "| --- | --- |"
+            echo "| native | ${{ steps.filter.outputs.native }} |"
+            echo "| js_only | ${{ steps.filter.outputs.js_only }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  trigger-native:
+    name: Trigger Xcode Cloud
+    needs: classify
+    if: needs.classify.outputs.native_changed == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/xcode-cloud-trigger.yml
+    secrets: inherit
+
+  publish-update:
+    name: Publish EAS Update
+    needs: classify
+    if: |
+      needs.classify.outputs.native_changed != 'true' &&
+      needs.classify.outputs.js_changed == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/eas-update.yml
+    secrets: inherit
