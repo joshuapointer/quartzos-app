@@ -46,6 +46,7 @@
     "plugins": [
       "expo-router",
       "expo-updates",
+      "./plugins/with-ci-scripts-symlink",
       [
         "react-native-ble-plx",
         {
