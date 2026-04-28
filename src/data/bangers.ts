@@ -1,7 +1,7 @@
 /**
  * Quartz banger form factors in active 2025-2026 production.
  *
- * Source: docs/ref/perfect_dab/bangers.json
+ * Source: docs/perfect_dab/bangers.json
  *
  * Every field in the source JSON is preserved here. The `geometry` field is
  * the discriminator for IR offset math (bucket-class subtracts, slurper-class

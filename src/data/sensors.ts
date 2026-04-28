@@ -2,7 +2,7 @@
  * Temperature measurement instruments. The sensor `method` selects the
  * calibration formula branch in `src/utils/calibration.ts`.
  *
- * Source: docs/ref/perfect_dab/sensors.json
+ * Source: docs/perfect_dab/sensors.json
  */
 
 export type SensorMethod = 'contact' | 'ir' | 'enail' | 'visual';

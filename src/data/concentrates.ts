@@ -1,7 +1,7 @@
 /**
  * Cannabis concentrates in active 2025-2026 rotation.
  *
- * Source: docs/ref/perfect_dab/concentrates.json
+ * Source: docs/perfect_dab/concentrates.json
  *
  * `surface_temp_range_f` and `surface_temp_optimal_f` are INTERIOR SURFACE
  * temperatures (Terpometer-equivalent contact probe truth — NOT IR readings).
