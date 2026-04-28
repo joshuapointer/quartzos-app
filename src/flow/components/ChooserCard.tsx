@@ -35,6 +35,7 @@ export type ChooserCardProps = {
   warning?: string;
   right?: ReactNode;
   image?: ImageSourcePropType;
+  glyph?: ReactNode;
 };
 
 // ─── Check icon ───────────────────────────────────────────────────────────────
@@ -68,6 +69,7 @@ function ChooserCardInner({
   warning,
   right,
   image,
+  glyph,
 }: ChooserCardProps) {
   const scale = useSharedValue(1);
 
@@ -154,13 +156,17 @@ function ChooserCardInner({
         />
 
         <View style={styles.row}>
-          {image != null && (
+          {image != null ? (
             <Image
               source={image}
               style={[styles.thumbnail, disabled && styles.thumbnailDisabled]}
               resizeMode="cover"
             />
-          )}
+          ) : glyph != null ? (
+            <View style={[styles.thumbnail, disabled && styles.thumbnailDisabled]}>
+              {glyph}
+            </View>
+          ) : null}
           <View style={styles.body}>
             <View style={styles.titleRow}>
               <Text style={[styles.title, { color: titleColor }]} numberOfLines={2}>
