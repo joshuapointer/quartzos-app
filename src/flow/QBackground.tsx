@@ -1,0 +1,118 @@
+/**
+ * src/flow/QBackground.tsx
+ * Full-bleed deep navy + ember radial vignette background.
+ * Matches prototype `body { background: ... }` — five stacked radial gradients over #02050c.
+ *
+ * Layer order (back → front):
+ *   1. base fill:  #02050c
+ *   2. ellipse 50% -10%:  navy 0.35 alpha  (top edge bloom)
+ *   3. ellipse 50% 110%:  navy 0.40 alpha  (bottom edge)
+ *   4. ellipse 82% 72%:   ember 0.18 alpha (warm/deep right)
+ *   5. ellipse 22% 28%:   ember 0.22 alpha (warm/bright left)
+ */
+import React, { memo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+
+interface Props {
+  children?: React.ReactNode;
+}
+
+function QBackground({ children }: Props) {
+  return (
+    <View style={styles.root}>
+      <Svg
+        style={StyleSheet.absoluteFill}
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <Defs>
+          {/* Base fill — near-black deep navy */}
+          {/* Layer 1: top-edge navy bloom at 50% -10% */}
+          <RadialGradient
+            id="rg-navy-top"
+            cx="50%"
+            cy="-10%"
+            rx="50%"
+            ry="50%"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(0 0) scale(1 1)"
+          >
+            <Stop offset="0" stopColor="#0c1a30" stopOpacity="0.35" />
+            <Stop offset="1" stopColor="#0c1a30" stopOpacity="0" />
+          </RadialGradient>
+
+          {/* Layer 2: bottom-edge navy at 50% 110% */}
+          <RadialGradient
+            id="rg-navy-bottom"
+            cx="50%"
+            cy="110%"
+            rx="50%"
+            ry="62%"
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0" stopColor="#081224" stopOpacity="0.40" />
+            <Stop offset="1" stopColor="#081224" stopOpacity="0" />
+          </RadialGradient>
+
+          {/* Layer 3: ember deep-right at 82% 72% */}
+          <RadialGradient
+            id="rg-ember-deep"
+            cx="82%"
+            cy="72%"
+            rx="52%"
+            ry="52%"
+            gradientUnits="userSpaceOnUse"
+          >
+            {/* oklch(0.30 0.14 38 / 0.18) ≈ #5c2a08 at 18% */}
+            <Stop offset="0" stopColor="#5c2a08" stopOpacity="0.18" />
+            <Stop offset="1" stopColor="#5c2a08" stopOpacity="0" />
+          </RadialGradient>
+
+          {/* Layer 4: ember bright-left at 22% 28% */}
+          <RadialGradient
+            id="rg-ember-bright"
+            cx="22%"
+            cy="28%"
+            rx="55%"
+            ry="55%"
+            gradientUnits="userSpaceOnUse"
+          >
+            {/* oklch(0.36 0.12 50 / 0.22) ≈ #7a3c10 at 22% */}
+            <Stop offset="0" stopColor="#7a3c10" stopOpacity="0.22" />
+            <Stop offset="1" stopColor="#7a3c10" stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+
+        {/* Base fill */}
+        <Rect x="0" y="0" width="100" height="100" fill="#02050c" />
+        {/* Navy top bloom */}
+        <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-top)" />
+        {/* Navy bottom edge */}
+        <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-bottom)" />
+        {/* Ember deep right */}
+        <Rect x="0" y="0" width="100" height="100" fill="url(#rg-ember-deep)" />
+        {/* Ember bright left */}
+        <Rect x="0" y="0" width="100" height="100" fill="url(#rg-ember-bright)" />
+      </Svg>
+
+      {/* Content stacked above background */}
+      <View style={styles.content}>{children}</View>
+    </View>
+  );
+}
+
+export default memo(QBackground);
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    position: 'relative',
+  },
+  content: {
+    flex: 1,
+    zIndex: 1,
+  },
+});
