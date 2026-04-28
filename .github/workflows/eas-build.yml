@@ -27,6 +27,12 @@ on:
       - preview
       - development
       - develop
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile (development/preview/production)"
+        required: false
+        default: "development"
 
 permissions:
   contents: read
@@ -36,14 +42,15 @@ jobs:
     name: Detect native-affecting changes
     runs-on: ubuntu-latest
     outputs:
-      native: ${{ steps.changes.outputs.native }}
-      profile: ${{ steps.profile.outputs.profile }}
+      native: ${{ steps.decide.outputs.native }}
+      profile: ${{ steps.decide.outputs.profile }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
       - id: changes
+        if: github.event_name == 'push'
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -56,26 +63,40 @@ jobs:
               - 'package-lock.json'
               - 'eas.json'
 
-      - name: Compute build profile
-        id: profile
-        if: steps.changes.outputs.native == 'true'
+      - name: Decide whether to build and which profile
+        id: decide
         env:
+          EVENT_NAME: ${{ github.event_name }}
           REF: ${{ github.ref_name }}
+          DISPATCH_PROFILE: ${{ inputs.profile }}
+          PUSH_NATIVE: ${{ steps.changes.outputs.native }}
         run: |
-          case "$REF" in
-            main)                PROFILE="production" ;;
-            preview)             PROFILE="preview" ;;
-            development|develop) PROFILE="development" ;;
-            *)
-              echo "Unsupported branch '$REF' for build workflow." >&2
-              exit 1
-              ;;
-          esac
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            NATIVE="true"
+            PROFILE="${DISPATCH_PROFILE:-development}"
+            echo "Manual dispatch -> profile '$PROFILE'"
+          else
+            NATIVE="$PUSH_NATIVE"
+            if [ "$NATIVE" = "true" ]; then
+              case "$REF" in
+                main)                PROFILE="production" ;;
+                preview)             PROFILE="preview" ;;
+                development|develop) PROFILE="development" ;;
+                *)
+                  echo "Unsupported branch '$REF' for build workflow." >&2
+                  exit 1
+                  ;;
+              esac
+              echo "Mapped ref '$REF' -> EAS build profile '$PROFILE'"
+            else
+              PROFILE=""
+            fi
+          fi
+          echo "native=$NATIVE" >> "$GITHUB_OUTPUT"
           echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
-          echo "Mapped ref '$REF' -> EAS build profile '$PROFILE'"
 
       - name: Skip notice (no native changes)
-        if: steps.changes.outputs.native != 'true'
+        if: steps.decide.outputs.native != 'true'
         run: |
           echo "::notice::No native-affecting changes on ${{ github.ref_name }} — skipping iOS build."
           echo "EAS Update workflow will publish the OTA bundle for this commit."
@@ -84,7 +105,7 @@ jobs:
     name: Build iOS .ipa locally on macOS runner
     needs: detect
     if: needs.detect.outputs.native == 'true'
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS, quartzos]
     timeout-minutes: 60
 
     steps:
