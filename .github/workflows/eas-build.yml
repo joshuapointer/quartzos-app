@@ -47,12 +47,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 25
 
       - id: changes
         if: github.event_name == 'push'
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ github.event.before }}
           filters: |
             native:
               - 'ios/**'
@@ -105,7 +106,7 @@ jobs:
     name: Build iOS .ipa locally on macOS runner
     needs: detect
     if: needs.detect.outputs.native == 'true'
-    runs-on: [self-hosted, macOS, quartzos]
+    runs-on: macos-latest
     timeout-minutes: 60
 
     steps:
