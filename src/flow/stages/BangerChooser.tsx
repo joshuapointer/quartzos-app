@@ -23,6 +23,7 @@ import Animated, {
 
 import ChooserCard from '../components/ChooserCard';
 import { BANGERS, type Banger } from '../data';
+import { BANGER_IMAGES } from '../bangerImages';
 import { useFlow } from '../store';
 import { THEME, TYPE } from '../theme';
 
@@ -131,6 +132,7 @@ export default function BangerChooser() {
               onPress={() => setBangerId(b.id)}
               title={b.name}
               sub={b.description}
+              image={BANGER_IMAGES[b.id]}
               right={<IROffsetBadge banger={b} />}
             />
           </Animated.View>

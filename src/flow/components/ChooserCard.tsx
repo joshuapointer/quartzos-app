@@ -11,7 +11,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import React, { type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -33,6 +33,7 @@ export type ChooserCardProps = {
   blockedReason?: string;
   warning?: string;
   right?: ReactNode;
+  image?: ImageSourcePropType;
 };
 
 // ─── Check icon ───────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ export default function ChooserCard({
   blockedReason,
   warning,
   right,
+  image,
 }: ChooserCardProps) {
   const scale = useSharedValue(1);
 
@@ -151,6 +153,13 @@ export default function ChooserCard({
         />
 
         <View style={styles.row}>
+          {image != null && (
+            <Image
+              source={image}
+              style={[styles.thumbnail, disabled && styles.thumbnailDisabled]}
+              resizeMode="cover"
+            />
+          )}
           <View style={styles.body}>
             <View style={styles.titleRow}>
               <Text style={[styles.title, { color: titleColor }]} numberOfLines={2}>
@@ -209,6 +218,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  thumbnail: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    flexShrink: 0,
+  },
+  thumbnailDisabled: {
+    opacity: 0.45,
   },
   body: {
     flex: 1,

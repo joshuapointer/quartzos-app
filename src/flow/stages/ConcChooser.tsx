@@ -21,6 +21,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import ChooserCard from '../components/ChooserCard';
 import { CONCENTRATES, type Concentrate, type ConcentrateCat } from '../data';
+import { CONCENTRATE_IMAGES } from '../concentrateImages';
 import { useFlow } from '../store';
 import { THEME, TYPE } from '../theme';
 
@@ -141,6 +142,7 @@ export default function ConcChooser() {
                 sub={sub}
                 subColor={subColor}
                 blockedReason={isBlocked ? c.blocked : undefined}
+                image={CONCENTRATE_IMAGES[c.id]}
                 right={right}
               />
             </Animated.View>
