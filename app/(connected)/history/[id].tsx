@@ -17,6 +17,7 @@ import { QBackground, GlassCard, ChromeButton } from '../../../src/design';
 import { colors, spacing, radius, fonts } from '../../../src/design/tokens';
 import * as sessionsDb from '../../../src/db/sessions';
 import type { SessionRecord, TempSample } from '../../../src/db/sessions';
+import * as presetsDb from '../../../src/db/presets';
 
 const CHART_WIDTH = 320;
 const CHART_HEIGHT = 160;
@@ -177,12 +178,18 @@ export default function SessionDetailScreen() {
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [presetName, setPresetName] = useState<string | null>(null);
 
   useEffect(() => {
     void sessionsDb.getById(id).then((rec) => {
       if (rec) {
         setSession(rec);
         setNotes(rec.notes ?? '');
+        if (rec.presetId) {
+          void presetsDb.getById(rec.presetId).then((p) => {
+            if (p) setPresetName(p.name);
+          });
+        }
       }
     });
   }, [id]);
@@ -246,9 +253,8 @@ export default function SessionDetailScreen() {
                 {session.presetId && (
                   <View style={styles.stat}>
                     <Text style={styles.statLabel}>PRESET</Text>
-                    {/* TODO: resolve presetId → name via preset store */}
                     <Text style={styles.statValue} numberOfLines={1}>
-                      {session.presetId}
+                      {presetName ?? 'Session'}
                     </Text>
                   </View>
                 )}

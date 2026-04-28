@@ -17,6 +17,8 @@ import { QBackground, ChromeButton, FloatingHeader } from '../../src/design';
 import { colors, spacing, fonts } from '../../src/design/tokens';
 import * as sessionsDb from '../../src/db/sessions';
 import type { SessionRecord } from '../../src/db/sessions';
+import * as presetsDb from '../../src/db/presets';
+import type { Preset } from '../../src/db/presets';
 
 function formatDuration(startedAt: number, endedAt: number | null): string {
   const durationMs = (endedAt ?? Date.now()) - startedAt;
@@ -97,15 +99,15 @@ function InlineSparkline({ samples, width = 70, height = 16 }: InlineSparklinePr
 interface JournalRowProps {
   session: SessionRecord;
   isActive?: boolean;
+  presetName: string;
   onPress: () => void;
 }
 
-function JournalRow({ session, isActive, onPress }: JournalRowProps) {
+function JournalRow({ session, isActive, presetName, onPress }: JournalRowProps) {
   const date = new Date(session.startedAt);
   const dayOfMonth = format(date, 'd');
   const month = format(date, 'MMM').toUpperCase();
   const time = format(date, 'h:mm a');
-  const presetName = session.presetId ?? 'Session';
   const duration = formatDuration(session.startedAt, session.endedAt);
 
   return (
@@ -157,15 +159,26 @@ function EmptyState() {
 
 export default function HistoryScreen() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [presets, setPresets] = useState<Preset[]>([]);
 
   const load = useCallback(async () => {
-    const all = await sessionsDb.getAll();
-    setSessions(all);
+    const [allSessions, allPresets] = await Promise.all([
+      sessionsDb.getAll(),
+      presetsDb.getAll(),
+    ]);
+    setSessions(allSessions);
+    setPresets(allPresets);
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const presetNameById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of presets) map.set(p.id, p.name);
+    return map;
+  }, [presets]);
 
   const handleClearAll = useCallback(() => {
     Alert.alert(
@@ -207,12 +220,20 @@ export default function HistoryScreen() {
                 Review your recent rituals and temperature profiles.
               </Text>
             </View>
-            <ChromeButton
-              label="Clear All"
-              onPress={handleClearAll}
-              variant="ghost"
-              disabled={sessions.length === 0}
-            />
+            <View style={styles.headerActions}>
+              <ChromeButton
+                label="Export"
+                onPress={handleExport}
+                variant="ghost"
+                disabled={sessions.length === 0}
+              />
+              <ChromeButton
+                label="Clear All"
+                onPress={handleClearAll}
+                variant="ghost"
+                disabled={sessions.length === 0}
+              />
+            </View>
           </View>
         </View>
 
@@ -229,6 +250,9 @@ export default function HistoryScreen() {
             <JournalRow
               session={item}
               isActive={index === 0 && item.endedAt === null}
+              presetName={
+                (item.presetId && presetNameById.get(item.presetId)) || 'Session'
+              }
               onPress={() => router.push(`/(connected)/history/${item.id}`)}
             />
           )}
@@ -257,6 +281,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   heading: {
     ...fonts.h1,

@@ -182,9 +182,9 @@ export function ConfigureSheetContent({
   }, [updateSetting]);
 
   const statusText = useMemo(() => {
-    if (status === 'synced') return '✓ Synced';
-    if (status === 'pending') return '⏳ Pending';
-    return '✗ Error';
+    if (status === 'synced') return 'SYNCED';
+    if (status === 'pending') return 'PENDING';
+    return 'ERROR';
   }, [status]);
 
   const statusColor = useMemo(() => {

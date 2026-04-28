@@ -805,7 +805,7 @@ function TuneStep({
     >
       <View style={styles.tempBlock} {...panResponder.panHandlers}>
         <Text style={[styles.tempValue, { color: tempColorFor(tempOffset) }]}>{finalTemp}°</Text>
-        <Text style={styles.tempHint}>DRAG UP WARMER · DOWN COOLER</Text>
+        <Text style={styles.tempHint}>Drag to fine-tune</Text>
         <ThermalGauge offset={tempOffset} />
       </View>
 

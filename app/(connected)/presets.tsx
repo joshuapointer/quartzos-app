@@ -40,7 +40,6 @@ function gemColorFor(preset: Preset): string {
 // ─── PresetRow ────────────────────────────────────────────────────────────────
 // Wraps PresetPill with an overflow menu (Option A: three-dot inline expand).
 // Active indicator: 1px firedAmber ring around gem dot.
-// TODO: wire `isActive` to a shared activePresetId store when available.
 
 interface PresetRowProps {
   preset: Preset;

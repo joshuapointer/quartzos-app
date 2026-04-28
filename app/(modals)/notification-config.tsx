@@ -61,17 +61,26 @@ export default function NotificationConfigModal() {
   const handleTestDab = useCallback(async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '🔥 Dab Temp Reached',
-        body: 'Test: your quartz is ready.',
+        title: 'Dab temp reached',
+        body: 'Test alert — your quartz is ready.',
         sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: new Date(),
-        channelId: 'alarms',
+      trigger: null,
+    }).catch(console.warn);
+  }, []);
+
+  const handleTestDunk = useCallback(async () => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Dunk temp reached',
+        body: 'Test alert — time to drop your concentrate.',
+        sound: 'dab_alarm.wav',
+        priority: Notifications.AndroidNotificationPriority.MAX,
+        vibrate: [0, 200, 100, 200],
       },
+      trigger: null,
     }).catch(console.warn);
   }, []);
 
@@ -150,6 +159,14 @@ export default function NotificationConfigModal() {
                 accessibilityLabel="Phone dunk alert temperature"
               />
             </View>
+
+            <ChromeButton
+              label="Test Dunk Alert"
+              variant="ghost"
+              onPress={handleTestDunk}
+              style={styles.testBtn}
+              accessibilityLabel="Test dunk alert notification"
+            />
           </GlassCard>
 
           <ChromeButton
