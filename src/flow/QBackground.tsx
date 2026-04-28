@@ -1,17 +1,18 @@
 /**
  * src/flow/QBackground.tsx
  * Full-bleed deep navy + ember radial vignette background.
- * Matches prototype `body { background: ... }` — five stacked radial gradients over #02050c.
  *
  * Layer order (back → front):
- *   1. base fill:  #02050c
- *   2. ellipse 50% -10%:  navy 0.35 alpha  (top edge bloom)
- *   3. ellipse 50% 110%:  navy 0.40 alpha  (bottom edge)
- *   4. ellipse 82% 72%:   ember 0.18 alpha (warm/deep right)
- *   5. ellipse 22% 28%:   ember 0.22 alpha (warm/bright left)
+ *   1. base fill  — near-black navy
+ *   2. top-edge navy bloom
+ *   3. bottom-edge navy
+ *   4. ember deep-right warm vignette
+ *   5. ember bright-left warm vignette
+ *
+ * pointerEvents="none" on the SVG so it never intercepts touches.
  */
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 interface Props {
@@ -19,14 +20,17 @@ interface Props {
 }
 
 function QBackground({ children }: Props) {
+  const { width, height } = useWindowDimensions();
+
   return (
     <View style={styles.root}>
       <Svg
         style={StyleSheet.absoluteFill}
-        width="100%"
-        height="100%"
+        width={width}
+        height={height}
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
+        pointerEvents="none"
       >
         <Defs>
           {/* Base fill — near-black deep navy */}

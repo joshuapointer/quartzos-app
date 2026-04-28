@@ -1,21 +1,14 @@
 /**
  * src/flow/components/Orb.tsx
  *
- * Phase 3 — the persistent orb. The single morphing visual at the top of every
- * stage of the linear flow. Ported from the web prototype (Dial.jsx + flow-shell
- * PersistentOrb) to react-native-svg + Reanimated v4.
+ * Persistent orb — the single morphing visual at the top of every stage.
  *
  * Subcomponents:
- *   - Orb (default export)              — picks the right visual per state
- *   - TempDial  (refractive quartz orb) — idle / searching / standby / cool / dunk / clean / complete
- *   - TorchRing (290pt countdown ring)  — heat / heat-reheat
+ *   - Orb (default export)  — picks the right visual per state
+ *   - TempDial              — idle / searching / standby / cool / dunk / clean / complete
+ *   - TorchRing             — heat / heat-reheat countdown ring
  *
- * Visual references:
- *   /tmp/quartzie-prototype/src/Dial.jsx         (refractive quartz)
- *   /tmp/quartzie-prototype/src/flow-shell.jsx   (PersistentOrb torch + size morph)
- *
- * Tokens: see ./theme.ts. Hardcoded fallbacks live alongside the THEME usage so
- * this component doesn't crash if tokens shift.
+ * Tokens: src/flow/theme.ts
  */
 
 import React, { memo, useEffect, useId, useMemo } from 'react';
@@ -246,7 +239,7 @@ function TorchRingInner({
         <Text
           style={[
             styles.bigNumber,
-            { fontSize: Math.round(size * 0.34), color: '#fff5e8' },
+            { fontSize: Math.round(size * 0.34), color: THEME.bone[100] },
           ]}
         >
           {secondsLeft}
@@ -601,6 +594,24 @@ function TempDialInner({
 
 const TempDial = memo(TempDialInner);
 
+// ─── Accessibility labels per state ──────────────────────────────────────────
+// Describe the current orb state in plain language for screen readers.
+
+const A11Y_LABEL: Record<OrbState, string> = {
+  idle:              'Temperature dial, device not connected',
+  searching:         'Temperature dial, scanning for device',
+  standby:           'Temperature dial, standby',
+  heat:              'Temperature dial, heating',
+  'heat-reheat':     'Temperature dial, reheating',
+  cool:              'Temperature dial, cooling',
+  'cool-fast-drop':  'Temperature dial, cooling fast',
+  'cool-in-window':  'Temperature dial, ready to dab',
+  dab:               'Temperature dial, dabbing',
+  dunk:              'Temperature dial, dunk ready',
+  clean:             'Temperature dial, clean up',
+  complete:          'Temperature dial, session complete',
+};
+
 // ─── Orb (entry point) ──────────────────────────────────────────────────────
 
 function OrbInner(props: OrbProps) {
@@ -654,6 +665,11 @@ function OrbInner(props: OrbProps) {
 
   const fastDrop = state === 'cool-fast-drop';
 
+  const a11yLabel = useMemo(() => {
+    const base = A11Y_LABEL[state];
+    return typeof temp === 'number' ? `${base}, ${Math.round(temp)} degrees` : base;
+  }, [state, temp]);
+
   return (
     <Animated.View
       style={[
@@ -661,6 +677,9 @@ function OrbInner(props: OrbProps) {
         { width: BASE, height: BASE },
         morphStyle,
       ]}
+      accessibilityRole="image"
+      accessibilityLabel={a11yLabel}
+      accessibilityElementsHidden={false}
     >
       <Animated.View style={[styles.outer, fadeStyle]}>
         {isHeat(state) ? (

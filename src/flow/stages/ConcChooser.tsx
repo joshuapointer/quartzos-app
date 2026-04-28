@@ -1,13 +1,3 @@
-/**
- * src/flow/stages/ConcChooser.tsx
- *
- * Step 1 of the builder — pick the concentrate.
- * Filter chip row + list of ChooserCards. Blocked items render disabled.
- *
- * Tokens: src/flow/theme.ts
- * Reference: /tmp/quartzie-prototype/src/flow-build.jsx ConcChooser
- */
-
 import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
 import {
@@ -17,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { Easing, FadeInUp } from 'react-native-reanimated';
 
 import ChooserCard from '../components/ChooserCard';
 import { CONCENTRATES, type Concentrate, type ConcentrateCat } from '../data';
@@ -25,7 +15,7 @@ import { CONCENTRATE_IMAGES } from '../concentrateImages';
 import { useFlow } from '../store';
 import { THEME, TYPE } from '../theme';
 
-// ─── Filter definitions ───────────────────────────────────────────────────────
+const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 type FilterKey = 'All' | ConcentrateCat;
 
@@ -129,13 +119,14 @@ export default function ConcChooser() {
           return (
             <Animated.View
               key={c.id}
-              entering={FadeInUp.delay(120 + idx * 55).duration(380)}
+              entering={FadeInUp.delay(120 + idx * 55).duration(380).easing(STAGGER_EASING)}
             >
               <ChooserCard
                 active={!isBlocked && concId === c.id}
                 disabled={isBlocked}
                 onPress={() => {
                   if (isBlocked) return;
+                  void Haptics.selectionAsync();
                   setConcId(c.id);
                 }}
                 title={c.name}

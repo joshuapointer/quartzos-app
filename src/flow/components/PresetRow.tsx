@@ -5,6 +5,8 @@
  * Uses expo-blur for backdrop blur, react-native-svg for glyphs,
  * and Reanimated for press spring.
  *
+ * Memoized — rendered in lists; equality is shallow on props.
+ *
  * Tokens: src/flow/theme.ts
  * Data:   src/flow/data.ts
  */
@@ -41,6 +43,7 @@ import { THEME } from '../theme';
 export type PresetRowProps = {
   preset: SavedPreset;
   onApply: () => void;
+  selected?: boolean;
 };
 
 // ─── PresetGlyph ──────────────────────────────────────────────────────────────
@@ -168,7 +171,7 @@ function Chevron() {
 
 // ─── PresetRow ────────────────────────────────────────────────────────────────
 
-export default function PresetRow({ preset, onApply }: PresetRowProps) {
+function PresetRowInner({ preset, onApply, selected = false }: PresetRowProps) {
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -212,6 +215,7 @@ export default function PresetRow({ preset, onApply }: PresetRowProps) {
         style={styles.pressable}
         accessibilityRole="button"
         accessibilityLabel={`Apply ${preset.name} preset`}
+        accessibilityState={{ selected }}
       >
         <BlurView intensity={22} tint="dark" style={styles.blurContainer}>
           {/* Inner hairline border */}
@@ -248,6 +252,9 @@ export default function PresetRow({ preset, onApply }: PresetRowProps) {
     </Animated.View>
   );
 }
+
+const PresetRow = React.memo(PresetRowInner);
+export default PresetRow;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

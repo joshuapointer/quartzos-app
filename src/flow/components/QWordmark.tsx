@@ -4,6 +4,9 @@
  * Header bar: sphere glyph + "Quartzie" wordmark (left) + connection-state pill (right).
  * When `onDisconnect` is provided, renders a Disconnect button instead of the status pill.
  *
+ * Accessibility: the connection dot uses accessibilityLiveRegion="polite" so screen
+ * readers announce connected/disconnected changes without interrupting the user.
+ *
  * Tokens: src/flow/theme.ts
  */
 
@@ -103,6 +106,8 @@ function AnimatedDot({ connected, size = 6 }: DotProps) {
         },
         animStyle,
       ]}
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={connected ? 'Connected' : 'Disconnected'}
     />
   );
 }
@@ -126,8 +131,9 @@ export default function QWordmark({ connected, onDisconnect }: QWordmarkProps) {
             onDisconnect();
           }}
           style={styles.disconnectBtn}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityRole="button"
-          accessibilityLabel="Disconnect"
+          accessibilityLabel="Disconnect Dab Rite"
         >
           <AnimatedDot connected={connected} size={5} />
           <Text style={styles.disconnectText}>Disconnect</Text>

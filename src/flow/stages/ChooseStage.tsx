@@ -1,21 +1,10 @@
-/**
- * src/flow/stages/ChooseStage.tsx
- *
- * S-03 — Choose stage. Scrollable list: "New sesh" card + divider + saved presets.
- *
- * PRD §5.2 + prototype ChooseStage (flow-shell.jsx line 438).
- *
- * Tokens: src/flow/theme.ts
- * Data:   src/flow/data.ts
- * Store:  useFlow from ../store
- */
-
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -35,7 +24,7 @@ import { SAVED_PRESETS } from '../data';
 import { useFlow } from '../store';
 import { THEME } from '../theme';
 
-// ─── Entrance animation helper ────────────────────────────────────────────────
+const EASE_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
 
 function useStaggerEntrance(idx: number) {
   const opacity = useSharedValue(0);
@@ -43,8 +32,8 @@ function useStaggerEntrance(idx: number) {
 
   useEffect(() => {
     const delay = idx * 55;
-    opacity.value = withDelay(delay, withTiming(1, { duration: 600 }));
-    translateY.value = withDelay(delay, withTiming(0, { duration: 600 }));
+    opacity.value = withDelay(delay, withTiming(1, { duration: 600, easing: EASE_EXPO }));
+    translateY.value = withDelay(delay, withTiming(0, { duration: 600, easing: EASE_EXPO }));
   }, [idx, opacity, translateY]);
 
   return useAnimatedStyle(() => ({
@@ -52,8 +41,6 @@ function useStaggerEntrance(idx: number) {
     transform: [{ translateY: translateY.value }],
   }));
 }
-
-// ─── Sphere glyph for "New sesh" card ─────────────────────────────────────────
 
 function NewSeshGlyph() {
   const size = 44;
@@ -106,8 +93,6 @@ function NewSeshGlyph() {
   );
 }
 
-// ─── Chevron ──────────────────────────────────────────────────────────────────
-
 function Chevron() {
   return (
     <Svg width={7} height={12} viewBox="0 0 8 14">
@@ -122,10 +107,10 @@ function Chevron() {
   );
 }
 
-// ─── NewSeshCard ──────────────────────────────────────────────────────────────
-
 function NewSeshCard({ onPress }: { onPress: () => void }) {
   const scale = useSharedValue(1);
+  // Guard against double-tap; lock for 250ms after each press.
+  const locked = useRef(false);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -140,6 +125,9 @@ function NewSeshCard({ onPress }: { onPress: () => void }) {
   }
 
   function handlePress() {
+    if (locked.current) return;
+    locked.current = true;
+    setTimeout(() => { locked.current = false; }, 250);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   }
@@ -153,11 +141,10 @@ function NewSeshCard({ onPress }: { onPress: () => void }) {
         style={cardSt.pressable}
         accessibilityRole="button"
         accessibilityLabel="Build a new sesh"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <BlurView intensity={22} tint="dark" style={cardSt.blur}>
-          {/* Warm amber tint overlay */}
           <View style={cardSt.warmTint} />
-          {/* Inner hairline */}
           <View style={cardSt.innerBorder} />
           <View style={cardSt.row}>
             <NewSeshGlyph />
@@ -231,10 +218,9 @@ const cardSt = StyleSheet.create({
     fontSize: 11.5,
     color: THEME.bone[50],
     lineHeight: 11.5 * 1.4,
+    maxWidth: 220,
   },
 });
-
-// ─── Divider ──────────────────────────────────────────────────────────────────
 
 function Divider() {
   return (
@@ -277,9 +263,7 @@ const divSt = StyleSheet.create({
   },
 });
 
-// ─── StaggeredPresetRow ───────────────────────────────────────────────────────
 // Wraps PresetRow with its own stagger animation to avoid hooks-in-loop.
-
 function StaggeredPresetRow({
   preset,
   idx,
@@ -297,7 +281,32 @@ function StaggeredPresetRow({
   );
 }
 
-// ─── ChooseStage ──────────────────────────────────────────────────────────────
+function EmptyPresetsHint() {
+  return (
+    <View style={emptySt.wrapper}>
+      <Text style={emptySt.text}>
+        Saved presets appear here after your first sesh.
+      </Text>
+    </View>
+  );
+}
+
+const emptySt = StyleSheet.create({
+  wrapper: {
+    paddingTop: 18,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  text: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 10,
+    letterSpacing: 0.16 * 10,
+    color: THEME.bone[35],
+    textAlign: 'center',
+    maxWidth: 240,
+    lineHeight: 10 * 1.6,
+  },
+});
 
 export default function ChooseStage() {
   const startBuilder = useFlow((s) => s.startBuilder);
@@ -309,7 +318,6 @@ export default function ChooseStage() {
   return (
     <View style={st.container}>
 
-      {/* Header: eyebrow + headline */}
       <Animated.View style={s0}>
         <View style={st.header}>
           <Text style={st.eyebrow}>READY</Text>
@@ -320,7 +328,6 @@ export default function ChooseStage() {
         </View>
       </Animated.View>
 
-      {/* Scrollable list */}
       <Animated.View style={[st.listWrapper, s1]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -328,7 +335,7 @@ export default function ChooseStage() {
           contentContainerStyle={st.listContent}
         >
           <NewSeshCard onPress={startBuilder} />
-          {SAVED_PRESETS.length > 0 && (
+          {SAVED_PRESETS.length > 0 ? (
             <>
               <Divider />
               {SAVED_PRESETS.map((preset, i) => (
@@ -340,6 +347,8 @@ export default function ChooseStage() {
                 />
               ))}
             </>
+          ) : (
+            <EmptyPresetsHint />
           )}
         </ScrollView>
       </Animated.View>
@@ -347,8 +356,6 @@ export default function ChooseStage() {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
   container: {

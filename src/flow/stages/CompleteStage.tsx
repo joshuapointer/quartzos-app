@@ -1,12 +1,3 @@
-/**
- * src/flow/stages/CompleteStage.tsx
- *
- * Phase 7 — Complete stage: session-logged confirmation with ember halo glow.
- *
- * PRD §5.10 / prototype flow-shell.jsx CompleteStage (line 647).
- * The persistent orb is rendered by the parent shell, not here.
- */
-
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
@@ -36,8 +27,8 @@ import { useFlow } from '../store';
 
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
-  const ss = String(seconds % 60).padStart(2, '0');
-  return `${m}:${ss}`;
+  const s = String(seconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 // ─── Ember halo underlay ──────────────────────────────────────────────────────
@@ -105,7 +96,7 @@ function ActionButton({
           onPress={handlePress}
           style={styles.actionPressable}
           accessibilityRole="button"
-          accessibilityLabel="Start a new sesh"
+          accessibilityLabel="Start a new session"
         >
           <Text style={styles.actionBtnText}>{label}</Text>
         </Pressable>
@@ -118,16 +109,48 @@ function ActionButton({
 
 export function CompleteStage() {
   const sessionSeconds = useFlow((s) => s.sessionSeconds);
+  const startedAt = useFlow((s) => s.startedAt);
+  const phaseTrack = useFlow((s) => s.phaseTrack);
+  const phaseIdx = useFlow((s) => s.phaseIdx);
+  const windowState = useFlow((s) => s.windowState);
   const reset = useFlow((s) => s.reset);
 
-  const elapsed = formatElapsed(sessionSeconds);
+  // Guard: if startedAt is null, session was never properly started
+  const hasValidSession = startedAt != null && sessionSeconds > 0;
 
-  // Stagger: eyebrow → headline → time → button (60ms apart)
+  // Detect early exit: session ended before reaching the last phase
+  const reachedEnd = phaseIdx >= phaseTrack.length - 1;
+  const endedEarly = hasValidSession && !reachedEnd;
+
+  // Track whether the session had a missed window at any point.
+  // windowState reflects the last known state from the store.
+  const hadMissedWindow = windowState === 'missed';
+
+  const elapsed = hasValidSession ? formatElapsed(sessionSeconds) : null;
+
+  // Headline adapts to session outcome
+  const headline = (() => {
+    if (!hasValidSession) return 'Session ended.';
+    if (endedEarly) return 'Ended early.';
+    return 'Sesh done.';
+  })();
+
+  // Sub copy adapts to outcome context
+  const subCopy = (() => {
+    if (!hasValidSession) return 'No session data recorded.';
+    if (endedEarly && hadMissedWindow) return 'Window was missed before completing the full flow.';
+    if (endedEarly) return 'Session stopped before the clean phase.';
+    if (hadMissedWindow) return 'Completed with a missed window. Consider a longer cool time next run.';
+    return 'Full cycle complete.';
+  })();
+
+  // Stagger: eyebrow, headline, elapsed/sub, button
   const STAGGER = 60;
   const sv0 = useSharedValue(0);
   const sv1 = useSharedValue(0);
   const sv2 = useSharedValue(0);
   const sv3 = useSharedValue(0);
+  const sv4 = useSharedValue(0);
 
   const easing = Easing.bezier(
     EASE_OUT_EXPO.curve[0],
@@ -137,7 +160,7 @@ export function CompleteStage() {
   );
 
   useEffect(() => {
-    [sv0, sv1, sv2, sv3].forEach((sv) => { sv.value = 0; });
+    [sv0, sv1, sv2, sv3, sv4].forEach((sv) => { sv.value = 0; });
     const enter = (sv: typeof sv0, delay: number) => {
       sv.value = withDelay(delay, withTiming(1, { duration: DUR.base, easing }));
     };
@@ -145,28 +168,28 @@ export function CompleteStage() {
     enter(sv1, STAGGER);
     enter(sv2, STAGGER * 2);
     enter(sv3, STAGGER * 3);
+    enter(sv4, STAGGER * 4);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const s0 = useAnimatedStyle(() => ({
-    opacity: sv0.value,
-    transform: [{ translateY: (1 - sv0.value) * 12 }],
-  }));
-  const s1 = useAnimatedStyle(() => ({
-    opacity: sv1.value,
-    transform: [{ translateY: (1 - sv1.value) * 12 }],
-  }));
-  const s2 = useAnimatedStyle(() => ({
-    opacity: sv2.value,
-    transform: [{ translateY: (1 - sv2.value) * 12 }],
-  }));
-  const s3 = useAnimatedStyle(() => ({
-    opacity: sv3.value,
-    transform: [{ translateY: (1 - sv3.value) * 12 }],
-  }));
+  const makeStyle = (sv: typeof sv0) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useAnimatedStyle(() => ({
+      opacity: sv.value,
+      transform: [{ translateY: (1 - sv.value) * 12 }],
+    }));
+
+  const s0 = makeStyle(sv0);
+  const s1 = makeStyle(sv1);
+  const s2 = makeStyle(sv2);
+  const s3 = makeStyle(sv3);
+  const s4 = makeStyle(sv4);
+
+  // TODO: persist session data to storage once a save action is wired up
+  // (store currently holds session in memory only — no persistence layer yet)
 
   return (
     <View style={styles.container}>
-      {/* Eyebrow */}
+      {/* Phase completion label */}
       <Animated.View style={s0}>
         <Text style={styles.eyebrow}>COMPLETE</Text>
       </Animated.View>
@@ -174,17 +197,24 @@ export function CompleteStage() {
       {/* Headline with ember halo behind it */}
       <Animated.View style={[styles.headlineWrap, s1]}>
         <EmberHalo />
-        <Text style={styles.headline}>Sesh logged.</Text>
+        <Text style={styles.headline}>{headline}</Text>
       </Animated.View>
 
-      {/* Elapsed time */}
-      <Animated.View style={s2}>
-        <Text style={styles.elapsed}>{elapsed} elapsed</Text>
+      {/* Elapsed time — only when we have a real session */}
+      {elapsed !== null && (
+        <Animated.View style={s2}>
+          <Text style={styles.elapsed}>{elapsed} elapsed</Text>
+        </Animated.View>
+      )}
+
+      {/* Outcome sub copy */}
+      <Animated.View style={s3}>
+        <Text style={styles.subCopy}>{subCopy}</Text>
       </Animated.View>
 
-      {/* New sesh button */}
-      <Animated.View style={[styles.btnWrap, s3]}>
-        <ActionButton label="New sesh" onPress={reset} />
+      {/* New session button — resets store cleanly */}
+      <Animated.View style={[styles.btnWrap, s4]}>
+        <ActionButton label="New session" onPress={reset} />
       </Animated.View>
     </View>
   );
@@ -195,7 +225,7 @@ export function CompleteStage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: SPACE.xs,       // 4
+    paddingTop: SPACE.xs,
     paddingHorizontal: 22,
     paddingBottom: 130,
     flexDirection: 'column',
@@ -209,7 +239,6 @@ const styles = StyleSheet.create({
   headlineWrap: {
     marginTop: 8,
     alignItems: 'center',
-    // overflow visible so halo can bleed outside
   },
   haloWrap: {
     position: 'absolute',
@@ -217,7 +246,6 @@ const styles = StyleSheet.create({
     height: 120,
     top: -30,
     left: -30,
-    // blur simulated via large radial gradient; no blurRadius on View needed
   },
   headline: {
     fontFamily: FONTS.sans + '_300Light',
@@ -233,6 +261,14 @@ const styles = StyleSheet.create({
     color: THEME.bone[50],
     marginTop: 8,
     textAlign: 'center',
+  },
+  subCopy: {
+    fontFamily: FONTS.sans + '_400Regular',
+    fontSize: 12,
+    color: THEME.bone[35],
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   btnWrap: {
     marginTop: 24,
@@ -272,6 +308,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.sans + '_600SemiBold',
     fontSize: 13,
     letterSpacing: 0.26,
-    color: '#fff5e8',
+    color: THEME.bone[100],
   },
 });

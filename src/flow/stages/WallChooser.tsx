@@ -1,22 +1,13 @@
-/**
- * src/flow/stages/WallChooser.tsx
- *
- * Step 2 of the builder — pick the wall thickness modifier.
- * Four cards: thin / standard / thick / unknown.
- *
- * Tokens: src/flow/theme.ts
- * Reference: /tmp/quartzie-prototype/src/flow-build.jsx WallChooser
- */
-
+import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { Easing, FadeInUp } from 'react-native-reanimated';
 
 import ChooserCard from '../components/ChooserCard';
 import { WALLS } from '../data';
 import { useFlow } from '../store';
 
-// ─── WallChooser ──────────────────────────────────────────────────────────────
+const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 export default function WallChooser() {
   const wallId = useFlow((s) => s.wallId);
@@ -35,11 +26,14 @@ export default function WallChooser() {
           return (
             <Animated.View
               key={w.id}
-              entering={FadeInUp.delay(120 + idx * 55).duration(380)}
+              entering={FadeInUp.delay(120 + idx * 55).duration(380).easing(STAGGER_EASING)}
             >
               <ChooserCard
                 active={wallId === w.id}
-                onPress={() => setWallId(w.id)}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setWallId(w.id);
+                }}
                 title={`${w.name} · ${w.thickness}`}
                 sub={sub}
               />

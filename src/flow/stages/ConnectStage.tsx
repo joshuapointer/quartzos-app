@@ -1,20 +1,9 @@
-/**
- * src/flow/stages/ConnectStage.tsx
- *
- * S-01 / S-02 — Connect stage. The orb is rendered by the parent shell; do NOT
- * render it here. This component owns only the text content + status pill + button.
- *
- * PRD §5.1 + prototype ConnectStage (flow-shell.jsx line 377).
- *
- * Tokens: src/flow/theme.ts
- * Store:  useFlow from ../store
- */
-
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -27,7 +16,7 @@ import Animated, {
 import { useFlow } from '../store';
 import { THEME } from '../theme';
 
-// ─── Entrance animation helper ────────────────────────────────────────────────
+const EASE_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
 
 function useStaggerEntrance(idx: number) {
   const opacity = useSharedValue(0);
@@ -35,8 +24,8 @@ function useStaggerEntrance(idx: number) {
 
   useEffect(() => {
     const delay = idx * 55;
-    opacity.value = withDelay(delay, withTiming(1, { duration: 600 }));
-    translateY.value = withDelay(delay, withTiming(0, { duration: 600 }));
+    opacity.value = withDelay(delay, withTiming(1, { duration: 600, easing: EASE_EXPO }));
+    translateY.value = withDelay(delay, withTiming(0, { duration: 600, easing: EASE_EXPO }));
   }, [idx, opacity, translateY]);
 
   return useAnimatedStyle(() => ({
@@ -44,8 +33,6 @@ function useStaggerEntrance(idx: number) {
     transform: [{ translateY: translateY.value }],
   }));
 }
-
-// ─── Status Dot ───────────────────────────────────────────────────────────────
 
 function StatusDot({ searching }: { searching: boolean }) {
   const opacity = useSharedValue(1);
@@ -93,8 +80,6 @@ const dotStyle = StyleSheet.create({
   },
 });
 
-// ─── ConnectButton ────────────────────────────────────────────────────────────
-
 function ConnectButton({
   searching,
   onPress,
@@ -104,6 +89,8 @@ function ConnectButton({
 }) {
   const scale = useSharedValue(1);
   const translateY = useSharedValue(0);
+  // Guard against double-tap; lock for 250ms after each press.
+  const locked = useRef(false);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
@@ -120,6 +107,9 @@ function ConnectButton({
   }
 
   function handlePress() {
+    if (locked.current) return;
+    locked.current = true;
+    setTimeout(() => { locked.current = false; }, 250);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   }
@@ -131,12 +121,13 @@ function ConnectButton({
           accessibilityRole="button"
           accessibilityLabel="Searching for Dab Rite"
           accessibilityState={{ busy: true, disabled: true }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={btnStyles.ghost}
         >
-          <Text style={btnStyles.ghostText}>Searching for Dab Rite…</Text>
+          <Text style={btnStyles.ghostText}>Searching for Dab Rite...</Text>
         </Pressable>
       </Animated.View>
     );
@@ -158,6 +149,7 @@ function ConnectButton({
           style={btnStyles.pressable}
           accessibilityRole="button"
           accessibilityLabel="Connect Dab Rite"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={btnStyles.text}>Connect Dab Rite</Text>
         </Pressable>
@@ -216,8 +208,6 @@ const btnStyles = StyleSheet.create({
   },
 });
 
-// ─── ConnectStage ─────────────────────────────────────────────────────────────
-
 export default function ConnectStage() {
   const connect = useFlow((s) => s.connect);
   const searching = useFlow((s) => s.searching);
@@ -232,12 +222,10 @@ export default function ConnectStage() {
   return (
     <View style={st.container}>
 
-      {/* Eyebrow */}
       <Animated.View style={s0}>
         <Text style={st.eyebrow}>DEVICE NOT FOUND</Text>
       </Animated.View>
 
-      {/* Headline */}
       <Animated.View style={s1}>
         <View style={st.headlineWrapper}>
           <Text style={st.headline}>
@@ -248,7 +236,6 @@ export default function ConnectStage() {
         </View>
       </Animated.View>
 
-      {/* Sub copy */}
       <Animated.View style={s2}>
         <Text style={st.subCopy}>
           Quartzie pairs with your IR thermometer over Bluetooth. Power it on
@@ -256,22 +243,24 @@ export default function ConnectStage() {
         </Text>
       </Animated.View>
 
-      {/* Status pill */}
+      {/* accessibilityLiveRegion so screen readers announce scan state changes */}
       <Animated.View style={s3}>
-        <View style={st.statusPill}>
+        <View
+          style={st.statusPill}
+          accessibilityLiveRegion="polite"
+          accessibilityLabel={searching ? 'Scanning for device' : 'Awaiting device'}
+        >
           <StatusDot searching={searching} />
           <Text style={[st.statusText, { color: searching ? THEME.bone[90] : THEME.bone[50] }]}>
-            {searching ? 'SCANNING…' : 'AWAITING DEVICE'}
+            {searching ? 'SCANNING...' : 'AWAITING DEVICE'}
           </Text>
         </View>
       </Animated.View>
 
-      {/* Primary button */}
       <Animated.View style={s4}>
         <ConnectButton searching={searching} onPress={connect} />
       </Animated.View>
 
-      {/* Footer */}
       <Animated.View style={s5}>
         <Text style={st.footer}>NO ADVANCE WITHOUT A DEVICE</Text>
       </Animated.View>
@@ -279,8 +268,6 @@ export default function ConnectStage() {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
   container: {

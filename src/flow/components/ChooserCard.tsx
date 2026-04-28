@@ -4,8 +4,9 @@
  * Reusable picker row for Banger / Concentrate / Wall choosers.
  * Active = ember gradient + ring + glow. Disabled = red-tinted ring + low opacity.
  *
+ * Memoized — rendered in lists; equality is shallow on props.
+ *
  * Tokens: src/flow/theme.ts
- * Reference: /tmp/quartzie-prototype/src/flow-build.jsx ChooserCard
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -56,7 +57,7 @@ function CheckBadge() {
 
 // ─── ChooserCard ──────────────────────────────────────────────────────────────
 
-export default function ChooserCard({
+function ChooserCardInner({
   active = false,
   disabled = false,
   onPress,
@@ -185,6 +186,9 @@ export default function ChooserCard({
     </Animated.View>
   );
 }
+
+const ChooserCard = React.memo(ChooserCardInner);
+export default ChooserCard;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

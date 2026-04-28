@@ -1,16 +1,3 @@
-/**
- * src/flow/stages/BuildStage.tsx
- *
- * Phase 6 — top-level builder shell. 4 steps:
- *   0 banger → 1 concentrate → 2 wall → 3 review.
- *
- * Owns the progress strip, eyebrow + title, swappable body, and the
- * Back / Continue button row. Each child stage reads its slice of the
- * flow store directly.
- *
- * Tokens: src/flow/theme.ts
- * Reference: /tmp/quartzie-prototype/src/flow-build.jsx BuildStage
- */
 
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,8 +24,6 @@ import BangerChooser from './BangerChooser';
 import ConcChooser from './ConcChooser';
 import ReviewStep from './ReviewStep';
 import WallChooser from './WallChooser';
-
-// ─── Step metadata ────────────────────────────────────────────────────────────
 
 const STEP_LABELS = ['BANGER', 'CONCENTRATE', 'WALL', 'REVIEW'] as const;
 const STEP_TITLES = [
@@ -96,7 +81,6 @@ function ProgressPill({ index, step }: ProgressPillProps) {
 // ─── Body switcher ────────────────────────────────────────────────────────────
 
 function StageBody({ step }: { step: number }) {
-  // Use the step value as a key on the wrapper to retrigger the cross-fade.
   let child: React.ReactNode = null;
   if (step === 0) child = <BangerChooser />;
   else if (step === 1) child = <ConcChooser />;
@@ -139,12 +123,12 @@ export default function BuildStage() {
   }));
 
   function handleBack() {
-    void Haptics.selectionAsync();
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     builderBack();
   }
   function handleNext() {
     if (!ready) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     builderNext();
   }
   function handleContinuePressIn() {
@@ -178,12 +162,16 @@ export default function BuildStage() {
       <StageBody step={step} />
 
       {/* Footer button row */}
+      {!ready && step < 3 && (
+        <Text style={styles.notReadyHint}>Make a selection to continue</Text>
+      )}
       <View style={styles.footerRow}>
         <Pressable
           onPress={handleBack}
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel="Back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={styles.backText}>← Back</Text>
         </Pressable>
@@ -313,8 +301,15 @@ const styles = StyleSheet.create({
   continueText: {
     fontFamily: 'Geist_600SemiBold',
     fontSize: 12.5,
-    color: '#ffffff',
+    color: THEME.bone[100],
     letterSpacing: 0.02 * 12.5,
+  },
+  notReadyHint: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 10.5,
+    color: THEME.bone[35],
+    textAlign: 'center',
+    marginBottom: 6,
   },
   continueTextDisabled: {
     color: THEME.bone[35],

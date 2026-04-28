@@ -1,16 +1,6 @@
-/**
- * src/flow/stages/SessionStage.tsx
- *
- * Phase 7 — Session stage: eyebrow + headline + sub copy + drop-rate strip
- * (cool only) + action button (cool/dab). Stagger entrance on phase change.
- *
- * PRD §5.4–§5.9 / prototype flow-shell.jsx SessionStage (line 555).
- * The persistent orb is rendered by the parent shell, not here.
- */
-
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -39,7 +29,10 @@ import {
 const STAGGER_MS = 60;
 const ENTER_DUR = DUR.base; // 380ms
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Phase transition order for haptic firing
+const PHASE_ORDER: string[] = ['load', 'heat', 'cool', 'dab', 'dunk', 'clean'];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type SV = ReturnType<typeof useSharedValue<number>>;
 
@@ -63,6 +56,13 @@ function useStaggerStyle(sv: SV) {
     opacity: sv.value,
     transform: [{ translateY: (1 - sv.value) * 12 }],
   }));
+}
+
+// Format mm:ss from seconds
+function formatTime(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = String(totalSeconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -94,23 +94,31 @@ function DropRateStrip({ dropRate }: { dropRate: number }) {
 function ActionButton({
   label,
   onPress,
+  disabled = false,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
+  disabled?: boolean;
+  accessibilityLabel: string;
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+    opacity: disabled ? 0.45 : 1,
   }));
 
   function handlePressIn() {
+    if (disabled) return;
     scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
+    if (disabled) return;
     scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
   async function handlePress() {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (disabled) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     onPress();
   }
 
@@ -129,7 +137,9 @@ function ActionButton({
           onPress={handlePress}
           style={styles.actionPressable}
           accessibilityRole="button"
-          accessibilityLabel={label}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
         >
           <Text style={styles.actionBtnText}>{label}</Text>
         </Pressable>
@@ -147,22 +157,64 @@ export function SessionStage() {
   const heatTimeFactor = useFlow((s) => s.heatTimeFactor);
   const heatReason = useFlow((s) => s.heatReason);
   const coolDropRate = useFlow((s) => s.coolDropRate);
+  const windowState = useFlow((s) => s.windowState);
+  const windowSecondsLeft = useFlow((s) => s.windowSecondsLeft);
+  const startedAt = useFlow((s) => s.startedAt);
   const liftToDab = useFlow((s) => s.liftToDab);
   const placeBack = useFlow((s) => s.placeBack);
 
   const banger = useBanger();
   const calibration = useCalibration();
 
-  const cur = phaseTrack[phaseIdx] ?? 'heat';
+  // Bounds-guard phaseIdx against a stale or resetting track
+  const safeIdx = phaseIdx >= 0 && phaseIdx < phaseTrack.length ? phaseIdx : 0;
+  const cur = phaseTrack[safeIdx] ?? 'heat';
   const isReheat = heatTimeFactor < 1;
+  const isMissed = windowState === 'missed';
 
-  // ── Eyebrow ──────────────────────────────────────────────────────────────
-  const m = Math.floor(sessionSeconds / 60);
-  const ss = String(sessionSeconds % 60).padStart(2, '0');
+  // ── Haptics on phase transition ───────────────────────────────────────────
+  const prevPhaseRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = cur;
+
+    // Skip the first render (no transition yet)
+    if (prev === null) return;
+    if (prev === cur) return;
+
+    const prevOrder = PHASE_ORDER.indexOf(prev);
+    const curOrder = PHASE_ORDER.indexOf(cur);
+
+    if (curOrder > prevOrder) {
+      // Forward phase transition
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [cur]);
+
+  // ── Haptic on missed window ───────────────────────────────────────────────
+  const prevWindowRef = useRef<string>(windowState);
+  useEffect(() => {
+    const prev = prevWindowRef.current;
+    prevWindowRef.current = windowState;
+    if (prev !== 'missed' && windowState === 'missed') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+  }, [windowState]);
+
+  // ── Eyebrow ───────────────────────────────────────────────────────────────
   const reheatSuffix = isReheat && cur === 'heat' ? ' · REHEAT' : '';
-  const eyebrowText = `${cur.toUpperCase()}${reheatSuffix} · ${m}:${ss}`;
+  // Only show session clock when startedAt is available (null guard)
+  const clockSuffix = startedAt != null ? ` · ${formatTime(sessionSeconds)}` : '';
+  const eyebrowText = `${cur.toUpperCase()}${reheatSuffix}${clockSuffix}`;
 
-  // ── Headline ─────────────────────────────────────────────────────────────
+  // ── Dab window countdown (count-down: time remaining in window) ───────────
+  const dabWindowText =
+    cur === 'dab' && !isMissed && windowSecondsLeft > 0
+      ? `${windowSecondsLeft}s left`
+      : null;
+
+  // ── Headline ──────────────────────────────────────────────────────────────
   const headline = (() => {
     if (cur === 'load') return 'Load the banger cold.';
     if (cur === 'heat') {
@@ -171,7 +223,10 @@ export function SessionStage() {
       return 'Underheated. Top it off.';
     }
     if (cur === 'cool') return 'Place back on the DabRite.';
-    if (cur === 'dab') return 'Dab now.';
+    if (cur === 'dab') {
+      if (isMissed) return 'Missed the window.';
+      return 'Dab now.';
+    }
     if (cur === 'dunk') return 'Dunk the q-tip.';
     if (cur === 'clean') return 'Swab the residue.';
     return '';
@@ -188,14 +243,16 @@ export function SessionStage() {
         return `${banger?.name ?? 'Banger'} · target ${banger?.heat_time ?? '—'}. Torch off when timer ends.`;
       if (heatReason === 'missed')
         return 'Temp fell below the dab window before you lifted. Half-time torch this round.';
-      return "IR saw a fast drop — banger didn't soak the heat. Half-time torch to bring it back up.";
+      return "IR saw a fast drop. Banger didn't soak the heat. Half-time torch to bring it back up.";
     }
     if (cur === 'cool') {
       const targetTemp = calibration?.displayed ?? '—';
       return `Cooling toward ${targetTemp}°. Lift the banger when the orb says LIFT TO DAB.`;
     }
-    if (cur === 'dab')
+    if (cur === 'dab') {
+      if (isMissed) return 'Temp dropped before you lifted. Place back and let it reheat.';
       return 'Apply the concentrate. Tap done when the banger comes back to the DabRite.';
+    }
     if (cur === 'dunk') return 'Cool enough to dunk and pull cap.';
     if (cur === 'clean') return 'Q-tip the inside before the puddle hardens.';
     return '';
@@ -207,6 +264,8 @@ export function SessionStage() {
   const sv2 = useSharedValue(0);
   const sv3 = useSharedValue(0);
   const sv4 = useSharedValue(0);
+  // Separate shared value for dab window countdown
+  const sv5 = useSharedValue(0);
 
   const hasCoolStrip = cur === 'cool';
   const showCoolStrip = cur === 'cool' && coolDropRate > 0;
@@ -218,8 +277,8 @@ export function SessionStage() {
     sv2.value = 0;
     sv3.value = 0;
     sv4.value = 0;
+    sv5.value = 0;
 
-    // eyebrow, headline, sub always enter
     enterSv(sv0, 0);
     enterSv(sv1, STAGGER_MS);
     enterSv(sv2, STAGGER_MS * 2);
@@ -227,6 +286,10 @@ export function SessionStage() {
     let next = 3;
     if (hasCoolStrip) {
       enterSv(sv3, STAGGER_MS * next);
+      next += 1;
+    }
+    if (cur === 'dab') {
+      enterSv(sv5, STAGGER_MS * next);
       next += 1;
     }
     if (hasAction) {
@@ -239,17 +302,30 @@ export function SessionStage() {
   const s2 = useStaggerStyle(sv2);
   const s3 = useStaggerStyle(sv3);
   const s4 = useStaggerStyle(sv4);
+  const s5 = useStaggerStyle(sv5);
+
+  // Missed window desaturates the headline to bone instead of ember tones
+  const headlineColor = isMissed ? THEME.bone[50] : THEME.bone[100];
+
+  // Lift to dab is only actionable if we are in cool and not missed
+  const liftDisabled = cur === 'cool' && isMissed;
+  // Place back is always actionable when in dab
+  const placeBackDisabled = false;
 
   return (
     <View style={styles.container}>
-      {/* Eyebrow */}
-      <Animated.View style={s0}>
+      {/* Phase label with session clock — announced as live region for a11y */}
+      <Animated.View
+        style={s0}
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={eyebrowText}
+      >
         <Text style={styles.eyebrow}>{eyebrowText}</Text>
       </Animated.View>
 
       {/* Headline */}
       <Animated.View style={[styles.headlineWrap, s1]}>
-        <Text style={styles.headline}>{headline}</Text>
+        <Text style={[styles.headline, { color: headlineColor }]}>{headline}</Text>
       </Animated.View>
 
       {/* Sub copy */}
@@ -257,22 +333,43 @@ export function SessionStage() {
         <Text style={styles.sub}>{subCopy}</Text>
       </Animated.View>
 
-      {/* Drop-rate strip — cool only, hidden until first reading arrives */}
+      {/* Missed window hint — quiet, no shouting */}
+      {isMissed && cur === 'dab' && (
+        <Animated.View style={[styles.missedHint, s2]}>
+          <Text style={styles.missedHintText}>missed window</Text>
+        </Animated.View>
+      )}
+
+      {/* Drop-rate strip, cool only, hidden until first reading arrives */}
       {showCoolStrip && (
         <Animated.View style={s3}>
           <DropRateStrip dropRate={coolDropRate} />
         </Animated.View>
       )}
 
-      {/* Action button — cool or dab */}
+      {/* Dab window countdown */}
+      {dabWindowText !== null && (
+        <Animated.View style={[styles.dabWindowWrap, s5]}>
+          <Text style={styles.dabWindowText}>{dabWindowText}</Text>
+        </Animated.View>
+      )}
+
+      {/* Action buttons */}
       {hasAction && (
         <Animated.View style={[styles.actionWrap, s4]}>
           {cur === 'cool' ? (
-            <ActionButton label="Lift to dab →" onPress={liftToDab} />
+            <ActionButton
+              label="Lift to dab"
+              onPress={liftToDab}
+              disabled={liftDisabled}
+              accessibilityLabel="Lift banger to begin dab"
+            />
           ) : (
             <ActionButton
-              label="Place back on DabRite →"
+              label="Place back on DabRite"
               onPress={placeBack}
+              disabled={placeBackDisabled}
+              accessibilityLabel="Place banger back on DabRite to continue"
             />
           )}
         </Animated.View>
@@ -286,7 +383,7 @@ export function SessionStage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: SPACE.xs,      // 4
+    paddingTop: SPACE.xs,
     paddingHorizontal: 22,
     paddingBottom: 130,
     flexDirection: 'column',
@@ -301,7 +398,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Geist_300Light',
     fontSize: 26,
     letterSpacing: -0.91,
-    color: THEME.bone[100],
     lineHeight: 30,
   },
   sub: {
@@ -311,13 +407,23 @@ const styles = StyleSheet.create({
     lineHeight: 12.5 * 1.5,
     marginTop: 10,
   },
+  missedHint: {
+    marginTop: 10,
+  },
+  missedHintText: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: THEME.bone[35],
+  },
   dropPill: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    paddingVertical: SPACE.sm,    // 8
+    paddingVertical: SPACE.sm,
     paddingHorizontal: 10,
-    borderRadius: SPACE.sm,       // 8
+    borderRadius: SPACE.sm,
     borderWidth: 1,
     marginTop: 14,
   },
@@ -332,7 +438,7 @@ const styles = StyleSheet.create({
   dropLabel: {
     fontFamily: 'GeistMono_400Regular',
     fontSize: 9,
-    letterSpacing: 0.9, // 0.10em at 9pt
+    letterSpacing: 0.9,
     textTransform: 'uppercase',
   },
   dropLabelNormal: {
@@ -344,6 +450,15 @@ const styles = StyleSheet.create({
   dropValue: {
     fontFamily: 'GeistMono_400Regular',
     fontSize: 10.5,
+    color: THEME.bone[50],
+  },
+  dabWindowWrap: {
+    marginTop: 10,
+  },
+  dabWindowText: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 11,
+    letterSpacing: 0.6,
     color: THEME.bone[50],
   },
   actionWrap: {
@@ -383,6 +498,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Geist_600SemiBold',
     fontSize: 13,
     letterSpacing: 0.26,
-    color: '#fff5e8',
+    color: THEME.bone[100],
   },
 });

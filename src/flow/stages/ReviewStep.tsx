@@ -1,14 +1,3 @@
-/**
- * src/flow/stages/ReviewStep.tsx
- *
- * Step 3 of the builder — calibration review + cold-start fork.
- * Glass-disc calibration card, 8-line setup grid, optional notes,
- * optional warning strip, cold-start toggle.
- *
- * Tokens: src/flow/theme.ts
- * Reference: /tmp/quartzie-prototype/src/flow-build.jsx ReviewStep + ColdStartToggle
- */
-
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,12 +10,15 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+
+const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 import { useEffect } from 'react';
 
 import {
@@ -60,7 +52,7 @@ type CalibrationCardProps = {
   calibration: CalibResult;
 };
 
-function CalibrationCard({
+const CalibrationCard = React.memo(function CalibrationCard({
   banger,
   concentrate,
   calibration,
@@ -129,9 +121,7 @@ function CalibrationCard({
       </BlurView>
     </View>
   );
-}
-
-// ─── Setup grid ───────────────────────────────────────────────────────────────
+});
 
 type SetupGridProps = {
   banger: Banger;
@@ -140,7 +130,7 @@ type SetupGridProps = {
   wall: Wall;
 };
 
-function SetupGrid({
+const SetupGrid = React.memo(function SetupGrid({
   banger,
   concentrate,
   sensorName,
@@ -173,16 +163,14 @@ function SetupGrid({
       ))}
     </View>
   );
-}
-
-// ─── Notes card ───────────────────────────────────────────────────────────────
+});
 
 type NotesCardProps = {
   notes: string[];
   confidence: string;
 };
 
-function NotesCard({ notes, confidence }: NotesCardProps) {
+const NotesCard = React.memo(function NotesCard({ notes, confidence }: NotesCardProps) {
   return (
     <View style={styles.notesCard}>
       <Text style={styles.notesEyebrow}>NOTES · {confidence}</Text>
@@ -196,17 +184,15 @@ function NotesCard({ notes, confidence }: NotesCardProps) {
       </View>
     </View>
   );
-}
+});
 
-// ─── Warning strip ────────────────────────────────────────────────────────────
-
-function WarningStrip({ message }: { message: string }) {
+const WarningStrip = React.memo(function WarningStrip({ message }: { message: string }) {
   return (
     <View style={styles.warningStrip}>
       <Text style={styles.warningStripText}>{message}</Text>
     </View>
   );
-}
+});
 
 // ─── Cold-start toggle ────────────────────────────────────────────────────────
 
@@ -331,7 +317,7 @@ export default function ReviewStep() {
   sections.push(
     <Animated.View
       key="calib"
-      entering={FadeInUp.delay(120).duration(380)}
+      entering={FadeInUp.delay(120).duration(380).easing(STAGGER_EASING)}
     >
       <CalibrationCard
         banger={banger}
@@ -344,7 +330,7 @@ export default function ReviewStep() {
   sections.push(
     <Animated.View
       key="grid"
-      entering={FadeInUp.delay(175).duration(380)}
+      entering={FadeInUp.delay(175).duration(380).easing(STAGGER_EASING)}
     >
       <SetupGrid
         banger={banger}
@@ -359,7 +345,7 @@ export default function ReviewStep() {
     sections.push(
       <Animated.View
         key="notes"
-        entering={FadeInUp.delay(230).duration(380)}
+        entering={FadeInUp.delay(230).duration(380).easing(STAGGER_EASING)}
       >
         <NotesCard
           notes={concentrate.notes}
@@ -373,7 +359,7 @@ export default function ReviewStep() {
     sections.push(
       <Animated.View
         key="warning"
-        entering={FadeInUp.delay(285).duration(380)}
+        entering={FadeInUp.delay(285).duration(380).easing(STAGGER_EASING)}
       >
         <WarningStrip message={concentrate.warning} />
       </Animated.View>,
@@ -383,7 +369,7 @@ export default function ReviewStep() {
   sections.push(
     <Animated.View
       key="cold"
-      entering={FadeInUp.delay(340).duration(380)}
+      entering={FadeInUp.delay(340).duration(380).easing(STAGGER_EASING)}
     >
       <ColdStartCard
         banger={banger}
@@ -412,7 +398,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
 
-  // Calibration card
   calibCardWrap: {
     borderRadius: 24,
     overflow: 'hidden',
@@ -508,6 +493,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.bone[70],
     lineHeight: 12 * 1.5,
+    maxWidth: 280,
   } as const,
 
   // Setup grid
@@ -581,6 +567,7 @@ const styles = StyleSheet.create({
     color: THEME.bone[90],
     lineHeight: 12 * 1.5,
     flex: 1,
+    maxWidth: 280,
   },
 
   // Warning strip
@@ -655,8 +642,8 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
+    backgroundColor: THEME.bone[100],
+    shadowColor: THEME.navy[0],
     shadowRadius: 4,
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 1 },
@@ -667,5 +654,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.bone[50],
     lineHeight: 12 * 1.5,
+    maxWidth: 280,
   },
 });

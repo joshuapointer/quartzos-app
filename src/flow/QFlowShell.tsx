@@ -1,16 +1,15 @@
 /**
  * src/flow/QFlowShell.tsx
  *
- * Phase 8 — the persistent shell that wraps every stage of the linear flow.
+ * Persistent shell that wraps every stage of the linear flow.
  * Holds:
- *   • QBackground (full-bleed deep-navy + ember radials)
- *   • QWordmark (top header — sphere + Quartzie + status/disconnect)
- *   • Persistent orb cell (height animates from orbProps.size)
- *   • StageSwitch — cross-fades between stage bodies on stageKey change
+ *   - QBackground (full-bleed deep-navy + ember radials)
+ *   - QWordmark (top header — sphere + Quartzie + status/disconnect)
+ *   - Persistent orb cell (height animates from orbProps.size)
+ *   - StageSwitch — cross-fades between stage bodies on stageKey change
  *
- * Source of truth: /tmp/quartzie-prototype/src/flow-shell.jsx (QFlowShell @ 276,
- * StageSwitch @ 365). Web `transition: height 700ms cubic-bezier(.22,1,.36,1)`
- * becomes Reanimated `withTiming` with the matching bezier easing.
+ * Height transition uses cubic-bezier(.22,1,.36,1) to match the
+ * snappy-but-smooth expo ease-out feel across stage changes.
  */
 
 import React from 'react';
@@ -26,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Orb from './components/Orb';
 import QWordmark from './components/QWordmark';
 import QBackground from './QBackground';
+import ErrorBoundary from './ErrorBoundary';
 import { useFlow, useOrbProps } from './store';
 
 import BuildStage from './stages/BuildStage';
@@ -70,39 +70,40 @@ export default function QFlowShell() {
   const stageKey = stage === 'session' ? `session-${phaseIdx}` : stage;
 
   const targetOrbHeight = (orbProps.size ?? 200) + 30;
+  const targetOrbMarginTop = stage === 'connect' ? 80 : 8;
+
   const orbCellAnimStyle = useAnimatedStyle(() => ({
     height: withTiming(targetOrbHeight, { duration: 700, easing: STAGE_EASE }),
+    marginTop: withTiming(targetOrbMarginTop, { duration: 700, easing: STAGE_EASE }),
   }));
 
-  const orbMarginTop = stage === 'connect' ? 80 : 8;
-
   return (
-    <QBackground>
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <QWordmark
-          connected={connected}
-          onDisconnect={connected && stage !== 'connect' ? disconnect : undefined}
-        />
+    <ErrorBoundary>
+      <QBackground>
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <QWordmark
+            connected={connected}
+            onDisconnect={connected && stage !== 'connect' ? disconnect : undefined}
+          />
 
-        {/* Persistent orb cell — height morphs as orbProps.size changes. */}
-        <Animated.View
-          style={[styles.orbCell, orbCellAnimStyle, { marginTop: orbMarginTop }]}
-        >
-          <Orb {...orbProps} />
-        </Animated.View>
+          {/* Persistent orb cell — height and top margin morph as stage changes. */}
+          <Animated.View style={[styles.orbCell, orbCellAnimStyle]}>
+            <Orb {...orbProps} />
+          </Animated.View>
 
-        {/* Stage content — cross-fades between stages and session phases. */}
-        <View style={styles.stageOuter}>
-          <StageSwitch stageKey={stageKey}>
-            {stage === 'connect' && <ConnectStage />}
-            {stage === 'choose' && <ChooseStage />}
-            {stage === 'build' && <BuildStage />}
-            {stage === 'session' && <SessionStage />}
-            {stage === 'complete' && <CompleteStage />}
-          </StageSwitch>
-        </View>
-      </SafeAreaView>
-    </QBackground>
+          {/* Stage content — cross-fades between stages and session phases. */}
+          <View style={styles.stageOuter}>
+            <StageSwitch stageKey={stageKey}>
+              {stage === 'connect' && <ConnectStage />}
+              {stage === 'choose' && <ChooseStage />}
+              {stage === 'build' && <BuildStage />}
+              {stage === 'session' && <SessionStage />}
+              {stage === 'complete' && <CompleteStage />}
+            </StageSwitch>
+          </View>
+        </SafeAreaView>
+      </QBackground>
+    </ErrorBoundary>
   );
 }
 

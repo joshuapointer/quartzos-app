@@ -1,13 +1,3 @@
-/**
- * src/flow/stages/BangerChooser.tsx
- *
- * Step 0 of the builder — pick the banger geometry.
- * Filter chip row + scrollable list of ChooserCards.
- *
- * Tokens: src/flow/theme.ts
- * Reference: /tmp/quartzie-prototype/src/flow-build.jsx BangerChooser
- */
-
 import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
 import {
@@ -18,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   FadeInUp,
 } from 'react-native-reanimated';
 
@@ -27,7 +18,7 @@ import { BANGER_IMAGES } from '../bangerImages';
 import { useFlow } from '../store';
 import { THEME, TYPE } from '../theme';
 
-// ─── Filter definitions ───────────────────────────────────────────────────────
+const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 type FilterKey = 'All' | 'Classic' | 'Slurper' | 'Specialty' | 'Premium';
 
@@ -125,11 +116,14 @@ export default function BangerChooser() {
         {items.map((b, idx) => (
           <Animated.View
             key={b.id}
-            entering={FadeInUp.delay(120 + idx * 55).duration(380)}
+            entering={FadeInUp.delay(120 + idx * 55).duration(380).easing(STAGGER_EASING)}
           >
             <ChooserCard
               active={bangerId === b.id}
-              onPress={() => setBangerId(b.id)}
+              onPress={() => {
+                void Haptics.selectionAsync();
+                setBangerId(b.id);
+              }}
               title={b.name}
               sub={b.description}
               image={BANGER_IMAGES[b.id]}
