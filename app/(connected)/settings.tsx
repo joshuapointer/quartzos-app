@@ -15,6 +15,7 @@ import {
   FloatingHeader,
   QBackground,
   SkeuSlider,
+  toast,
 } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
 import { useSettingsStore } from '../../src/state/settingsStore';
@@ -64,6 +65,10 @@ export default function SettingsScreen() {
       setStatus('synced');
     } catch {
       setStatus('error');
+      toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+        retryLabel: 'Retry',
+        onRetry: () => { void flushWrite(next); },
+      });
     }
   }, [markConfirmed]);
 

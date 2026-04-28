@@ -76,7 +76,7 @@ export default function PresetEditorScreen() {
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="Preset name…"
+                placeholder="Name this preset"
                 placeholderTextColor={colors.boneGhost}
                 autoCapitalize="words"
                 returnKeyType="done"
@@ -147,17 +147,14 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   fieldLabel: {
+    ...fonts.labelCaps,
     color: colors.boneMid,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
     marginBottom: spacing.sm,
-    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.glassFill,
     borderWidth: 1,
-    borderColor: 'rgba(244,237,228,0.10)',
+    borderColor: colors.glassBorder,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

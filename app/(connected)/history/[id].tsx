@@ -209,7 +209,7 @@ export default function SessionDetailScreen() {
       <View style={styles.root}>
         <QBackground />
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <Text style={styles.loadingText}>Loading…</Text>
+          <Text style={styles.loadingText}>Pulling the curve</Text>
         </SafeAreaView>
       </View>
     );
@@ -278,7 +278,7 @@ export default function SessionDetailScreen() {
                 style={styles.notesInput}
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Add notes about this session…"
+                placeholder="Mark this session…"
                 placeholderTextColor={colors.boneGhost}
                 multiline
                 numberOfLines={4}
@@ -342,11 +342,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statLabel: {
+    ...fonts.labelCaps,
     color: colors.boneGhost,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
     marginBottom: spacing.xs,
   },
   statValue: {
@@ -361,17 +358,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sectionLabel: {
+    ...fonts.labelCaps,
     color: colors.boneMid,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
     marginBottom: spacing.sm,
   },
   notesInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.glassFill,
     borderWidth: 1,
-    borderColor: 'rgba(244,237,228,0.10)',
+    borderColor: colors.glassBorder,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

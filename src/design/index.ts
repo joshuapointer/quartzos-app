@@ -16,3 +16,6 @@ export { MainBottomSheet } from './components/MainBottomSheet';
 export type { MainBottomSheetHandle } from './components/MainBottomSheet';
 export { SurfaceCard } from './components/SurfaceCard';
 export type { SurfaceCardVariant } from './components/SurfaceCard';
+export { ErrorBoundary } from './components/ErrorBoundary';
+export { ToastHost, useToast, toast } from './components/Toast';
+export type { ToastVariant } from './components/Toast';

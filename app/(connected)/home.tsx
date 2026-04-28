@@ -42,6 +42,8 @@ import { NewPresetWizard } from '../../src/design/components/NewPresetWizard';
 import { QBackground } from '../../src/design/components/QBackground';
 import { TempDial } from '../../src/design/components/TempDial';
 import { QWordmark } from '../../src/design/components/QWordmark';
+import { ErrorBoundary } from '../../src/design/components/ErrorBoundary';
+import { toast } from '../../src/design/components/Toast';
 import { useBleStore } from '../../src/state/bleStore';
 import { useSettingsStore } from '../../src/state/settingsStore';
 import { useSessionStore } from '../../src/state/sessionStore';
@@ -775,7 +777,13 @@ function ConfigureContent({
       if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
       writeDebounceRef.current = setTimeout(() => {
         const fresh = useSettingsStore.getState().settings;
-        bleManager.writeSettings({ ...fresh, [key]: val }).catch(() => {});
+        const next = { ...fresh, [key]: val };
+        bleManager.writeSettings(next).catch(() => {
+          toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+            retryLabel: 'Retry',
+            onRetry: () => { void bleManager.writeSettings(next).catch(() => {}); },
+          });
+        });
       }, SETTINGS_WRITE_DEBOUNCE_MS);
     },
     [updateSetting],
@@ -791,6 +799,13 @@ function ConfigureContent({
       markConfirmed();
     } catch {
       setSaveError("Couldn't save — is the device connected?");
+      // Capture the snapshot used for this attempt so a Retry tap fires
+      // the same write rather than picking up later edits.
+      const retrySettings = settings;
+      toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+        retryLabel: 'Retry',
+        onRetry: () => { void bleManager.writeSettings(retrySettings).catch(() => {}); },
+      });
     } finally {
       setIsSaving(false);
     }
@@ -935,6 +950,8 @@ export default function HomeScreen() {
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const dirty = useSettingsStore((s) => s.dirty);
   const markConfirmed = useSettingsStore((s) => s.markConfirmed);
+  const activePresetId = useSettingsStore((s) => s.activePresetId);
+  const setActivePresetId = useSettingsStore((s) => s.setActivePresetId);
   const sessionActive = useSessionStore((s) => s.active);
   const peakF = useSessionStore((s) => s.peakF);
   const startedAt = useSessionStore((s) => s.startedAt);
@@ -943,7 +960,6 @@ export default function HomeScreen() {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
-  const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
 
   const refreshSessions = useCallback(() => {
@@ -1096,8 +1112,16 @@ export default function HomeScreen() {
       writeDebounceRef.current = null;
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await bleManager.writeSettings(preset.settings);
-    runOnJS(setActivePresetId)(preset.id);
+    try {
+      await bleManager.writeSettings(preset.settings);
+    } catch {
+      toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+        retryLabel: 'Retry',
+        onRetry: () => { void handleApplyPreset(preset); },
+      });
+      throw new Error('write failed');
+    }
+    setActivePresetId(preset.id);
     updateSetting('dabAlarmF', preset.settings.dabAlarmF);
     updateSetting('dunkAlarmF', preset.settings.dunkAlarmF);
     dialGlow.value = withSequence(
@@ -1106,7 +1130,39 @@ export default function HomeScreen() {
     );
     // Intentionally NOT auto-navigating back; user stays in Presets and
     // chooses when to return. The dial-bloom above confirms the apply.
-  }, [dialGlow, updateSetting]);
+  }, [dialGlow, updateSetting, setActivePresetId]);
+
+  // Clear activePresetId whenever the live settings drift away from the
+  // active preset's settings (so the indicator fades to "custom"). Cheap
+  // shallow-equal across the small DeviceSettings shape — colors get a
+  // per-index check.
+  useEffect(() => {
+    if (!activePresetId) return;
+    const active = presets.find((p) => p.id === activePresetId);
+    if (!active) return;
+    const a = active.settings;
+    const b = settings;
+    const colorsEq =
+      a.colors[0] === b.colors[0] &&
+      a.colors[1] === b.colors[1] &&
+      a.colors[2] === b.colors[2] &&
+      a.colors[3] === b.colors[3];
+    const equal =
+      colorsEq &&
+      a.dabAlarmF === b.dabAlarmF &&
+      a.dunkAlarmF === b.dunkAlarmF &&
+      a.useCelsius === b.useCelsius &&
+      a.opaqueMode === b.opaqueMode &&
+      a.soundAlert === b.soundAlert &&
+      a.lightAlert === b.lightAlert &&
+      a.ledGuide === b.ledGuide &&
+      a.nightMode === b.nightMode &&
+      a.volume === b.volume &&
+      a.keyTone === b.keyTone &&
+      a.dabSound === b.dabSound &&
+      a.dunkSound === b.dunkSound;
+    if (!equal) setActivePresetId(null);
+  }, [settings, presets, activePresetId, setActivePresetId]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
   const dialAnimStyle = useAnimatedStyle(() => ({
@@ -1303,52 +1359,54 @@ export default function HomeScreen() {
         ]}
         pointerEvents={scene !== 'session' ? 'auto' : 'none'}
       >
-        {scene === 'presets' && (
-          <PresetsContent
-            settings={settings}
-            presets={presets}
-            activePresetId={activePresetId}
-            onApply={handleApplyPreset}
-            listProgress={listProgress}
-            onNewPreset={() => navigateTo('new-preset')}
-            sessionActive={sessionActive}
-            onBackToSession={() => navigateTo('session')}
-          />
-        )}
-        {scene === 'history' && (
-          <HistoryContent
-            sessions={sessions}
-            settings={settings}
-            filter={historyFilter}
-            onFilterChange={setHistoryFilter}
-            listProgress={listProgress}
-            onStartSession={() => navigateTo('walkthrough')}
-          />
-        )}
-        {scene === 'configure' && (
-          <ConfigureContent
-            settings={settings}
-            updateSetting={updateSetting}
-            dirty={dirty}
-            markConfirmed={markConfirmed}
-            writeDebounceRef={writeDebounceRef}
-          />
-        )}
-        {scene === 'walkthrough' && (
-          <SessionWalkthrough
-            visible={true}
-            onClose={() => navigateTo('session')}
-          />
-        )}
-        {scene === 'new-preset' && (
-          <NewPresetWizard
-            onClose={() => navigateTo('presets')}
-            onSaved={() => {
-              presetsDb.getAll().then(setPresets).catch(() => {});
-              navigateTo('presets');
-            }}
-          />
-        )}
+        <ErrorBoundary>
+          {scene === 'presets' && (
+            <PresetsContent
+              settings={settings}
+              presets={presets}
+              activePresetId={activePresetId}
+              onApply={handleApplyPreset}
+              listProgress={listProgress}
+              onNewPreset={() => navigateTo('new-preset')}
+              sessionActive={sessionActive}
+              onBackToSession={() => navigateTo('session')}
+            />
+          )}
+          {scene === 'history' && (
+            <HistoryContent
+              sessions={sessions}
+              settings={settings}
+              filter={historyFilter}
+              onFilterChange={setHistoryFilter}
+              listProgress={listProgress}
+              onStartSession={() => navigateTo('walkthrough')}
+            />
+          )}
+          {scene === 'configure' && (
+            <ConfigureContent
+              settings={settings}
+              updateSetting={updateSetting}
+              dirty={dirty}
+              markConfirmed={markConfirmed}
+              writeDebounceRef={writeDebounceRef}
+            />
+          )}
+          {scene === 'walkthrough' && (
+            <SessionWalkthrough
+              visible={true}
+              onClose={() => navigateTo('session')}
+            />
+          )}
+          {scene === 'new-preset' && (
+            <NewPresetWizard
+              onClose={() => navigateTo('presets')}
+              onSaved={() => {
+                presetsDb.getAll().then(setPresets).catch(() => {});
+                navigateTo('presets');
+              }}
+            />
+          )}
+        </ErrorBoundary>
       </Animated.View>
 
       {/* ── Ambient navigation nodes ── */}

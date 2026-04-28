@@ -12,10 +12,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { GlassCard } from '../GlassCard';
 import { ChromeButton } from '../ChromeButton';
+import { toast } from '../Toast';
 import { useThemeColors } from '../../ThemeContext';
 import { colors, spacing, radius, fonts } from '../../tokens';
 import { formatTemp } from '../../../utils/temperature';
 import { bleManager } from '../../../ble/BleManager';
+import { useSettingsStore } from '../../../state/settingsStore';
 import * as presetsDb from '../../../db/presets';
 import type { Preset } from '../../../db/presets';
 
@@ -153,7 +155,19 @@ export function PresetsSheetContent() {
   }, [load]);
 
   const handleApply = useCallback((preset: Preset) => {
-    void bleManager.writeSettings(preset.settings);
+    const doWrite = async () => {
+      try {
+        await bleManager.writeSettings(preset.settings);
+        useSettingsStore.getState().setSettings(preset.settings);
+        useSettingsStore.getState().setActivePresetId(preset.id);
+      } catch {
+        toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+          retryLabel: 'Retry',
+          onRetry: () => { void doWrite(); },
+        });
+      }
+    };
+    void doWrite();
   }, []);
 
   const handleDelete = useCallback((preset: Preset) => {

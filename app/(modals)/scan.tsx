@@ -180,7 +180,7 @@ export default function ScanModal() {
         <GlassCard padding={24} style={styles.card}>
           <CrystalOrb scanState={scanState} />
           <ScanCaption scanState={scanState} />
-          <Text style={styles.title}>Find a Dab Rite</Text>
+          <Text style={styles.title}>Find a rig</Text>
           <Text style={styles.body}>
             Tap a device to swap your active connection.
           </Text>
@@ -326,10 +326,10 @@ function ScanCaption({ scanState }: CaptionProps) {
   }));
 
   const label = longEmpty
-    ? 'MAKE SURE YOUR RIG IS POWERED ON'
+    ? 'WAKE YOUR RIG AND TRY AGAIN'
     : scanState === 'connecting'
-      ? 'CONNECTING…'
-      : 'LISTENING FOR DAB RITE…';
+      ? 'CONNECTING'
+      : 'LISTENING';
 
   const labelColor = longEmpty ? colors.boneGhost : colors.boneMid;
 
@@ -456,13 +456,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.glassFill,
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.glassBorder,
   },
   rowPressed: {
-    opacity: 0.7,
+    opacity: 0.72,
+    transform: [{ scale: 0.98 }],
   },
   rowText: {
     flex: 1,

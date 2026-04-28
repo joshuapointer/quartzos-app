@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, LogBox } from 'react-native';
+import { AppState, StyleSheet, LogBox } from 'react-native';
 
 LogBox.ignoreLogs(['Sending `onAnimatedValueUpdate` with no listeners registered.']);
 import { Stack } from 'expo-router';
@@ -32,6 +32,8 @@ import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
 import { ThemeProvider } from '../src/design/ThemeContext';
 import { colors } from '../src/design/tokens';
+import { ErrorBoundary, ToastHost } from '../src/design';
+import { BleManager } from '../src/ble/BleManager';
 
 // Keep the splash screen up until we're ready.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -92,34 +94,50 @@ export default function RootLayout() {
     }
   }, [ready]);
 
+  // Flush an in-memory session to SQLite when the app drops to background
+  // (the OS may suspend or kill us before the BLE-driven idle teardown
+  // would otherwise complete the write). Resume does nothing — the next
+  // session starts fresh once the rig hits 150°F again.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') {
+        void BleManager.flushActiveSession();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <GestureHandlerRootView style={styles.root}>
           <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.bgDeep },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="onboarding/permissions" />
-            <Stack.Screen name="onboarding/pair" />
-            <Stack.Screen name="(connected)" />
-            <Stack.Screen
-              name="(modals)/scan"
-              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-            />
-            <Stack.Screen
-              name="(modals)/color-picker"
-              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-            />
-            <Stack.Screen
-              name="(modals)/notification-config"
-              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-            />
-          </Stack>
+          <ErrorBoundary>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.bgDeep },
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="onboarding/permissions" />
+              <Stack.Screen name="onboarding/pair" />
+              <Stack.Screen name="(connected)" />
+              <Stack.Screen
+                name="(modals)/scan"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
+                name="(modals)/color-picker"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
+                name="(modals)/notification-config"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+            </Stack>
+          </ErrorBoundary>
+          <ToastHost />
         </GestureHandlerRootView>
       </ThemeProvider>
     </SafeAreaProvider>

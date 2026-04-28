@@ -12,6 +12,7 @@ import { alarmService } from '../notifications/AlarmService';
 import { useBleStore } from '../state/bleStore';
 import { useSessionStore } from '../state/sessionStore';
 import { useSettingsStore } from '../state/settingsStore';
+import { validateAlarms } from '../utils/temperature';
 import { ConnectionStateMachine } from './ConnectionStateMachine';
 import {
   ATT_MTU,
@@ -291,9 +292,34 @@ export class BleManager {
   }
 
   async writeSettings(settings: DeviceSettings): Promise<void> {
-    if (!this.device) return;
-    const frame = encodeWriteAll(settings);
+    if (!this.device) throw new Error('BLE not connected');
+    // Defense-in-depth: enforce the dunk = dab - 10 cross-field constraint
+    // before encoding. encodeWriteAll already clamps each field to 100..900,
+    // but it doesn't enforce the cross-field rule.
+    const { dab, dunk } = validateAlarms(settings.dabAlarmF, settings.dunkAlarmF);
+    const validated: DeviceSettings = {
+      ...settings,
+      dabAlarmF: dab,
+      dunkAlarmF: dunk,
+    };
+    const frame = encodeWriteAll(validated);
     await this.commandQueue.enqueue(frame, 'WRITE_ALL');
+  }
+
+  /**
+   * Persist the in-memory session to SQLite and zero out the in-memory
+   * session state. Safe to call when no session is active (no-op).
+   *
+   * Exposed as a public static method so the AppState handler in
+   * `app/_layout.tsx` can flush on backgrounding without poking the
+   * BleManager's internals. Reuses `currentSessionId`, the same path
+   * the BLE-driven idle teardown uses.
+   */
+  static async flushActiveSession(): Promise<void> {
+    const inst = BleManager.instance;
+    if (!inst) return;
+    if (!useSessionStore.getState().active) return;
+    await inst.endSession();
   }
 
   async writeColors(

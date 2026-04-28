@@ -17,6 +17,7 @@ import {
   ChromeButton,
   GlassCard,
   QBackground,
+  toast,
 } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
 import { rgb565to888, rgb888to565 } from '../../src/ble/DabRiteProtocol';
@@ -182,7 +183,12 @@ export default function ColorPickerModal() {
     ];
     next[slotIdx] = rgb565;
     updateSetting('colors', next);
-    void bleManager.writeColors(next).catch(() => {});
+    void bleManager.writeColors(next).catch(() => {
+      toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+        retryLabel: 'Retry',
+        onRetry: () => { void bleManager.writeColors(next).catch(() => {}); },
+      });
+    });
     router.back();
   }, [selectedSwatch, slotIdx, router, updateSetting]);
 

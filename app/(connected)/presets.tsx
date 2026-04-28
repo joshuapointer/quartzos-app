@@ -12,11 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { QBackground, ChromeButton, FloatingHeader } from '../../src/design';
+import { QBackground, ChromeButton, FloatingHeader, toast } from '../../src/design';
 import { colors, spacing, radius, fonts } from '../../src/design/tokens';
 import { formatTemp } from '../../src/utils/temperature';
 import { bleManager } from '../../src/ble/BleManager';
 import { useBleStore } from '../../src/state/bleStore';
+import { useSettingsStore } from '../../src/state/settingsStore';
 import * as presetsDb from '../../src/db/presets';
 import type { Preset } from '../../src/db/presets';
 import { PresetPill } from '../../src/design/components/PresetPill';
@@ -182,9 +183,12 @@ function EmptyState({ onCrystallize }: EmptyStateProps) {
 export default function PresetsScreen() {
   const connectionState = useBleStore((s) => s.connectionState);
   const [presets, setPresets] = useState<Preset[]>([]);
-  // TODO: replace with shared activePresetId from a cross-screen store when available.
-  // Currently activePresetId is local to home.tsx only.
-  const [activePresetId] = useState<string | null>(null);
+  // Shared cross-screen source of truth lives in `useSettingsStore`
+  // (active preset is conceptually a settings derivative; persisted
+  // through MMKV alongside theme).
+  const activePresetId = useSettingsStore((s) => s.activePresetId);
+  const setActivePresetId = useSettingsStore((s) => s.setActivePresetId);
+  const setSettings = useSettingsStore((s) => s.setSettings);
 
   const load = useCallback(async () => {
     await presetsDb.seedBuiltins();
@@ -197,8 +201,22 @@ export default function PresetsScreen() {
   }, [load]);
 
   const handleApply = useCallback((preset: Preset) => {
-    void bleManager.writeSettings(preset.settings);
-  }, []);
+    const doWrite = async () => {
+      try {
+        await bleManager.writeSettings(preset.settings);
+        // Mirror device settings into the store so the divergence
+        // detector elsewhere doesn't immediately fire.
+        setSettings(preset.settings);
+        setActivePresetId(preset.id);
+      } catch {
+        toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+          retryLabel: 'Retry',
+          onRetry: () => { void doWrite(); },
+        });
+      }
+    };
+    void doWrite();
+  }, [setActivePresetId, setSettings]);
 
   const handleDelete = useCallback((preset: Preset) => {
     Alert.alert(

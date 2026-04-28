@@ -92,8 +92,8 @@ export default function PermissionsScreen() {
         <GlassCard padding={28} style={styles.card}>
           <Text style={styles.title}>Wake the Dab Rite</Text>
           <Text style={styles.body}>
-            Quartzie reads your Dab Rite over Bluetooth and fires notifications the
-            instant you hit dab or dunk temp.
+            Quartzie reads your rig over Bluetooth and surfaces the moment your
+            quartz hits dab or dunk.
           </Text>
 
           <View style={styles.permRow}>
@@ -105,7 +105,7 @@ export default function PermissionsScreen() {
           <View style={styles.permRow}>
             <Text style={styles.permTitle}>Notifications</Text>
             <Text style={styles.permCopy}>
-              Loud alarms even when the app is in the background.
+              Loud alarms when the app is asleep in the background.
             </Text>
           </View>
 

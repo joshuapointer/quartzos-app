@@ -13,6 +13,7 @@ import { GlassCard } from '../GlassCard';
 import { ChromeButton } from '../ChromeButton';
 import { CrystalToggle } from '../CrystalToggle';
 import { SkeuSlider } from '../SkeuSlider';
+import { toast } from '../Toast';
 import { useThemeColors } from '../../ThemeContext';
 import { colors, fonts, radius, spacing } from '../../tokens';
 import { useSettingsStore } from '../../../state/settingsStore';
@@ -80,6 +81,10 @@ export function ConfigureSheetContent({
       setStatus('synced');
     } catch {
       setStatus('error');
+      toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+        retryLabel: 'Retry',
+        onRetry: () => { void flushWrite(next); },
+      });
     }
   }, [markConfirmed]);
 

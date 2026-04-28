@@ -86,8 +86,9 @@ function InlineSparkline({ samples, width = 70, height = 16 }: InlineSparklinePr
       <Path d={fillPath} fill="url(#inlineSparkFill)" />
       <Path
         d={linePath}
-        stroke={colors.primaryContainer}
-        strokeWidth={3}
+        stroke={colors.emberBright}
+        strokeWidth={2.4}
+        strokeOpacity={0.85}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -151,8 +152,8 @@ function EmptyState() {
     <View style={styles.emptyContainer}>
       {/* Ember-tinted circle glyph */}
       <View style={styles.emptyGlyph} />
-      <Text style={styles.emptyPrimary}>Your first session will appear here.</Text>
-      <Text style={styles.emptySecondary}>Pull a dab while connected.</Text>
+      <Text style={styles.emptyPrimary}>The journal is empty.</Text>
+      <Text style={styles.emptySecondary}>Your next session lands here.</Text>
     </View>
   );
 }
@@ -215,9 +216,9 @@ export default function HistoryScreen() {
         <View style={styles.pageHeader}>
           <View style={styles.pageHeaderTop}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.heading}>Session Logs</Text>
+              <Text style={styles.heading}>Journal</Text>
               <Text style={styles.subheading}>
-                Review your recent rituals and temperature profiles.
+                Past sessions, peak temps, and the curves that got you there.
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -274,8 +275,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   pageHeader: {
-    marginBottom: 24,
-    marginTop: 8,
+    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
   },
   pageHeaderTop: {
     flexDirection: 'row',
@@ -306,7 +307,8 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(109,96,80,0.2)',
+    backgroundColor: colors.outlineVariant,
+    opacity: 0.55,
   },
 
   // Journal row

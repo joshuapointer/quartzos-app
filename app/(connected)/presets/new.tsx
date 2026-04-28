@@ -195,7 +195,7 @@ export default function NewPresetWizardScreen() {
       return;
     }
     const prevStep = Math.max(0, step - 1);
-    stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
+    stepOpacity.value = withTiming(0, { duration: 140, easing: Easing.in(Easing.quad) }, (done) => {
       if (done) {
         stepSlide.value = -36;
         runOnJS(setStep)(prevStep);
@@ -239,7 +239,7 @@ export default function NewPresetWizardScreen() {
       return;
     }
     const nextStep = Math.min(STEP_COUNT - 1, step + 1);
-    stepOpacity.value = withTiming(0, { duration: 80, easing: Easing.in(Easing.quad) }, (done) => {
+    stepOpacity.value = withTiming(0, { duration: 140, easing: Easing.in(Easing.quad) }, (done) => {
       if (done) {
         stepSlide.value = 36;
         runOnJS(setStep)(nextStep);
@@ -248,12 +248,12 @@ export default function NewPresetWizardScreen() {
   }, [canAdvance, step, handleSave, stepOpacity, stepSlide]);
 
   useEffect(() => {
-    stepOpacity.value = withTiming(1, { duration: 140, easing: Easing.out(Easing.quad) });
-    stepSlide.value = withTiming(0, { duration: 240, easing: Easing.out(Easing.cubic) });
+    stepOpacity.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
+    stepSlide.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
   }, [step, stepOpacity, stepSlide]);
 
-  const stepTitle = ['Pick your hardware', 'What are you dabbing?', 'Tune your window', 'Save your preset'][step];
-  const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue →';
+  const stepTitle = ['Choose your banger', 'Choose your concentrate', 'Tune the window', 'Name & save'][step];
+  const ctaLabel = step === STEP_COUNT - 1 ? 'Save preset' : 'Continue';
 
   return (
     <View style={styles.root}>
@@ -398,7 +398,7 @@ function WizardFooter({ label, disabled, loading, onPress }: WizardFooterProps) 
             disabled && styles.ctaLabelDisabled,
           ]}
         >
-          {loading ? 'Saving preset…' : label}
+          {loading ? 'Saving' : label}
         </Text>
       </Pressable>
     </View>
@@ -513,7 +513,7 @@ function BangerStep({ bangerId, onSelect }: BangerStepProps) {
           </>
         ) : (
           <Text style={styles.thermalNote}>
-            Swipe a card or tap to select your banger style.
+            Swipe or tap to pick a banger.
           </Text>
         )}
       </View>
@@ -805,7 +805,7 @@ function TuneStep({
     >
       <View style={styles.tempBlock} {...panResponder.panHandlers}>
         <Text style={[styles.tempValue, { color: tempColorFor(tempOffset) }]}>{finalTemp}°</Text>
-        <Text style={styles.tempHint}>Drag to fine-tune</Text>
+        <Text style={styles.tempHint}>Drag to dial in</Text>
         <ThermalGauge offset={tempOffset} />
       </View>
 
@@ -927,7 +927,7 @@ function SaveStep({
           style={styles.input}
           value={presetName}
           onChangeText={onChangeName}
-          placeholder="Preset name"
+          placeholder="Name this preset"
           placeholderTextColor={colors.bone35}
           autoCapitalize="words"
           returnKeyType="done"
@@ -1050,7 +1050,7 @@ const labelCaps = {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#050403' },
+  root: { flex: 1, backgroundColor: colors.bgDeep },
   safe: { flex: 1 },
   kav: { flex: 1 },
 

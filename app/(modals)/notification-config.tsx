@@ -62,7 +62,7 @@ export default function NotificationConfigModal() {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Dab temp reached',
-        body: 'Test alert — your quartz is ready.',
+        body: 'Test alert — your quartz is at temp.',
         sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
@@ -75,7 +75,7 @@ export default function NotificationConfigModal() {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Dunk temp reached',
-        body: 'Test alert — time to drop your concentrate.',
+        body: 'Test alert — drop your concentrate.',
         sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 200, 100, 200],
@@ -98,7 +98,7 @@ export default function NotificationConfigModal() {
         >
           <Text style={styles.title}>Phone Alerts</Text>
           <Text style={styles.subtitle}>
-            Configure independent phone-side alarm thresholds.
+            Tune the thresholds your phone watches independently of the rig.
           </Text>
 
           {/* Dab alert card */}
@@ -185,7 +185,7 @@ export default function NotificationConfigModal() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#050403',
+    backgroundColor: colors.bgDeep,
   },
   safe: {
     flex: 1,

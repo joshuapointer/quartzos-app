@@ -1118,12 +1118,12 @@ export function SessionWalkthrough({
       {/* Auto-advance indicator */}
       {step.autoAdvance && !step.ctaLabel && (step.id === 'heat' || step.id === 'cold-heat') && (
         <View style={[styles.autoAdvanceHint, { paddingBottom: insets.bottom + 20 }]}>
-          <Text style={styles.autoAdvanceText}>The next step opens when the timer settles</Text>
+          <Text style={styles.autoAdvanceText}>The timer carries you forward</Text>
         </View>
       )}
       {step.id === 'cool' && (
         <View style={styles.autoAdvanceHint}>
-          <Text style={styles.autoAdvanceText}>Hold here — the dial settles into target on its own</Text>
+          <Text style={styles.autoAdvanceText}>Hold — the dial settles on its own</Text>
         </View>
       )}
     </View>
