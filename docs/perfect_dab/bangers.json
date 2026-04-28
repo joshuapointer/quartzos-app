@@ -9,8 +9,8 @@
       500,
       600
     ],
-    "ir_offset_f": 35,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 25,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Center underside of bucket bottom, 1/2\" away",
     "heat_time_seconds": "20-40",
     "cooldown_seconds": "30-45",
@@ -39,20 +39,24 @@
       "Honeybee Herb",
       "Pulsar",
       "MJ Arsenal"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00482,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "beveled",
     "name": "Beveled Edge",
     "category": "classic",
     "geometry": "bucket",
-    "description": "Inward-cut bevel for flush bubble cap seal. Better seal lets you target 20-40\u00b0F lower than non-beveled flat top.",
+    "description": "Inward-cut bevel for flush bubble cap seal. Better seal lets you target 20-40°F lower than non-beveled flat top.",
     "surface_temp_range_f": [
       480,
       580
     ],
-    "ir_offset_f": 35,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 25,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Center underside of bucket bottom, 1/2\" away",
     "heat_time_seconds": "25-35",
     "cooldown_seconds": "35-50",
@@ -80,20 +84,24 @@
       "Evan Shore",
       "Pulsar Beveled Edge",
       "Honeybee Herb Original Bevel"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00515,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "opaque-bottom",
     "name": "Opaque Bottom",
     "category": "premium",
     "geometry": "bucket",
-    "description": "Sandblasted/frosted bottom disc. Best IR accuracy of any banger. Use Dab Rite \"Opaque Quartz\" emissivity preset.",
+    "description": "Sandblasted/frosted bottom disc with nucleated silica. Air pockets boost surface area for boil but also act as a strong thermal barrier (large gradient lag). Use Dab Rite \"Opaque Quartz\" preset to cancel most emissivity bias.",
     "surface_temp_range_f": [
       480,
       560
     ],
-    "ir_offset_f": 25,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 35,
+    "emissivity_bias_multiplier": 0.2,
     "ir_aim_location": "Center of opaque bottom underside, 1/2\" away (Dab Rite: switch to Opaque Quartz preset)",
     "heat_time_seconds": "30-40",
     "cooldown_seconds": "45-60",
@@ -109,30 +117,35 @@
       }
     ],
     "torch_distance_inches": "1-2",
-    "visual_cue": "Faint side-wall glow only \u2014 opaque hides bottom glow",
+    "visual_cue": "Faint side-wall glow only — opaque hides bottom glow",
     "cold_start_compatible": "OPTIONAL",
     "tags": [
-      "BEST_IR_ACCURACY"
+      "BEST_IR_ACCURACY",
+      "HIGH_GRADIENT_LAG"
     ],
     "notable_manufacturers": [
       "Evan Shore Opaque ESB",
       "Highly Educated Gavel V3",
       "Lavatech XL Opaque",
       "Honeybee Herb Honey & Milk"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.0049,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "thermal",
     "name": "Thermal (Double Wall)",
     "category": "specialty",
     "geometry": "bucket",
-    "description": "Air gap between walls insulates inner cup. IR reads cooler than actual oil contact temp because IR sees outer wall \u2014 compensate via timing.",
+    "description": "Air gap between walls insulates inner cup. IR reads dramatically cooler than oil contact temp because IR sees the outer wall across an air gap.",
     "surface_temp_range_f": [
       500,
       600
     ],
-    "ir_offset_f": 60,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 60,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Outer base of bucket, 1/2\" away (manufacturer-correct aim)",
     "heat_time_seconds": "30-45",
     "cooldown_seconds": "45-60",
@@ -151,7 +164,8 @@
     "visual_cue": "No glow / faint outer corner glow only",
     "cold_start_compatible": "YES",
     "tags": [
-      "IR_READS_LOW"
+      "IR_READS_LOW",
+      "DOUBLE_WALL"
     ],
     "notable_manufacturers": [
       "AFM Thermal",
@@ -159,7 +173,11 @@
       "Pulsar Thermal",
       "Honeybee Herb",
       "Ooze Quartz Thermal"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00337,
+      "thermal_class": "slow"
+    }
   },
   {
     "id": "round-bottom",
@@ -171,8 +189,8 @@
       500,
       600
     ],
-    "ir_offset_f": 35,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 25,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Lowest curve apex (= bottom center), 1/2\" away",
     "heat_time_seconds": "30-45",
     "cooldown_seconds": "30-50",
@@ -199,20 +217,24 @@
       "Bear Quartz Round V2",
       "VapeBrat Full-Weld",
       "Joel Halen artisan"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00463,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "core-reactor",
     "name": "Core Reactor",
     "category": "specialty",
     "geometry": "bucket",
-    "description": "Central pillar increases surface area + thermal mass. Cold-start compatible per Honeybee Herb.",
+    "description": "Central pillar increases surface area + thermal mass. Larger gradient lag than plain bucket due to extra mass. Cold-start compatible per Honeybee Herb.",
     "surface_temp_range_f": [
       500,
       580
     ],
-    "ir_offset_f": 45,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 30,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Inner bucket floor around pillar, 1/2\" away",
     "heat_time_seconds": "25-30",
     "cooldown_seconds": "45-60",
@@ -239,20 +261,24 @@
       "Yo Dabba Dabba",
       "Honeybee Herb Honey & Milk Core Reactor",
       "Termini"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00412,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "swing-arm",
     "name": "Swing-Arm Honey Bucket",
     "category": "specialty",
     "geometry": "bucket",
-    "description": "Legacy form factor \u2014 heat dome out of chamber, swing back in. NOT cold-start compatible.",
+    "description": "Legacy form factor — heat dome out of chamber, swing back in. NOT cold-start compatible.",
     "surface_temp_range_f": [
       500,
       600
     ],
-    "ir_offset_f": 40,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 28,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Outside of dome in heating position, ~1\" away",
     "heat_time_seconds": "15-30",
     "cooldown_seconds": "10-30",
@@ -273,21 +299,25 @@
     "notable_manufacturers": [
       "Mothership (vintage)",
       "Honeybee Herb OFZ"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.01156,
+      "thermal_class": "fast"
+    }
   },
   {
     "id": "terp-slurper",
     "name": "Terp Slurper",
     "category": "slurper",
     "geometry": "slurper",
-    "description": "Bottom dish + slotted column + bucket. Marble cap. Hot-start required \u2014 vortex needs preheat.",
+    "description": "Bottom dish + slotted column + bucket. Marble cap. Hot-start required — vortex needs preheat. IR aimed at side of column, NOT dish underside.",
     "surface_temp_range_f": [
       420,
       580
     ],
-    "ir_offset_f": 20,
-    "ir_offset_sign": 1,
-    "ir_aim_location": "Side of cup ~1/2\" above the dish (column, NOT dish underside) \u2014 Dab Rite 2025 spec",
+    "gradient_lag_f": 15,
+    "emissivity_bias_multiplier": 1.0,
+    "ir_aim_location": "Side of cup ~1/2\" above the dish (column, NOT dish underside) — Dab Rite 2025 spec",
     "heat_time_seconds": "55-90",
     "heat_time_breakdown": [
       {
@@ -334,21 +364,25 @@
       "Pulsar Bubble Barrel",
       "Bear Quartz",
       "Campfire Quartz"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.0048,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "blender",
     "name": "Blender / Vector",
     "category": "slurper",
     "geometry": "slurper",
-    "description": "Slotted hurricane disc spins pearls automatically. Tighter temp window than slurper.",
+    "description": "Slotted hurricane disc spins pearls automatically. Tighter temp window than slurper. Side-of-tower aim — thin wall, small gradient lag.",
     "surface_temp_range_f": [
       500,
       580
     ],
-    "ir_offset_f": 20,
-    "ir_offset_sign": 1,
-    "ir_aim_location": "Side of the tower at mid-height (slurper-class aim \u2014 NOT disc underside)",
+    "gradient_lag_f": 15,
+    "emissivity_bias_multiplier": 1.0,
+    "ir_aim_location": "Side of the tower at mid-height (slurper-class aim — NOT disc underside)",
     "heat_time_seconds": "25-35",
     "cooldown_seconds": "30-45",
     "torch_pattern": "circular_sweep",
@@ -374,7 +408,11 @@
       "Pulsar Quartz Blender",
       "Campfire V2 Blender",
       "VapeBrat Swirl"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00589,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "spinner",
@@ -386,9 +424,9 @@
       500,
       600
     ],
-    "ir_offset_f": 20,
-    "ir_offset_sign": 1,
-    "ir_aim_location": "Side of bucket wall mid-height (avoid drilled holes \u2014 radial crack risk)",
+    "gradient_lag_f": 15,
+    "emissivity_bias_multiplier": 1.0,
+    "ir_aim_location": "Side of bucket wall mid-height (avoid drilled holes — radial crack risk)",
     "heat_time_seconds": "25-40",
     "cooldown_seconds": "45-60",
     "torch_pattern": "circular_sweep",
@@ -414,20 +452,24 @@
       "VapeBrat Cyclone",
       "aLeaf Deep Dish Auto-Spin",
       "IC Glass"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00337,
+      "thermal_class": "slow"
+    }
   },
   {
     "id": "control-tower",
     "name": "Control Tower",
     "category": "slurper",
     "geometry": "slurper",
-    "description": "Highly Educated proprietary slurper with SE Pillar (Surface Enhanced micro-textured quartz). Manufacturer targets: 450\u00b0F solventless / 550\u00b0F hydrocarbon (interior surface).",
+    "description": "Highly Educated proprietary slurper with SE Pillar (Surface Enhanced micro-textured quartz). Manufacturer targets: 450°F solventless / 550°F hydrocarbon (interior surface).",
     "surface_temp_range_f": [
       450,
       580
     ],
-    "ir_offset_f": 20,
-    "ir_offset_sign": 1,
+    "gradient_lag_f": 15,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Side of the chamber, NOT the dish (Highly Educated FAQ)",
     "heat_time_seconds": "50-60",
     "heat_method": "simultaneous (heat dish + chamber together, side-to-side AND top-to-bottom)",
@@ -452,7 +494,11 @@
     },
     "notable_manufacturers": [
       "Highly Educated"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00589,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "charmer",
@@ -464,9 +510,9 @@
       450,
       580
     ],
-    "ir_offset_f": 20,
-    "ir_offset_sign": 1,
-    "ir_aim_location": "Side of the cup wall (slurper-class \u2014 inferred, no first-party doc)",
+    "gradient_lag_f": 15,
+    "emissivity_bias_multiplier": 1.0,
+    "ir_aim_location": "Side of the cup wall (slurper-class — inferred, no first-party doc)",
     "heat_time_seconds": "35-50",
     "cooldown_seconds": "30-45",
     "torch_pattern": "circular_sweep",
@@ -488,20 +534,24 @@
     ],
     "notable_manufacturers": [
       "Quave Club Banger"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00589,
+      "thermal_class": "moderate"
+    }
   },
   {
     "id": "insert",
     "name": "Quartz Insert (in any banger)",
     "category": "specialty",
     "geometry": "insert",
-    "description": "Drop-in cup. Either heat host first then drop insert, or load insert cold and heat host briefly.",
+    "description": "Drop-in cup. Either heat host first then drop insert, or load insert cold and heat host briefly. IR reads host banger, with extra gradient lag from host-to-insert thermal transfer.",
     "surface_temp_range_f": [
       450,
       550
     ],
-    "ir_offset_f": 30,
-    "ir_offset_sign": -1,
+    "gradient_lag_f": 30,
+    "emissivity_bias_multiplier": 1.0,
     "ir_aim_location": "Host banger bottom, 1/2\" away (read banger temp, not insert directly)",
     "heat_time_seconds": "25-35 host (or 10-25 cold-start)",
     "cooldown_seconds": "10 (Method 3) / full (Method 1)",
@@ -529,21 +579,25 @@
       "Hoyes",
       "Ruby Pearl Co (premium)",
       "Pulsar RoK"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": 0.00675,
+      "thermal_class": "fast"
+    }
   },
   {
     "id": "e-banger",
     "name": "E-Banger / E-Nail",
     "category": "specialty",
     "geometry": "enail",
-    "description": "Coil-wrapped quartz with PID. Coil reads 30-80\u00b0F hotter than surface (varies widely by brand). MiniNail-on-MiniNail is factory-calibrated to display surface directly.",
+    "description": "Coil-wrapped quartz with PID. Coil reads 30-80°F hotter than surface (varies widely by brand). MiniNail-on-MiniNail is factory-calibrated to display surface directly.",
     "surface_temp_range_f": [
       500,
       600
     ],
-    "ir_offset_f": 0,
-    "ir_offset_sign": 0,
-    "ir_aim_location": "PID set point \u2014 no IR / no torch needed",
+    "gradient_lag_f": 0,
+    "emissivity_bias_multiplier": 0,
+    "ir_aim_location": "PID set point — no IR / no torch needed",
     "heat_time_seconds": "30 stabilize",
     "cooldown_seconds": "0 (PID maintained)",
     "torch_pattern": "none",
@@ -565,6 +619,10 @@
       "Pulsar Elite",
       "Yo Dabba Dabba",
       "Galaxy Enails"
-    ]
+    ],
+    "cooling": {
+      "k_per_second": null,
+      "thermal_class": "constant"
+    }
   }
 ]

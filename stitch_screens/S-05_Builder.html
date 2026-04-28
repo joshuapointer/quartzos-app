@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>S-05 Builder - Concentrate Selection</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#161c26",
+                        "background": "#1c110a",
+                        "tertiary": "#95ccff",
+                        "surface-container-high": "#35271f",
+                        "on-background": "#f6ded2",
+                        "surface": "#1c110a",
+                        "outline-variant": "#584235",
+                        "surface-container": "#291d16",
+                        "on-tertiary-fixed": "#001d32",
+                        "error-container": "#93000a",
+                        "on-tertiary": "#003352",
+                        "surface-variant": "#40322a",
+                        "on-primary-container": "#5c2800",
+                        "tertiary-fixed": "#cde5ff",
+                        "surface-container-low": "#251912",
+                        "surface-container-lowest": "#160c06",
+                        "primary-fixed": "#ffdbc8",
+                        "inverse-on-surface": "#3b2d26",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#414753",
+                        "secondary-fixed-dim": "#c1c6d5",
+                        "surface-container-highest": "#40322a",
+                        "surface-tint": "#ffb68b",
+                        "on-secondary-fixed-variant": "#414753",
+                        "on-primary-fixed": "#321200",
+                        "primary-fixed-dim": "#ffb68b",
+                        "primary": "#ffb68b",
+                        "tertiary-fixed-dim": "#95ccff",
+                        "on-primary": "#522300",
+                        "on-secondary": "#2b313c",
+                        "secondary": "#c1c6d5",
+                        "on-error": "#690005",
+                        "primary-container": "#ff7a00",
+                        "outline": "#a78b7c",
+                        "inverse-surface": "#f6ded2",
+                        "surface-bright": "#45362e",
+                        "on-primary-fixed-variant": "#753400",
+                        "on-secondary-container": "#b0b5c3",
+                        "inverse-primary": "#994700",
+                        "on-tertiary-container": "#003a5c",
+                        "secondary-fixed": "#dde2f1",
+                        "on-surface-variant": "#e0c0af",
+                        "on-tertiary-fixed-variant": "#004a75",
+                        "tertiary-container": "#00a8ff",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#1c110a",
+                        "on-surface": "#f6ded2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "element-gap": "24px",
+                        "xl": "128px",
+                        "xs": "8px",
+                        "container-padding": "40px",
+                        "sm": "16px",
+                        "md": "32px",
+                        "lg": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "data-value": ["Geist Mono"],
+                        "body-main": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "data-label": ["Geist Mono"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+                        "data-value": ["14px", { "lineHeight": "1.4", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "body-main": ["16px", { "lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "300" }],
+                        "data-label": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-main text-body-main min-h-screen flex flex-col relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<!-- Atmospheric background gradient overlay -->
+<div class="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(41,29,22,0.4)_0%,transparent_70%)] z-0"></div>
+<main class="flex-1 flex flex-col relative z-10 px-container-padding pb-xl pt-lg">
+<!-- Progress Strip -->
+<header class="flex flex-col items-center gap-md">
+<div class="flex gap-unit justify-center">
+<!-- Active Pill -->
+<div class="h-[3px] w-12 rounded-full bg-primary-container shadow-[0_0_12px_rgba(255,122,0,0.8)]"></div>
+<!-- Inactive Glass Pills -->
+<div class="h-[3px] w-12 rounded-full bg-white/10 backdrop-blur-[22px] border-t-[0.5px] border-white/30"></div>
+<div class="h-[3px] w-12 rounded-full bg-white/10 backdrop-blur-[22px] border-t-[0.5px] border-white/30"></div>
+<div class="h-[3px] w-12 rounded-full bg-white/10 backdrop-blur-[22px] border-t-[0.5px] border-white/30"></div>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-background text-center mt-sm tracking-tight drop-shadow-sm">
+                What are you dabbing?
+            </h1>
+</header>
+<!-- Organic Selection Cluster -->
+<section class="flex-1 flex flex-col lg:flex-row items-center justify-center gap-element-gap mt-lg">
+<!-- Inactive Bubble: DIAMONDS -->
+<button class="group relative w-48 h-48 lg:w-56 lg:h-56 rounded-full flex items-center justify-center bg-white/5 backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-700 hover:scale-105 hover:bg-white/10 focus:outline-none" type="button">
+<!-- Top Light Catch for Glass Volume -->
+<div class="absolute top-2 left-1/2 -translate-x-1/2 w-3/4 h-1/4 bg-gradient-to-b from-white/20 to-transparent rounded-full pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity"></div>
+<span class="font-data-label text-data-label text-on-surface-variant tracking-widest z-10 group-hover:text-on-background transition-colors">DIAMONDS</span>
+</button>
+<!-- Active Bubble: LIVE ROSIN -->
+<button class="group relative w-64 h-64 lg:w-80 lg:h-80 rounded-full flex items-center justify-center bg-surface-container border border-primary-container/40 shadow-[0_0_60px_rgba(255,122,0,0.4)] transition-all duration-700 z-20 focus:outline-none" type="button">
+<!-- Intense Amber Core Glow (Radial Gradient) -->
+<div class="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,122,0,0.3)_0%,rgba(255,122,0,0.05)_50%,transparent_80%)] pointer-events-none mix-blend-screen"></div>
+<!-- Refractive Top Rim -->
+<div class="absolute top-[2px] left-[2px] right-[2px] h-[40%] bg-gradient-to-b from-primary-container/30 to-transparent rounded-t-full pointer-events-none mix-blend-screen"></div>
+<!-- Inner Glass Depth -->
+<div class="absolute inset-2 rounded-full border border-primary-container/20 shadow-[inset_0_0_30px_rgba(255,122,0,0.2)] pointer-events-none"></div>
+<span class="font-headline-md text-headline-md text-primary tracking-widest z-10 drop-shadow-[0_0_12px_rgba(255,182,139,0.8)]">LIVE ROSIN</span>
+</button>
+<!-- Inactive Bubble: BADDER -->
+<button class="group relative w-48 h-48 lg:w-56 lg:h-56 rounded-full flex items-center justify-center bg-white/5 backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-700 hover:scale-105 hover:bg-white/10 focus:outline-none" type="button">
+<!-- Top Light Catch for Glass Volume -->
+<div class="absolute top-2 left-1/2 -translate-x-1/2 w-3/4 h-1/4 bg-gradient-to-b from-white/20 to-transparent rounded-full pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity"></div>
+<span class="font-data-label text-data-label text-on-surface-variant tracking-widest z-10 group-hover:text-on-background transition-colors">BADDER</span>
+</button>
+</section>
+</main>
+<!-- Bottom Navigation Canvas -->
+<footer class="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-container-padding pointer-events-none">
+<!-- Emissive Amber Pill -->
+<button class="pointer-events-auto group relative px-xl py-sm rounded-full bg-primary-container text-on-primary-container shadow-[0_0_20px_rgba(255,122,0,0.4)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,122,0,0.6)] hover:scale-105 active:scale-95 focus:outline-none" type="button">
+<!-- Inner glow for button -->
+<div class="absolute inset-0 rounded-full shadow-[inset_0_0_10px_rgba(255,255,255,0.2)] pointer-events-none"></div>
+<span class="font-data-label text-data-label tracking-widest relative z-10 uppercase">CONTINUE</span>
+</button>
+</footer>
+</body></html>

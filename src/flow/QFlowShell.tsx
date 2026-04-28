@@ -83,6 +83,14 @@ export default function QFlowShell() {
     targetOrbScale = 0.5; // Shrink it down while fading
   }
 
+  // CompleteStage renders its own amber dot, so suppress the shell orb here.
+  if (stage === 'complete') {
+    targetOrbHeight = 0;
+    targetOrbMarginTop = 0;
+    targetOrbOpacity = 0;
+    targetOrbScale = 0.5;
+  }
+
   const orbCellAnimStyle = useAnimatedStyle(() => ({
     height: withTiming(targetOrbHeight, { duration: 700, easing: STAGE_EASE }),
     marginTop: withTiming(targetOrbMarginTop, { duration: 700, easing: STAGE_EASE }),

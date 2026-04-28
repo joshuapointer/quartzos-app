@@ -14,7 +14,6 @@ import Animated, {
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -33,163 +32,48 @@ import {
   useColdStartFit,
   useConcentrate,
   useFlow,
-  useSensor,
   useWall,
 } from '../store';
 import { THEME, TYPE } from '../theme';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatPattern(p: string): string {
-  return p.replace(/_/g, ' ');
-}
 
 // ─── CalibrationCard ──────────────────────────────────────────────────────────
 
 type CalibrationCardProps = {
   banger: Banger;
   concentrate: Concentrate;
+  wall: Wall;
   calibration: CalibResult;
 };
 
 const CalibrationCard = React.memo(function CalibrationCard({
   banger,
   concentrate,
+  wall,
   calibration,
 }: CalibrationCardProps) {
-  const { surface, ir, wall, displayed, low, high, override } = calibration;
-  const irSign = banger.ir_offset_sign > 0 ? '+' : '−';
-  const wallSign = wall >= 0 ? '+' : '−';
-  const irAbs = Math.abs(ir);
-  const wallAbs = Math.abs(wall);
-  const geometryClass =
-    banger.geometry === 'slurper'
-      ? 'slurper'
-      : banger.geometry === 'insert'
-        ? 'insert'
-        : 'bucket';
-
-  const overrideKind =
-    concentrate.cat === 'Solventless' || concentrate.cat === 'Hash'
-      ? 'solventless'
-      : 'hydrocarbon';
+  const { displayed, low, high } = calibration;
 
   return (
     <View style={styles.calibCardWrap}>
-      <BlurView intensity={22} tint="dark" style={styles.calibBlur}>
+      <View style={styles.calibCard}>
         <View pointerEvents="none" style={styles.calibInnerBorder} />
-        <LinearGradient
-          colors={['rgba(255, 240, 220, 0.04)', 'rgba(0, 0, 0, 0.05)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
 
-        <Text style={styles.calibEyebrow}>CALIBRATION · IR BRANCH</Text>
-
-        {override ? (
-          <View style={styles.overridePill}>
-            <Text style={styles.overrideText}>
-              ★ Override: {banger.name} spec for {overrideKind} = {override.surface}
-              °F.
-            </Text>
+        <View style={styles.calibRow}>
+          {/* Left: label + big temperature */}
+          <View style={styles.calibLeft}>
+            <Text style={styles.calibEyebrow}>DABRITE WILL READ</Text>
+            <Text style={styles.displayValue}>{Math.round(displayed)}°</Text>
           </View>
-        ) : null}
 
-        {/* Three values row */}
-        <View style={styles.valuesRow}>
-          <Text style={styles.displayValue}>{Math.round(displayed)}°</Text>
-          <View style={styles.surfaceCol}>
-            <Text style={styles.smallEyebrow}>SURFACE</Text>
-            <Text style={styles.surfaceValue}>{surface}°</Text>
-          </View>
-          <View style={styles.windowCol}>
-            <Text style={styles.smallEyebrow}>WINDOW</Text>
+          {/* Right: window range + label */}
+          <View style={styles.calibRight}>
             <Text style={styles.windowValue}>
-              {low}–{high}°F
+              {low}–{high}°
             </Text>
+            <Text style={styles.windowLabel}>WINDOW</Text>
           </View>
         </View>
-
-        <View style={styles.divider} />
-
-        <Text style={styles.formula}>
-          {surface}° (surface) {irSign} {irAbs} ({geometryClass}-class IR){' '}
-          {wallSign} {wallAbs}° (wall) = {displayed}°
-        </Text>
-      </BlurView>
-    </View>
-  );
-});
-
-type SetupGridProps = {
-  banger: Banger;
-  concentrate: Concentrate;
-  sensorName: string;
-  wall: Wall;
-};
-
-const SetupGrid = React.memo(function SetupGrid({
-  banger,
-  concentrate,
-  sensorName,
-  wall,
-}: SetupGridProps) {
-  const rows: Array<{ k: string; v: string }> = [
-    { k: 'BANGER', v: banger.name },
-    { k: 'CONCENTRATE', v: concentrate.name },
-    { k: 'SENSOR', v: sensorName },
-    { k: 'WALL', v: wall.name },
-    { k: 'IR AIM', v: banger.ir_aim },
-    { k: 'HEAT', v: `${banger.heat_time} · ${formatPattern(banger.pattern)}` },
-    {
-      k: 'COOLDOWN',
-      v: `${banger.cool_seconds[0]}–${banger.cool_seconds[1]}s`,
-    },
-    { k: 'CUE', v: banger.visual_cue },
-  ];
-
-  return (
-    <View style={styles.gridWrap}>
-      {rows.map((row, i) => (
-        <View
-          key={row.k}
-          style={[styles.gridRow, i < rows.length - 1 && styles.gridRowDivider]}
-        >
-          <Text style={styles.gridKey}>{row.k}</Text>
-          <Text style={styles.gridValue}>{row.v}</Text>
-        </View>
-      ))}
-    </View>
-  );
-});
-
-type NotesCardProps = {
-  notes: string[];
-  confidence: string;
-};
-
-const NotesCard = React.memo(function NotesCard({ notes, confidence }: NotesCardProps) {
-  return (
-    <View style={styles.notesCard}>
-      <Text style={styles.notesEyebrow}>NOTES · {confidence}</Text>
-      <View style={styles.notesList}>
-        {notes.map((n, i) => (
-          <View key={i} style={styles.noteRow}>
-            <View style={styles.noteBullet} />
-            <Text style={styles.noteText}>{n}</Text>
-          </View>
-        ))}
       </View>
-    </View>
-  );
-});
-
-const WarningStrip = React.memo(function WarningStrip({ message }: { message: string }) {
-  return (
-    <View style={styles.warningStrip}>
-      <Text style={styles.warningStripText}>{message}</Text>
     </View>
   );
 });
@@ -304,7 +188,6 @@ export default function ReviewStep() {
   const banger = useBanger();
   const concentrate = useConcentrate();
   const wall = useWall();
-  const sensor = useSensor();
   const calibration = useCalibration();
   const coldFit = useColdStartFit();
   const coldStart = useFlow((s) => s.coldStart);
@@ -312,80 +195,35 @@ export default function ReviewStep() {
 
   if (!banger || !concentrate || !calibration) return null;
 
-  const sections: React.ReactNode[] = [];
-
-  sections.push(
-    <Animated.View
-      key="calib"
-      entering={FadeInUp.delay(120).duration(380).easing(STAGGER_EASING)}
-    >
-      <CalibrationCard
-        banger={banger}
-        concentrate={concentrate}
-        calibration={calibration}
-      />
-    </Animated.View>,
-  );
-
-  sections.push(
-    <Animated.View
-      key="grid"
-      entering={FadeInUp.delay(175).duration(380).easing(STAGGER_EASING)}
-    >
-      <SetupGrid
-        banger={banger}
-        concentrate={concentrate}
-        sensorName={sensor.name}
-        wall={wall}
-      />
-    </Animated.View>,
-  );
-
-  if (concentrate.notes && concentrate.notes.length > 0) {
-    sections.push(
-      <Animated.View
-        key="notes"
-        entering={FadeInUp.delay(230).duration(380).easing(STAGGER_EASING)}
-      >
-        <NotesCard
-          notes={concentrate.notes}
-          confidence={concentrate.confidence}
-        />
-      </Animated.View>,
-    );
-  }
-
-  if (concentrate.warning) {
-    sections.push(
-      <Animated.View
-        key="warning"
-        entering={FadeInUp.delay(285).duration(380).easing(STAGGER_EASING)}
-      >
-        <WarningStrip message={concentrate.warning} />
-      </Animated.View>,
-    );
-  }
-
-  sections.push(
-    <Animated.View
-      key="cold"
-      entering={FadeInUp.delay(340).duration(380).easing(STAGGER_EASING)}
-    >
-      <ColdStartCard
-        banger={banger}
-        fit={coldFit}
-        coldStart={coldStart}
-        setColdStart={setColdStart}
-      />
-    </Animated.View>,
-  );
-
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
-      {sections}
+      <Animated.View
+        entering={FadeInUp.delay(120).duration(380).easing(STAGGER_EASING)}
+      >
+        <CalibrationCard
+          banger={banger}
+          concentrate={concentrate}
+          wall={wall}
+          calibration={calibration}
+        />
+        <Text style={styles.recipeLine}>
+          {banger.name} · {concentrate.name} · {wall.name}
+        </Text>
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInUp.delay(200).duration(380).easing(STAGGER_EASING)}
+      >
+        <ColdStartCard
+          banger={banger}
+          fit={coldFit}
+          coldStart={coldStart}
+          setColdStart={setColdStart}
+        />
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -398,6 +236,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
+  // Calibration card
   calibCardWrap: {
     borderRadius: 24,
     overflow: 'hidden',
@@ -407,9 +246,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 4,
   },
-  calibBlur: {
-    padding: 18,
+  calibCard: {
     borderRadius: 24,
+    backgroundColor: 'rgba(246,222,210,0.04)',
+    paddingVertical: 20,
+    paddingHorizontal: 22,
     position: 'relative',
   },
   calibInnerBorder: {
@@ -417,173 +258,59 @@ const styles = StyleSheet.create({
     inset: 0,
     borderRadius: 24,
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
+    borderColor: 'rgba(246,222,210,0.20)',
     pointerEvents: 'none',
   } as const,
-  calibEyebrow: {
-    ...(TYPE.mono as object),
-    fontSize: 9,
-    letterSpacing: 0.32 * 9,
-    color: THEME.ember.base,
-    textTransform: 'uppercase',
-    marginBottom: 14,
-  } as const,
-  overridePill: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 100,
-    backgroundColor: 'rgba(227, 166, 71, 0.10)',
-    borderWidth: 0.5,
-    borderColor: THEME.warn,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  overrideText: {
-    ...(TYPE.mono as object),
-    fontSize: 10.5,
-    color: THEME.warn,
-  } as const,
-  valuesRow: {
+  calibRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 14,
+    justifyContent: 'space-between',
   },
-  displayValue: {
-    fontFamily: 'Geist_300Light',
-    fontSize: 32,
-    color: THEME.ember.bright,
-    letterSpacing: -1.12,
-    lineHeight: 32,
-  },
-  surfaceCol: {
+  calibLeft: {
     flexDirection: 'column',
-    gap: 2,
+    gap: 4,
   },
-  windowCol: {
-    flexDirection: 'column',
-    gap: 2,
-    marginLeft: 'auto',
-    alignItems: 'flex-end',
-  },
-  smallEyebrow: {
+  calibEyebrow: {
     ...(TYPE.mono as object),
-    fontSize: 8,
-    letterSpacing: 0.18 * 8,
+    fontSize: 10,
+    letterSpacing: 1.5,
     color: THEME.bone[50],
     textTransform: 'uppercase',
   } as const,
-  surfaceValue: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 14,
-    color: THEME.bone[100],
+  displayValue: {
+    fontFamily: 'Geist_300Light',
+    fontSize: 56,
+    letterSpacing: -2.24,
+    lineHeight: 60,
+    color: THEME.ember.base,
+    textShadowColor: 'rgba(255,122,0,0.30)',
+    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 0 },
+  },
+  calibRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 2,
   },
   windowValue: {
     fontFamily: 'Geist_400Regular',
     fontSize: 13,
-    color: THEME.bone[90],
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(180, 200, 230, 0.10)',
-    marginBottom: 12,
-  },
-  formula: {
-    ...(TYPE.mono as object),
-    fontSize: 12,
     color: THEME.bone[70],
-    lineHeight: 12 * 1.5,
-    maxWidth: 280,
-  } as const,
-
-  // Setup grid
-  gridWrap: {
-    borderRadius: 14,
-    backgroundColor: 'rgba(180, 200, 230, 0.04)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.08)',
-    paddingHorizontal: 14,
   },
-  gridRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 10,
-    gap: 14,
-  },
-  gridRowDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(180, 200, 230, 0.08)',
-  },
-  gridKey: {
+  windowLabel: {
     ...(TYPE.mono as object),
-    fontSize: 9,
-    letterSpacing: 0.18 * 9,
+    fontSize: 10,
+    letterSpacing: 1.5,
     color: THEME.bone[50],
     textTransform: 'uppercase',
-    width: 86,
   } as const,
-  gridValue: {
+
+  // Recipe summary line
+  recipeLine: {
     fontFamily: 'Geist_400Regular',
     fontSize: 13,
-    color: THEME.bone[100],
-    flex: 1,
-    lineHeight: 13 * 1.4,
-  },
-
-  // Notes card
-  notesCard: {
-    borderRadius: 14,
-    backgroundColor: 'rgba(180, 200, 230, 0.04)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.08)',
-    padding: 14,
-  },
-  notesEyebrow: {
-    ...(TYPE.mono as object),
-    fontSize: 9,
-    letterSpacing: 0.32 * 9,
-    color: THEME.ember.base,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  } as const,
-  notesList: {
-    gap: 8,
-  },
-  noteRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  noteBullet: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: THEME.ember.base,
-    marginTop: 8,
-  },
-  noteText: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 12,
-    color: THEME.bone[90],
-    lineHeight: 12 * 1.5,
-    flex: 1,
-    maxWidth: 280,
-  },
-
-  // Warning strip
-  warningStrip: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: 'rgba(227, 166, 71, 0.10)',
-    borderWidth: 0.5,
-    borderColor: THEME.warn,
-  },
-  warningStripText: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 11.5,
-    color: THEME.warn,
-    lineHeight: 11.5 * 1.45,
+    color: THEME.bone[70],
+    marginTop: 12,
   },
 
   // Cold-start card

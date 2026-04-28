@@ -4,7 +4,7 @@
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type BangerGeometry = 'bucket' | 'slurper' | 'insert';
+export type BangerGeometry = 'bucket' | 'slurper' | 'insert' | 'enail';
 export type BangerCategory = 'classic' | 'slurper' | 'specialty' | 'premium';
 export type ColdStartCompat = 'YES' | 'NO' | 'OPTIONAL';
 export type TorchPattern =
@@ -21,8 +21,10 @@ export type Banger = {
   geometry: BangerGeometry;
   description: string;
   surface_range: [number, number];
-  ir_offset_f: number;
-  ir_offset_sign: -1 | 1;
+  /** Signed °F gradient lag at standard wall (v2 metrology — replaces ir_offset_f/sign). */
+  gradient_lag_f: number;
+  /** 1.0 clear quartz · 0.2 opaque w/ Dab Rite preset · 0 e-nail. */
+  emissivity_bias_multiplier: number;
   ir_aim: string;
   heat_time: string;
   heat_seconds: [number, number];
@@ -46,6 +48,10 @@ export type Concentrate = {
   description: string;
   surface_range: [number, number] | null;
   surface_optimal: number | null;
+  /** v2 metrology: T_Ideal — fluid contact target before phase-change load. */
+  fluid_target_optimal: number | null;
+  /** v2 metrology: low/high fluid target range. */
+  fluid_target_range: [number, number] | null;
   terps: 'high' | 'med' | 'low' | 'none';
   cold_start_good: boolean;
   notes?: string[];
@@ -62,6 +68,10 @@ export type Sensor = {
   method: 'ir';
   description: string;
   calibration: string;
+  /** v2 metrology: sensor's emissivity bias in °F (IR ≈ +15, contact = 0). */
+  emissivity_bias_f: number;
+  /** Whether this sensor's reading should include the dT_Gradient term. */
+  applies_gradient_lag: boolean;
 };
 
 export type Wall = {
@@ -69,6 +79,8 @@ export type Wall = {
   name: string;
   thickness: string;
   mod: number;
+  /** v2 metrology: scales banger.gradient_lag_f. Thin 0.5 · Std 1.0 · Thick 1.6. */
+  gradient_multiplier: number;
   description: string;
 };
 
@@ -133,8 +145,8 @@ export const BANGERS: Banger[] = [
     geometry: 'bucket',
     description: 'Universal default. Cylindrical bucket, flat rim. ~80% of bangers in market.',
     surface_range: [500, 600],
-    ir_offset_f: 35,
-    ir_offset_sign: -1,
+    gradient_lag_f: 25,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Center underside of bucket bottom, ½″ away',
     heat_time: '20–40s',
     heat_seconds: [20, 40],
@@ -154,8 +166,8 @@ export const BANGERS: Banger[] = [
     geometry: 'bucket',
     description: 'Inward-cut bevel for flush bubble cap seal. Better seal lets you target 20–40°F lower than non-beveled flat top.',
     surface_range: [480, 580],
-    ir_offset_f: 35,
-    ir_offset_sign: -1,
+    gradient_lag_f: 25,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Center underside of bucket bottom, ½″ away',
     heat_time: '25–35s',
     heat_seconds: [25, 35],
@@ -169,14 +181,14 @@ export const BANGERS: Banger[] = [
     mfrs: ['Quave', 'Highly Educated Gavel', 'Evan Shore', 'Pulsar', 'Honeybee Herb'],
   },
   {
-    id: 'opaque',
+    id: 'opaque-bottom',
     name: 'Opaque Bottom',
     category: 'premium',
     geometry: 'bucket',
     description: 'Sandblasted/frosted bottom disc. Best IR accuracy of any banger. Use Dab Rite "Opaque Quartz" emissivity preset.',
     surface_range: [480, 560],
-    ir_offset_f: 25,
-    ir_offset_sign: -1,
+    gradient_lag_f: 35,
+    emissivity_bias_multiplier: 0.2,
     ir_aim: 'Center of opaque bottom underside, ½″ away — switch IR to Opaque Quartz preset',
     heat_time: '30–40s',
     heat_seconds: [30, 40],
@@ -186,7 +198,7 @@ export const BANGERS: Banger[] = [
     torch_distance: '1–2″',
     visual_cue: 'Faint side-wall glow only — opaque hides bottom glow',
     cold_start: 'OPTIONAL',
-    tags: ['BEST IR ACCURACY'],
+    tags: ['BEST IR ACCURACY', 'HIGH_GRADIENT_LAG'],
     mfrs: ['Evan Shore Opaque ESB', 'Highly Educated Gavel V3', 'Lavatech XL Opaque', 'Honeybee Herb Honey & Milk'],
   },
   {
@@ -196,8 +208,8 @@ export const BANGERS: Banger[] = [
     geometry: 'bucket',
     description: 'Air gap between walls insulates inner cup. IR reads cooler than actual oil contact temp because IR sees outer wall — compensate via timing.',
     surface_range: [500, 600],
-    ir_offset_f: 60,
-    ir_offset_sign: -1,
+    gradient_lag_f: 60,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Outer base of bucket, ½″ away (manufacturer-correct aim)',
     heat_time: '30–45s',
     heat_seconds: [30, 45],
@@ -211,14 +223,14 @@ export const BANGERS: Banger[] = [
     mfrs: ['AFM Thermal', 'Pukinbeagle', 'Pulsar Thermal', 'Ooze'],
   },
   {
-    id: 'round',
+    id: 'round-bottom',
     name: 'Round Bottom',
     category: 'classic',
     geometry: 'bucket',
     description: 'Hemispherical interior, no corners. Best shape for terp pearls (rolls freely) and cold start (oil pools center).',
     surface_range: [500, 600],
-    ir_offset_f: 35,
-    ir_offset_sign: -1,
+    gradient_lag_f: 25,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Lowest curve apex (= bottom center), ½″ away',
     heat_time: '30–45s',
     heat_seconds: [30, 45],
@@ -238,8 +250,8 @@ export const BANGERS: Banger[] = [
     geometry: 'bucket',
     description: 'Central pillar increases surface area + thermal mass. Cold-start compatible per Honeybee Herb.',
     surface_range: [500, 580],
-    ir_offset_f: 45,
-    ir_offset_sign: -1,
+    gradient_lag_f: 30,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Inner bucket floor around pillar, ½″ away',
     heat_time: '25–30s',
     heat_seconds: [25, 30],
@@ -259,8 +271,8 @@ export const BANGERS: Banger[] = [
     geometry: 'bucket',
     description: 'Legacy form factor — heat dome out of chamber, swing back in. NOT cold-start compatible.',
     surface_range: [500, 600],
-    ir_offset_f: 40,
-    ir_offset_sign: -1,
+    gradient_lag_f: 28,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Outside of dome in heating position, ~1″ away',
     heat_time: '15–30s',
     heat_seconds: [15, 30],
@@ -280,8 +292,8 @@ export const BANGERS: Banger[] = [
     geometry: 'slurper',
     description: 'Bottom dish + slotted column + bucket. Marble cap. Hot-start required — vortex needs preheat.',
     surface_range: [420, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Side of cup ½″ above the dish (column, NOT dish underside) — Dab Rite 2025 spec',
     heat_time: '55–90s',
     heat_seconds: [55, 90],
@@ -305,8 +317,8 @@ export const BANGERS: Banger[] = [
     geometry: 'slurper',
     description: 'Slotted hurricane disc spins pearls automatically. Tighter temp window than slurper.',
     surface_range: [500, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Side of the tower at mid-height (slurper-class — NOT disc underside)',
     heat_time: '25–35s',
     heat_seconds: [25, 35],
@@ -326,8 +338,8 @@ export const BANGERS: Banger[] = [
     geometry: 'slurper',
     description: 'Angled airflow holes drive pearl spin via inhale velocity. Pearl spin is airflow-driven, not temperature-driven.',
     surface_range: [500, 600],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Side of bucket wall mid-height (avoid drilled holes — radial crack risk)',
     heat_time: '25–40s',
     heat_seconds: [25, 40],
@@ -347,8 +359,8 @@ export const BANGERS: Banger[] = [
     geometry: 'slurper',
     description: 'Highly Educated proprietary slurper with SE Pillar (Surface Enhanced micro-textured quartz).',
     surface_range: [450, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Side of the chamber, NOT the dish (Highly Educated FAQ)',
     heat_time: '50–60s',
     heat_seconds: [50, 60],
@@ -369,8 +381,8 @@ export const BANGERS: Banger[] = [
     geometry: 'slurper',
     description: 'Quave proprietary slurper-blender hybrid. Outer dish with vortex holes, inner cone, three pearls, marble cap.',
     surface_range: [450, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Side of the cup wall (slurper-class — inferred)',
     heat_time: '35–50s',
     heat_seconds: [35, 50],
@@ -390,8 +402,8 @@ export const BANGERS: Banger[] = [
     geometry: 'insert',
     description: 'Drop-in cup. Either heat host first then drop insert, or load insert cold and heat host briefly.',
     surface_range: [450, 550],
-    ir_offset_f: 30,
-    ir_offset_sign: -1,
+    gradient_lag_f: 30,
+    emissivity_bias_multiplier: 1.0,
     ir_aim: 'Host banger bottom, ½″ away (read banger temp, not insert directly)',
     heat_time: '25–35s host (or 10–25 cold-start)',
     heat_seconds: [25, 35],
@@ -403,6 +415,27 @@ export const BANGERS: Banger[] = [
     cold_start: 'YES',
     tags: ['COLD-START IDEAL'],
     mfrs: ['Eternal Quartz (originator)', 'Quartz Tech', 'Halen', 'Hoyes', 'Ruby Pearl Co', 'Pulsar RoK'],
+  },
+  {
+    id: 'e-banger',
+    name: 'E-Banger / E-Nail',
+    category: 'specialty',
+    geometry: 'enail',
+    description: 'Coil-wrapped quartz with PID. Coil reads 30–80°F hotter than surface (varies widely by brand). MiniNail-on-MiniNail is factory-calibrated to display surface directly.',
+    surface_range: [500, 600],
+    gradient_lag_f: 0,
+    emissivity_bias_multiplier: 0,
+    ir_aim: 'PID set point — no IR / no torch needed',
+    heat_time: '30s stabilize',
+    heat_seconds: [30, 30],
+    cool_seconds: [0, 0],
+    pattern: 'circular_sweep',
+    zones: [{ anatomy: 'PID maintained', pct: 100 }],
+    torch_distance: 'n/a',
+    visual_cue: 'Coil at set temp',
+    cold_start: 'YES',
+    tags: ['ELECTRIC', 'NO_TORCH'],
+    mfrs: ['MiniNail', 'VapeBrat', 'Pulsar Elite', 'Yo Dabba Dabba', 'Galaxy Enails'],
   },
 ];
 
@@ -417,6 +450,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Fresh-frozen pressed solventless. Glossy amber, sappy.',
     surface_range: [445, 520],
     surface_optimal: 480,
+    fluid_target_optimal: 415,
+    fluid_target_range: [380, 455],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start GOLD STANDARD', '710 Labs anchor: 400–450°F surface', 'Above 520°F = generic dab taste'],
@@ -430,6 +465,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Live rosin nucleated to creamy badder. Most popular 2026 rosin format.',
     surface_range: [375, 510],
     surface_optimal: 460,
+    fluid_target_optimal: 395,
+    fluid_target_range: [310, 445],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start STRONGLY recommended', 'Mood/Puffco anchor: 375–450°F surface', 'Pushing past 500°F defeats the cure'],
@@ -443,6 +480,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Un-cured rosin. Most volatile-rich, terps not yet homogenized.',
     surface_range: [440, 510],
     surface_optimal: 470,
+    fluid_target_optimal: 405,
+    fluid_target_range: [375, 445],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start strongly recommended', 'Gentle ramp protects pinene + ocimene'],
@@ -456,6 +495,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'THCa diamonds in terpene-rich rosin sauce. Heterogeneous.',
     surface_range: [490, 545],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [425, 480],
     terps: 'high',
     cold_start_good: true,
     notes: ['Slurper preferred — separates phases dynamically', 'Crystals need ≥480°F to melt cleanly'],
@@ -469,6 +510,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Whipped/agitated rosin. Hashwriter avg 520°F Terpometer interior.',
     surface_range: [480, 540],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [415, 475],
     terps: 'high',
     cold_start_good: false,
     notes: ['Cold start optional'],
@@ -482,6 +525,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Whipped/cured at 90–225°F. Profile shifts to heavier sesquiterpenes.',
     surface_range: [480, 545],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [415, 480],
     terps: 'med',
     cold_start_good: false,
     notes: ['Cold start optional', 'Caryophyllene dominant — needs more heat than fresh'],
@@ -495,6 +540,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Pressed disk from 5–6 star bubble. Premium fresh-frozen input.',
     surface_range: [450, 520],
     surface_optimal: 475,
+    fluid_target_optimal: 410,
+    fluid_target_range: [385, 455],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start YES', 'Flatten coin into hash flag for even melt'],
@@ -508,6 +555,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: '710 Labs originated. 6-star 90-micron first-wash bubble pressed to rosin.',
     surface_range: [445, 520],
     surface_optimal: 480,
+    fluid_target_optimal: 415,
+    fluid_target_range: [380, 455],
     terps: 'high',
     cold_start_good: true,
     notes: ['Treat like live rosin', 'Genericized term in 2026'],
@@ -521,6 +570,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Premium hash rosin from highest-grade nugs. Connoisseur tier 2025–26.',
     surface_range: [445, 510],
     surface_optimal: 475,
+    fluid_target_optimal: 410,
+    fluid_target_range: [380, 445],
     terps: 'high',
     cold_start_good: true,
     notes: ["Treat like live rosin", "710 Labs Tier 3, Papa's Select top tier"],
@@ -536,6 +587,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Ice water hash, full-melt grade. Hashwriter avg 477.5°F Terpometer interior.',
     surface_range: [450, 510],
     surface_optimal: 490,
+    fluid_target_optimal: 425,
+    fluid_target_range: [385, 445],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start YES', 'Above 500°F starts charring even 6-star'],
@@ -549,6 +602,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: "Half-melt bubble. Field consensus: don't dab — press to rosin.",
     surface_range: [470, 520],
     surface_optimal: 495,
+    fluid_target_optimal: 430,
+    fluid_target_range: [405, 455],
     terps: 'med',
     cold_start_good: false,
     warning: 'Better pressed than dabbed.',
@@ -563,6 +618,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Mechanically separated trichomes via 45–160µm screens.',
     surface_range: [450, 520],
     surface_optimal: 490,
+    fluid_target_optimal: 425,
+    fluid_target_range: [385, 455],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start YES', 'Treat like ice water hash'],
@@ -576,6 +633,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Hand-rolled spherical hash, Nepalese-style. Frenchy Cannoli legacy.',
     surface_range: [350, 450],
     surface_optimal: 400,
+    fluid_target_optimal: 335,
+    fluid_target_range: [285, 385],
     terps: 'high',
     cold_start_good: true,
     notes: ['Press Club: 350°F surface (NOT same as rosin 450°F)', 'Often a smoke-first product', 'Cold start strongly recommended'],
@@ -589,6 +648,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Traditional Moroccan/Afghan/Charas. Will char on most bangers.',
     surface_range: [500, 550],
     surface_optimal: 525,
+    fluid_target_optimal: 460,
+    fluid_target_range: [435, 485],
     terps: 'low',
     cold_start_good: false,
     warning: 'Will leave significant residue. Better in pipe or hot knife.',
@@ -605,6 +666,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Fresh-frozen hydrocarbon BHO. ~34% of concentrate sales.',
     surface_range: [480, 545],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [415, 480],
     terps: 'high',
     cold_start_good: false,
     notes: ['Cold start optional', 'Stay ≤545°F surface to preserve linalool + humulene', 'Most popular hydrocarbon format'],
@@ -618,6 +681,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'BHO from cured flower. Sesquiterpene-heavy.',
     surface_range: [520, 580],
     surface_optimal: 545,
+    fluid_target_optimal: 480,
+    fluid_target_range: [455, 515],
     terps: 'low',
     cold_start_good: false,
     notes: ['Cold start NOT typical', 'Sesquiterpene-heavy — takes more heat'],
@@ -631,6 +696,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Glassy BHO. Once dominant, now legacy/budget tier.',
     surface_range: [510, 580],
     surface_optimal: 545,
+    fluid_target_optimal: 480,
+    fluid_target_range: [445, 515],
     terps: 'low',
     cold_start_good: false,
     notes: ['Cold start NOT typical', 'Most volatile terps already lost in process'],
@@ -644,6 +711,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Whipped BHO. Stable mid-tier across menus.',
     surface_range: [480, 540],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [415, 475],
     terps: 'med',
     cold_start_good: false,
     notes: ['Cold start optional/popular'],
@@ -657,6 +726,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Dry powdery BHO. Lower moisture vaporizes easily.',
     surface_range: [480, 550],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [415, 485],
     terps: 'med',
     cold_start_good: false,
     notes: ['Pearls essential to distribute', 'Cold start useful'],
@@ -670,6 +741,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Small THCa crystals in terpene matrix.',
     surface_range: [480, 545],
     surface_optimal: 510,
+    fluid_target_optimal: 445,
+    fluid_target_range: [415, 480],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start LOVED for this texture'],
@@ -683,6 +756,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'High-terpene full-spectrum extract. ~50% terpenes.',
     surface_range: [500, 580],
     surface_optimal: 530,
+    fluid_target_optimal: 465,
+    fluid_target_range: [435, 515],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start recommended for HTFSE', 'Slurper geometry designed for this'],
@@ -696,6 +771,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Discrete crystalline gemstones, 95–99% THCa, near-zero terpenes.',
     surface_range: [500, 600],
     surface_optimal: 545,
+    fluid_target_optimal: 480,
+    fluid_target_range: [435, 535],
     terps: 'none',
     cold_start_good: false,
     notes: ['Pearls essential', 'Cold start useful', 'Sensor-driven temp choice'],
@@ -709,6 +786,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Crystals in terpene-rich sauce.',
     surface_range: [510, 570],
     surface_optimal: 530,
+    fluid_target_optimal: 465,
+    fluid_target_range: [445, 505],
     terps: 'high',
     cold_start_good: true,
     notes: ['Slurper preferred', 'Cold start: sauce volatilizes first, then crystals'],
@@ -722,6 +801,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Pure powder, >99% THCa. Zero terpenes.',
     surface_range: [525, 600],
     surface_optimal: 560,
+    fluid_target_optimal: 495,
+    fluid_target_range: [460, 535],
     terps: 'none',
     cold_start_good: false,
     notes: ['Use sticky binder (live resin) for cold start', 'Just needs full vaporization of THC'],
@@ -735,6 +816,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Live resin + THCa diamonds. If dabbing jar form: treat like diamonds & sauce.',
     surface_range: [500, 570],
     surface_optimal: 530,
+    fluid_target_optimal: 465,
+    fluid_target_range: [435, 505],
     terps: 'high',
     cold_start_good: false,
     notes: ['Mostly vaped not dabbed', 'If dabbing jar form: treat like diamonds & sauce'],
@@ -750,6 +833,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Supercritical CO₂ extraction. Most volatile terps lost in process.',
     surface_range: [520, 600],
     surface_optimal: 560,
+    fluid_target_optimal: 495,
+    fluid_target_range: [455, 535],
     terps: 'low',
     cold_start_good: false,
     notes: ['Cold start optional', 'Fading in dab market — common in carts'],
@@ -763,6 +848,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: '~99% pure, viscous, terpene-stripped.',
     surface_range: [540, 620],
     surface_optimal: 580,
+    fluid_target_optimal: 515,
+    fluid_target_range: [475, 555],
     terps: 'none',
     cold_start_good: false,
     warning: 'No flavor — rarely dabbed alone.',
@@ -777,6 +864,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'CBN-focused, often blended with sleep terpenes.',
     surface_range: [490, 570],
     surface_optimal: 525,
+    fluid_target_optimal: 460,
+    fluid_target_range: [425, 505],
     terps: 'low',
     cold_start_good: false,
     notes: ['CBN boiling: 365°F at 1 atm', 'Often blended for synergy'],
@@ -790,6 +879,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'CBG-focused. Springer study: degradation begins ~608°F.',
     surface_range: [480, 560],
     surface_optimal: 520,
+    fluid_target_optimal: 455,
+    fluid_target_range: [415, 495],
     terps: 'low',
     cold_start_good: false,
     notes: ['CBG boiling: 126°F (very low) — needs gentle heat'],
@@ -803,6 +894,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'THCV boiling 428°F (highest of common cannabinoids), but matrix needs more.',
     surface_range: [540, 610],
     surface_optimal: 570,
+    fluid_target_optimal: 505,
+    fluid_target_range: [475, 545],
     terps: 'low',
     cold_start_good: false,
     notes: ['Anecdotal practice — sparse data'],
@@ -818,6 +911,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Strain-specific or terpene-infused diamonds.',
     surface_range: [510, 570],
     surface_optimal: 530,
+    fluid_target_optimal: 465,
+    fluid_target_range: [445, 505],
     terps: 'high',
     cold_start_good: true,
     notes: ['Cold start YES', 'Treat as diamonds & sauce'],
@@ -831,6 +926,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Hemp-derived. Very small % since extremely potent (~33× CB1 binding).',
     surface_range: [510, 580],
     surface_optimal: 540,
+    fluid_target_optimal: 475,
+    fluid_target_range: [445, 515],
     terps: 'low',
     cold_start_good: false,
     warning: 'Regulatory uncertainty — Nov 2026 federal hemp ban.',
@@ -847,6 +944,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Pre-roll with central rosin/bubble hash worm.',
     surface_range: null,
     surface_optimal: null,
+    fluid_target_optimal: null,
+    fluid_target_range: null,
     terps: 'high',
     cold_start_good: false,
     blocked: "This is a pre-roll format. Light it and smoke it — don't put it on a banger.",
@@ -860,6 +959,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Loose unrefined trichome powder. Dust, low-melt.',
     surface_range: null,
     surface_optimal: null,
+    fluid_target_optimal: null,
+    fluid_target_range: null,
     terps: 'med',
     cold_start_good: false,
     blocked: 'Kief is too dusty for direct dabs and will combust unevenly. Press it to rosin first, or use as bowl topper.',
@@ -873,6 +974,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Rick Simpson Oil / Full Extract Cannabis Oil.',
     surface_range: null,
     surface_optimal: null,
+    fluid_target_optimal: null,
+    fluid_target_range: null,
     terps: 'low',
     cold_start_good: false,
     blocked: 'RSO is meant for oral or topical use. Dabbing is harsh due to chlorophyll, waxes, and residual solvents.',
@@ -886,6 +989,8 @@ export const CONCENTRATES: Concentrate[] = [
     description: 'Cooking-grade ice water hash.',
     surface_range: null,
     surface_optimal: null,
+    fluid_target_optimal: null,
+    fluid_target_range: null,
     terps: 'low',
     cold_start_good: false,
     blocked: '1–2 star bubble has too much plant matter. Use it for edibles or press multiple grades together to rosin.',
@@ -903,7 +1008,9 @@ export const SENSORS: Sensor[] = [
     short: 'DabRite Pro · non-contact infrared',
     method: 'ir',
     description: 'Non-contact infrared. Aim per banger geometry — bucket vs slurper read differently.',
-    calibration: 'Apply banger.ir_offset_sign × banger.ir_offset_f. Bucket-class subtracts, slurper-class adds.',
+    calibration: 'Four-term v2 metrology: T_Ideal + dT_Load + dT_Gradient + dT_emissivity.',
+    emissivity_bias_f: 15,
+    applies_gradient_lag: true,
   },
 ];
 
@@ -915,6 +1022,7 @@ export const WALLS: Wall[] = [
     name: 'Thin',
     thickness: '1.5–2.5 mm',
     mod: -8,
+    gradient_multiplier: 0.5,
     description: 'Light flat tops. Faster heat, faster cool.',
   },
   {
@@ -922,6 +1030,7 @@ export const WALLS: Wall[] = [
     name: 'Standard',
     thickness: '3–4 mm',
     mod: 0,
+    gradient_multiplier: 1.0,
     description: 'Typical premium banger. Default.',
   },
   {
@@ -929,6 +1038,7 @@ export const WALLS: Wall[] = [
     name: 'Thick',
     thickness: '5–6 mm',
     mod: 12,
+    gradient_multiplier: 1.6,
     description: 'Heavy reactor / opaque. More retention.',
   },
   {
@@ -936,6 +1046,7 @@ export const WALLS: Wall[] = [
     name: "Don't know",
     thickness: '—',
     mod: 0,
+    gradient_multiplier: 1.0,
     description: 'Defaults to standard.',
   },
 ];
@@ -958,7 +1069,7 @@ export const SAVED_PRESETS: SavedPreset[] = [
     id: 'opaque',
     name: 'Opaque Recommended',
     kind: 'opaque',
-    banger: 'opaque',
+    banger: 'opaque-bottom',
     concentrate: 'live-resin',
     sensor: 'ir',
     wall: 'thick',
@@ -969,7 +1080,7 @@ export const SAVED_PRESETS: SavedPreset[] = [
     id: 'rosin',
     name: '710 Labs Solventless',
     kind: 'low',
-    banger: 'round',
+    banger: 'round-bottom',
     concentrate: 'live-rosin',
     sensor: 'ir',
     wall: 'standard',
@@ -980,7 +1091,7 @@ export const SAVED_PRESETS: SavedPreset[] = [
     id: 'cold-cure-low',
     name: 'Cold-Cure · Low & Slow',
     kind: 'low',
-    banger: 'round',
+    banger: 'round-bottom',
     concentrate: 'cold-cure',
     sensor: 'ir',
     wall: 'standard',
@@ -1013,7 +1124,7 @@ export const SAVED_PRESETS: SavedPreset[] = [
     id: 'temple',
     name: 'Temple Ball · Sip',
     kind: 'low',
-    banger: 'round',
+    banger: 'round-bottom',
     concentrate: 'temple-ball',
     sensor: 'ir',
     wall: 'thin',
@@ -1024,7 +1135,7 @@ export const SAVED_PRESETS: SavedPreset[] = [
     id: 'diamonds-hot',
     name: 'THCa Diamonds · Hot',
     kind: 'opaque',
-    banger: 'opaque',
+    banger: 'opaque-bottom',
     concentrate: 'thca-diamonds',
     sensor: 'ir',
     wall: 'thick',
@@ -1033,49 +1144,73 @@ export const SAVED_PRESETS: SavedPreset[] = [
   },
 ];
 
+// ─── Phase-change load constant ──────────────────────────────────────────────
+// calibration.constants.phase_change_load_f from v2 schema. The °F drop the
+// surface incurs as the dab makes contact and goes through phase change.
+export const PHASE_CHANGE_LOAD_F = 65;
+
 // ─── computeCalibration ──────────────────────────────────────────────────────
-// PRD §6.7: displayed = surface + (sign × offset) + wall.mod
-// MFR override applied first when banger.mfr_targets present.
+// v2 four-term metrology equation (IR sensor branch):
+//   displayed = T_Ideal + dT_Load + dT_Gradient + dT_emissivity + wall.mod
+//   T_Ideal       = concentrate.fluid_target_optimal
+//   dT_Load       = PHASE_CHANGE_LOAD_F (65)
+//   dT_Gradient   = banger.gradient_lag_f * wall.gradient_multiplier
+//   dT_emissivity = sensor.emissivity_bias_f * banger.emissivity_bias_multiplier
+//
+// Anchor case: live-rosin (T_Ideal=415) + flat-top (lag=25, εmult=1.0) +
+//   standard wall (mult=1.0, mod=0) + IR sensor (εbias=15)
+//   ⇒ 415 + 65 + 25 + 15 + 0 = 520 °F (matches CHANGELOG validation matrix).
+//
+// MFR override applied first when banger.mfr_targets present — the override
+// sets BOTH the surface temperature AND the T_Ideal we feed into the equation.
 
 export function computeCalibration(
   b: Banger,
   c: Concentrate,
   w: Wall,
+  s: Sensor = SENSORS[0],
 ): CalibResult {
   let surface = c.surface_optimal ?? 510;
+  let tIdeal = c.fluid_target_optimal ?? (surface - PHASE_CHANGE_LOAD_F);
   let override: CalibResult['override'];
 
   if (b.mfr_targets) {
     const isSolventless = c.cat === 'Solventless' || c.cat === 'Hash';
-    if (isSolventless && b.mfr_targets.solventless != null) {
-      surface = b.mfr_targets.solventless;
+    const mfrTarget = isSolventless ? b.mfr_targets.solventless : b.mfr_targets.hydrocarbon;
+    if (mfrTarget != null) {
+      surface = mfrTarget;
+      tIdeal = surface - PHASE_CHANGE_LOAD_F;
       override = {
         source: b.name,
         surface,
-        reason: `★ Override: ${b.name} spec for solventless = ${surface}°F`,
-      };
-    } else if (!isSolventless && b.mfr_targets.hydrocarbon != null) {
-      surface = b.mfr_targets.hydrocarbon;
-      override = {
-        source: b.name,
-        surface,
-        reason: `★ Override: ${b.name} spec for hydrocarbon = ${surface}°F`,
+        reason: `★ Override: ${b.name} spec for ${isSolventless ? 'solventless' : 'hydrocarbon'} = ${surface}°F`,
       };
     }
   }
 
-  const irDelta = b.ir_offset_sign * b.ir_offset_f;
   const wallMod = w.mod;
-  const displayed = surface + irDelta + wallMod;
+  let displayed: number;
+
+  if (s.method === 'ir') {
+    const dTLoad = PHASE_CHANGE_LOAD_F;
+    const dTGradient = b.gradient_lag_f * w.gradient_multiplier;
+    const dTEmiss = s.emissivity_bias_f * b.emissivity_bias_multiplier;
+    displayed = tIdeal + dTLoad + dTGradient + dTEmiss + wallMod;
+  } else {
+    // Future-proofing: contact / visual / enail branches collapse to surface + wall.
+    displayed = surface + wallMod;
+  }
+
+  const displayedRounded = Math.round(displayed);
 
   return {
     surface,
-    ir: irDelta,
+    ir: displayedRounded - surface - wallMod,
     wall: wallMod,
-    displayed,
-    low: displayed - 15,
-    high: displayed + 15,
-    dunk: displayed - 280,
+    displayed: displayedRounded,
+    low: displayedRounded - 15,
+    high: displayedRounded + 15,
+    dunk: displayedRounded - 280,
     ...(override ? { override } : {}),
   };
 }

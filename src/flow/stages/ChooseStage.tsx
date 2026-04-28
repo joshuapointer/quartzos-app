@@ -1,6 +1,5 @@
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -42,8 +41,8 @@ function useStaggerEntrance(idx: number) {
   }));
 }
 
-function NewSeshGlyph() {
-  const size = 44;
+function NewSeshCircle() {
+  const size = 80;
   const r = size / 2;
   return (
     <View
@@ -51,41 +50,31 @@ function NewSeshGlyph() {
         width: size,
         height: size,
         borderRadius: r,
-        flexShrink: 0,
         shadowColor: THEME.ember.base,
-        shadowRadius: 18,
-        shadowOpacity: 0.55,
+        shadowRadius: 20,
+        shadowOpacity: 0.5,
         shadowOffset: { width: 0, height: 0 },
-        elevation: 6,
+        elevation: 8,
       }}
     >
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
-          <RadialGradient id="newSeshMain" cx="35%" cy="30%" r="70%" fx="35%" fy="30%">
-            <Stop offset="0%" stopColor={THEME.ember.bright} stopOpacity="1" />
-            <Stop offset="45%" stopColor={THEME.ember.deep} stopOpacity="1" />
-            <Stop offset="100%" stopColor="#160c06" stopOpacity="1" />
+          <RadialGradient id="newSeshCircle" cx="38%" cy="32%" r="68%" fx="38%" fy="32%">
+            <Stop offset="0%" stopColor="#ff9a30" stopOpacity="1" />
+            <Stop offset="55%" stopColor={THEME.ember.base} stopOpacity="1" />
+            <Stop offset="100%" stopColor="#b85800" stopOpacity="1" />
           </RadialGradient>
-          <RadialGradient id="newSeshShimmer" cx="32%" cy="26%" r="36%" fx="32%" fy="26%">
-            <Stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
+          <RadialGradient id="newSeshShimmer" cx="34%" cy="26%" r="38%" fx="34%" fy="26%">
+            <Stop offset="0%" stopColor="#ffffff" stopOpacity="0.38" />
             <Stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <Circle cx={r} cy={r} r={r} fill="url(#newSeshMain)" />
+        <Circle cx={r} cy={r} r={r} fill="url(#newSeshCircle)" />
         <Circle cx={r} cy={r} r={r} fill="url(#newSeshShimmer)" />
-        <Circle
-          cx={r}
-          cy={r}
-          r={r - 0.5}
-          fill="none"
-          stroke={THEME.ember.bright}
-          strokeOpacity={0.55}
-          strokeWidth={0.5}
-        />
         <Path
-          d="M22 15v14M15 22h14"
-          stroke="#f6ded2"
-          strokeWidth={1.5}
+          d="M40 29v22M29 40h22"
+          stroke="#1c110a"
+          strokeWidth={2.5}
           strokeLinecap="round"
         />
       </Svg>
@@ -93,23 +82,8 @@ function NewSeshGlyph() {
   );
 }
 
-function Chevron() {
-  return (
-    <Svg width={7} height={12} viewBox="0 0 8 14">
-      <Path
-        d="M1 1l6 6-6 6"
-        stroke={THEME.bone[50]}
-        strokeWidth={1.25}
-        fill="none"
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
 function NewSeshCard({ onPress }: { onPress: () => void }) {
   const scale = useSharedValue(1);
-  // Guard against double-tap; lock for 250ms after each press.
   const locked = useRef(false);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -146,15 +120,10 @@ function NewSeshCard({ onPress }: { onPress: () => void }) {
         <BlurView intensity={22} tint="dark" style={cardSt.blur}>
           <View style={cardSt.warmTint} />
           <View style={cardSt.innerBorder} />
-          <View style={cardSt.row}>
-            <NewSeshGlyph />
-            <View style={cardSt.middle}>
-              <Text style={cardSt.name}>New sesh</Text>
-              <Text style={cardSt.sub}>
-                Tell us your banger and what you're dabbing.
-              </Text>
-            </View>
-            <Chevron />
+          <View style={cardSt.content}>
+            <NewSeshCircle />
+            <Text style={cardSt.name}>New sesh</Text>
+            <Text style={cardSt.sub}>Build a custom temp profile.</Text>
           </View>
         </BlurView>
       </Pressable>
@@ -164,16 +133,25 @@ function NewSeshCard({ onPress }: { onPress: () => void }) {
 
 const cardSt = StyleSheet.create({
   wrapper: {
-    borderRadius: 999,
+    borderRadius: 24,
     overflow: 'hidden',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowRadius: 24,
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   pressable: {
-    borderRadius: 999,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   blur: {
-    padding: 18,
-    borderRadius: 999,
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
   },
   warmTint: {
     position: 'absolute',
@@ -181,8 +159,8 @@ const cardSt = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 174, 90, 0.04)',
+    borderRadius: 24,
+    backgroundColor: 'rgba(246,222,210,0.04)',
   },
   innerBorder: {
     position: 'absolute',
@@ -190,76 +168,56 @@ const cardSt = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 999,
+    borderRadius: 24,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 200, 130, 0.14)',
+    borderColor: 'rgba(246,222,210,0.20)',
   },
-  row: {
-    flexDirection: 'row',
+  content: {
     alignItems: 'center',
     gap: 14,
   },
-  middle: {
-    flex: 1,
-    minWidth: 0,
-  },
   name: {
     fontFamily: 'Geist_400Regular',
-    fontSize: 15,
+    fontSize: 22,
     color: THEME.bone[100],
-    letterSpacing: -0.225,
-    marginBottom: 3,
-    textShadowColor: 'rgba(180,200,230,0.18)',
-    textShadowRadius: 6,
-    textShadowOffset: { width: 0, height: 0 },
+    letterSpacing: -0.44,
+    textAlign: 'center',
   },
   sub: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 11.5,
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 10,
     color: THEME.bone[50],
-    lineHeight: 11.5 * 1.4,
-    maxWidth: 220,
+    letterSpacing: 0.1 * 10,
+    textAlign: 'center',
+    marginTop: -6,
   },
 });
 
-function Divider() {
+function SavedPill() {
   return (
-    <View style={divSt.row}>
-      <LinearGradient
-        colors={['transparent', 'rgba(180,200,230,0.14)', 'transparent']}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={divSt.hairline}
-      />
-      <Text style={divSt.label}>SAVED</Text>
-      <LinearGradient
-        colors={['transparent', 'rgba(180,200,230,0.14)', 'transparent']}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={divSt.hairline}
-      />
+    <View style={pillSt.pill}>
+      <Text style={pillSt.label}>SAVED</Text>
     </View>
   );
 }
 
-const divSt = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 14,
-    paddingHorizontal: 4,
-    paddingBottom: 6,
-  },
-  hairline: {
-    flex: 1,
-    height: 0.5,
+const pillSt = StyleSheet.create({
+  pill: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(246,222,210,0.04)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246,222,210,0.18)',
+    marginTop: 6,
+    marginBottom: 2,
   },
   label: {
-    fontFamily: 'GeistMono_400Regular',
-    fontSize: 9,
-    letterSpacing: 0.18 * 9,
-    color: THEME.bone[35],
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 10,
+    letterSpacing: 1.6,
+    color: THEME.bone[50],
   },
 });
 
@@ -320,11 +278,7 @@ export default function ChooseStage() {
 
       <Animated.View style={s0}>
         <View style={st.header}>
-          <Text style={st.eyebrow}>READY</Text>
-          <Text style={st.headline}>
-            {'Start a '}
-            <Text style={st.accentAmber}>sesh.</Text>
-          </Text>
+          <Text style={st.headline}>Start a sesh.</Text>
         </View>
       </Animated.View>
 
@@ -337,7 +291,7 @@ export default function ChooseStage() {
           <NewSeshCard onPress={startBuilder} />
           {SAVED_PRESETS.length > 0 ? (
             <>
-              <Divider />
+              <SavedPill />
               {SAVED_PRESETS.map((preset, i) => (
                 <StaggeredPresetRow
                   key={preset.id}
@@ -365,26 +319,17 @@ const st = StyleSheet.create({
     paddingHorizontal: 22,
   },
   header: {
-    marginBottom: 14,
-  },
-  eyebrow: {
-    fontFamily: 'GeistMono_500Medium',
-    fontSize: 9,
-    letterSpacing: 2.88,
-    textTransform: 'uppercase',
-    color: THEME.bone[50],
-    marginBottom: 6,
+    marginBottom: 20,
+    alignItems: 'center',
   },
   headline: {
     fontFamily: 'Geist_300Light',
-    fontSize: 28,
+    fontSize: 40,
     color: THEME.bone[100],
-    letterSpacing: -0.98,
-  },
-  accentAmber: {
-    color: '#ffb68b',
-    textShadowColor: 'rgba(255, 182, 139, 0.6)',
-    textShadowRadius: 24,
+    letterSpacing: -1.52,
+    textAlign: 'center',
+    textShadowColor: 'rgba(246,222,210,0.18)',
+    textShadowRadius: 16,
     textShadowOffset: { width: 0, height: 0 },
   },
   listWrapper: {

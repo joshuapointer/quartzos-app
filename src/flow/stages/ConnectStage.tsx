@@ -23,7 +23,7 @@ function useStaggerEntrance(idx: number) {
   const translateY = useSharedValue(12);
 
   useEffect(() => {
-    const delay = idx * 55;
+    const delay = idx * 75;
     opacity.value = withDelay(delay, withTiming(1, { duration: 600, easing: EASE_EXPO }));
     translateY.value = withDelay(delay, withTiming(0, { duration: 600, easing: EASE_EXPO }));
   }, [idx, opacity, translateY]);
@@ -34,49 +34,30 @@ function useStaggerEntrance(idx: number) {
   }));
 }
 
-function StatusDot({ searching }: { searching: boolean }) {
-  const opacity = useSharedValue(1);
+function PulseDot() {
+  const opacity = useSharedValue(0.4);
 
   useEffect(() => {
-    if (searching) {
-      opacity.value = withRepeat(
-        withSequence(
-          withTiming(0.3, { duration: 600 }),
-          withTiming(1.0, { duration: 600 }),
-        ),
-        -1,
-        false,
-      );
-    } else {
-      opacity.value = withTiming(1, { duration: 200 });
-    }
-  }, [searching, opacity]);
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 700, easing: EASE_EXPO }),
+        withTiming(0.4, { duration: 700, easing: EASE_EXPO }),
+      ),
+      -1,
+      false,
+    );
+  }, [opacity]);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  const dotColor = searching ? THEME.ember.bright : THEME.bone[35];
-
-  return (
-    <Animated.View
-      style={[
-        dotStyle.dot,
-        animStyle,
-        {
-          backgroundColor: dotColor,
-          shadowColor: dotColor,
-          shadowRadius: searching ? 8 : 0,
-          shadowOpacity: searching ? 0.7 : 0,
-        },
-      ]}
-    />
-  );
+  return <Animated.View style={[dotStyle.dot, animStyle]} />;
 }
 
 const dotStyle = StyleSheet.create({
   dot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
-    shadowOffset: { width: 0, height: 0 },
+    backgroundColor: 'rgba(28, 17, 10, 0.55)',
   },
 });
 
@@ -89,7 +70,6 @@ function ConnectButton({
 }) {
   const scale = useSharedValue(1);
   const translateY = useSharedValue(0);
-  // Guard against double-tap; lock for 250ms after each press.
   const locked = useRef(false);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -127,7 +107,8 @@ function ConnectButton({
           onPressOut={handlePressOut}
           style={btnStyles.ghost}
         >
-          <Text style={btnStyles.ghostText}>Searching for Dab Rite...</Text>
+          <PulseDot />
+          <Text style={btnStyles.ghostText}>SEARCHING…</Text>
         </Pressable>
       </Animated.View>
     );
@@ -136,7 +117,7 @@ function ConnectButton({
   return (
     <Animated.View style={[btnStyles.shadowWrapper, animStyle]}>
       <LinearGradient
-        colors={['#ff7a00', '#5c2800']}
+        colors={['#ff8a14', '#ff7a00']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={btnStyles.gradient}
@@ -151,7 +132,8 @@ function ConnectButton({
           accessibilityLabel="Connect Dab Rite"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={btnStyles.text}>Connect Dab Rite</Text>
+          <Text style={btnStyles.text}>CONNECT DAB RITE</Text>
+          <Text style={btnStyles.arrow}>→</Text>
         </Pressable>
       </LinearGradient>
     </Animated.View>
@@ -160,51 +142,64 @@ function ConnectButton({
 
 const btnStyles = StyleSheet.create({
   shadowWrapper: {
-    borderRadius: 100,
+    borderRadius: 9999,
     shadowColor: '#ff7a00',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 32,
     shadowOpacity: 0.55,
-    elevation: 8,
+    elevation: 10,
   },
   gradient: {
-    borderRadius: 100,
+    borderRadius: 9999,
     overflow: 'hidden',
   },
   highlight: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
+    left: 18,
+    right: 18,
     height: 1,
     backgroundColor: 'rgba(255, 240, 220, 0.45)',
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
     zIndex: 1,
   },
   pressable: {
-    paddingVertical: 14,
-    paddingHorizontal: 26,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
   },
   text: {
-    fontFamily: 'Geist_500Medium',
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.8,
+    color: '#1c110a',
+    textTransform: 'uppercase',
+  },
+  arrow: {
+    fontFamily: 'GeistMono_500Medium',
     fontSize: 13,
-    letterSpacing: 0.52,
-    color: '#f6ded2',
+    color: '#1c110a',
+    opacity: 0.85,
   },
   ghost: {
-    paddingVertical: 14,
-    paddingHorizontal: 26,
-    borderRadius: 100,
-    backgroundColor: 'rgba(8, 14, 26, 0.55)',
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(246, 222, 210, 0.04)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246, 222, 210, 0.18)',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   ghostText: {
-    fontFamily: 'Geist_500Medium',
-    fontSize: 13,
-    letterSpacing: 0.52,
-    color: THEME.bone[90],
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.8,
+    color: THEME.bone[70],
+    textTransform: 'uppercase',
   },
 });
 
@@ -215,54 +210,26 @@ export default function ConnectStage() {
   const s0 = useStaggerEntrance(0);
   const s1 = useStaggerEntrance(1);
   const s2 = useStaggerEntrance(2);
-  const s3 = useStaggerEntrance(3);
-  const s4 = useStaggerEntrance(4);
-  const s5 = useStaggerEntrance(5);
 
   return (
     <View style={st.container}>
 
-      <Animated.View style={s0}>
-        <Text style={st.eyebrow}>DEVICE NOT FOUND</Text>
-      </Animated.View>
-
-      <Animated.View style={s1}>
-        <View style={st.headlineWrapper}>
-          <Text style={st.headline}>
-            {'Connect your\n'}
-            <Text style={st.accentAmber}>Dab Rite</Text>
-            {' to begin.'}
-          </Text>
-        </View>
-      </Animated.View>
-
-      <Animated.View style={s2}>
-        <Text style={st.subCopy}>
-          Quartzie pairs with your IR thermometer over Bluetooth. Power it on
-          and we'll find it automatically.
+      <Animated.View style={[st.headlineWrapper, s0]}>
+        <Text style={st.headline}>
+          {'Connect your\nDab Rite to begin.'}
         </Text>
       </Animated.View>
 
-      {/* accessibilityLiveRegion so screen readers announce scan state changes */}
-      <Animated.View style={s3}>
-        <View
-          style={st.statusPill}
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={searching ? 'Scanning for device' : 'Awaiting device'}
-        >
-          <StatusDot searching={searching} />
-          <Text style={[st.statusText, { color: searching ? THEME.bone[90] : THEME.bone[50] }]}>
-            {searching ? 'SCANNING...' : 'AWAITING DEVICE'}
-          </Text>
-        </View>
-      </Animated.View>
+      <View style={st.spacer} />
 
-      <Animated.View style={s4}>
+      <Animated.View style={s1}>
         <ConnectButton searching={searching} onPress={connect} />
       </Animated.View>
 
-      <Animated.View style={s5}>
-        <Text style={st.footer}>NO ADVANCE WITHOUT A DEVICE</Text>
+      <Animated.View style={s2}>
+        <Text style={st.footer}>
+          {searching ? 'SCANNING FOR DEVICE' : 'POWER ON THE DAB RITE TO PAIR'}
+        </Text>
       </Animated.View>
 
     </View>
@@ -275,69 +242,34 @@ const st = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 20,
+    paddingTop: 32,
     paddingHorizontal: 28,
-    paddingBottom: 130,
+    paddingBottom: 80,
   },
   headlineWrapper: {
     marginBottom: 8,
   },
-  eyebrow: {
-    fontFamily: 'GeistMono_500Medium',
-    fontSize: 9,
-    letterSpacing: 2.88,
-    textTransform: 'uppercase',
-    color: THEME.bone[50],
-    marginBottom: 12,
-    textAlign: 'center',
-  },
   headline: {
     fontFamily: 'Geist_300Light',
-    fontSize: 32,
-    letterSpacing: -1.12,
+    fontSize: 38,
+    letterSpacing: -1.52,
     color: THEME.bone[100],
-    lineHeight: 32,
+    lineHeight: 42,
     textAlign: 'center',
-  },
-  accentAmber: {
-    color: '#ffb68b',
-    textShadowColor: 'rgba(255, 182, 139, 0.6)',
-    textShadowRadius: 24,
+    textShadowColor: 'rgba(246, 222, 210, 0.18)',
+    textShadowRadius: 16,
     textShadowOffset: { width: 0, height: 0 },
   },
-  subCopy: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 13.5,
-    color: THEME.bone[50],
-    lineHeight: 13.5 * 1.5,
-    maxWidth: 280,
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 240, 220, 0.04)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 240, 220, 0.08)',
-    marginBottom: 24,
-  },
-  statusText: {
-    fontFamily: 'GeistMono_400Regular',
-    fontSize: 10,
-    letterSpacing: 0.16 * 10,
-    textTransform: 'uppercase',
+  spacer: {
+    flex: 1,
+    minHeight: 32,
   },
   footer: {
     fontFamily: 'GeistMono_400Regular',
     fontSize: 9.5,
-    letterSpacing: 0.18 * 9.5,
+    letterSpacing: 1.7,
     color: THEME.bone[35],
-    marginTop: 22,
+    marginTop: 28,
     textTransform: 'uppercase',
     textAlign: 'center',
   },

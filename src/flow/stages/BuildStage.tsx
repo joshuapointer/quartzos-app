@@ -1,4 +1,3 @@
-
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
@@ -52,25 +51,20 @@ function ProgressPill({ index, step }: ProgressPillProps) {
 
   const animStyle = useAnimatedStyle(() => {
     const isCurrent = index === step;
-    const isPast = index < step;
-    const isFuture = index > step;
-    const bg = isPast
-      ? THEME.ember.base
-      : isCurrent
-        ? THEME.ember.base
-        : 'rgba(180, 200, 230, 0.10)';
-    const shadowOpacity = isCurrent ? 0.6 * progress.value : 0;
+    const isReached = index <= step;
     return {
-      backgroundColor: bg,
-      shadowOpacity,
-      opacity: isFuture ? 0.4 + 0.6 * (1 - progress.value) : 1,
+      backgroundColor: isReached ? THEME.ember.base : 'rgba(246, 222, 210, 0.10)',
+      shadowOpacity: isCurrent ? 0.8 * progress.value : 0,
     };
   });
+
+  const isFuture = index > step;
 
   return (
     <Animated.View
       style={[
         styles.progressPill,
+        isFuture && styles.progressPillFuture,
         animStyle,
         index === step && styles.progressPillCurrent,
       ]}
@@ -119,7 +113,6 @@ export default function BuildStage() {
   const continueScale = useSharedValue(1);
   const continueAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: continueScale.value }],
-    flex: 1,
   }));
 
   function handleBack() {
@@ -139,18 +132,18 @@ export default function BuildStage() {
     continueScale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
 
-  const continueLabel = step < 3 ? 'Continue →' : 'Start sesh →';
+  const continueLabel = step < 3 ? 'CONTINUE' : 'START SESH';
 
   return (
     <View style={styles.container}>
-      {/* Progress strip */}
+      {/* Progress strip — 4 short pills, centered */}
       <View style={styles.progressRow}>
         {[0, 1, 2, 3].map((i) => (
           <ProgressPill key={i} index={i} step={step} />
         ))}
       </View>
 
-      {/* Eyebrow + title */}
+      {/* Eyebrow + title — centered */}
       <View style={styles.headerBlock}>
         <Text style={styles.eyebrow}>
           STEP {step + 1}/4 · {STEP_LABELS[step]}
@@ -161,50 +154,46 @@ export default function BuildStage() {
       {/* Body */}
       <StageBody step={step} />
 
-      {/* Footer button row */}
+      {/* Not-ready hint — floats above fixed pill */}
       {!ready && step < 3 && (
         <Text style={styles.notReadyHint}>Make a selection to continue</Text>
       )}
-      <View style={styles.footerRow}>
-        <Pressable
-          onPress={handleBack}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.backText}>← Back</Text>
-        </Pressable>
-        <Animated.View style={continueAnimStyle}>
+
+      {/* Fixed emissive amber CONTINUE pill */}
+      <View style={styles.bottomBar}>
+        {/* Back button — subtle ghost text left of center */}
+        {step > 0 && (
+          <Pressable
+            onPress={handleBack}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </Pressable>
+        )}
+
+        <Animated.View style={[styles.continueWrap, continueAnimStyle]}>
           <Pressable
             onPress={handleNext}
             onPressIn={handleContinuePressIn}
             onPressOut={handleContinuePressOut}
             disabled={!ready}
-            style={[styles.continuePressable, { flex: undefined, width: '100%' }]}
+            style={[styles.continuePressable, !ready && styles.continuePressableDisabled]}
             accessibilityRole="button"
             accessibilityLabel={continueLabel}
             accessibilityState={{ disabled: !ready }}
           >
-            {ready ? (
-              <LinearGradient
-                colors={[THEME.ember.base, THEME.ember.deep]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={[StyleSheet.absoluteFill, styles.continueBg]}
-              />
-            ) : (
-              <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  styles.continueBg,
-                  styles.continueBgDisabled,
-                ]}
-              />
-            )}
-            <Text style={[styles.continueText, !ready && styles.continueTextDisabled]}>
-              {continueLabel}
-            </Text>
+            <LinearGradient
+              colors={['#ff8a14', '#ff7a00']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={[StyleSheet.absoluteFill, styles.continueBg]}
+            />
+            {/* Hairline highlight near top edge */}
+            <View style={styles.pillHighlight} />
+            <Text style={styles.continueText}>{continueLabel}</Text>
           </Pressable>
         </Animated.View>
       </View>
@@ -219,91 +208,57 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 4,
     paddingHorizontal: 22,
-    paddingBottom: 14,
+    paddingBottom: 100, // leave room for fixed bottom pill
   },
+  // ── Progress strip ──
   progressRow: {
     flexDirection: 'row',
     gap: 4,
+    justifyContent: 'center',
     marginBottom: 14,
   },
   progressPill: {
-    flex: 1,
+    width: 48,
     height: 3,
     borderRadius: 2,
-    backgroundColor: 'rgba(180, 200, 230, 0.10)',
-    shadowColor: THEME.ember.base,
-    shadowRadius: 10,
+    backgroundColor: THEME.ember.base,
+    shadowColor: '#ff7a00',
+    shadowRadius: 12,
     shadowOpacity: 0,
     shadowOffset: { width: 0, height: 0 },
+  },
+  progressPillFuture: {
+    backgroundColor: 'rgba(246, 222, 210, 0.10)',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(246, 222, 210, 0.30)',
   },
   progressPillCurrent: {
     elevation: 3,
   },
+  // ── Header ──
   headerBlock: {
     marginBottom: 12,
+    alignItems: 'center',
   },
   eyebrow: {
-    ...(TYPE.mono as object),
-    fontSize: 9,
-    letterSpacing: 0.32 * 9,
-    color: THEME.bone[50],
-    textTransform: 'uppercase',
+    ...(TYPE.eyebrow as object),
     marginBottom: 6,
+    textAlign: 'center',
   } as const,
   title: {
     fontFamily: 'Geist_300Light',
-    fontSize: 26,
+    fontSize: 32,
+    letterSpacing: -1.28,
     color: THEME.bone[100],
-    letterSpacing: -0.7,
-    lineHeight: 26 * 1.05,
+    lineHeight: 36,
+    textAlign: 'center',
   },
+  // ── Body ──
   bodyWrap: {
     flex: 1,
     minHeight: 0,
   },
-  footerRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingTop: 14,
-  },
-  backBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 100,
-    backgroundColor: 'transparent',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 240, 220, 0.10)',
-  },
-  backText: {
-    fontFamily: 'Geist_500Medium',
-    fontSize: 12,
-    color: THEME.bone[70],
-    letterSpacing: 0.04 * 12,
-  },
-  continuePressable: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 100,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 42,
-  },
-  continueBg: {
-    borderRadius: 100,
-  },
-  continueBgDisabled: {
-    backgroundColor: 'rgba(180, 200, 230, 0.06)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
-  },
-  continueText: {
-    fontFamily: 'Geist_600SemiBold',
-    fontSize: 12.5,
-    color: THEME.bone[100],
-    letterSpacing: 0.02 * 12.5,
-  },
+  // ── Not-ready hint ──
   notReadyHint: {
     fontFamily: 'Geist_400Regular',
     fontSize: 10.5,
@@ -311,7 +266,67 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 6,
   },
-  continueTextDisabled: {
-    color: THEME.bone[35],
+  // ── Bottom bar with fixed pill ──
+  bottomBar: {
+    position: 'absolute',
+    bottom: 28,
+    left: 22,
+    right: 22,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    backgroundColor: 'transparent',
+  },
+  backText: {
+    fontFamily: 'Geist_500Medium',
+    fontSize: 12,
+    color: THEME.bone[50],
+    letterSpacing: 0.04 * 12,
+  },
+  continueWrap: {
+    alignItems: 'center',
+  },
+  continuePressable: {
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    borderRadius: 9999,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#ff7a00',
+    shadowRadius: 28,
+    shadowOpacity: 0.55,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 12,
+  },
+  continuePressableDisabled: {
+    opacity: 0.45,
+  },
+  continueBg: {
+    borderRadius: 9999,
+  },
+  // Hairline highlight near top edge of pill
+  pillHighlight: {
+    position: 'absolute',
+    top: 8,
+    left: 18,
+    right: 18,
+    height: 1,
+    backgroundColor: 'rgba(255, 240, 220, 0.45)',
+    borderRadius: 1,
+  },
+  continueText: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: '#1c110a',
   },
 });

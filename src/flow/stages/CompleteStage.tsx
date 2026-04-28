@@ -10,18 +10,15 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import {
   DUR,
   EASE_OUT_EXPO,
-  FONTS,
   RADIUS,
   SPACE,
   THEME,
-  TYPE,
 } from '../theme';
-import { useFlow } from '../store';
+import { useFlow, useBanger, useConcentrate, useCalibration } from '../store';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,27 +28,12 @@ function formatElapsed(seconds: number): string {
   return `${m}:${s}`;
 }
 
-// ─── Ember halo underlay ──────────────────────────────────────────────────────
+// ─── Glowing amber dot ────────────────────────────────────────────────────────
 
-function EmberHalo() {
+function GlowDot() {
   return (
-    <View style={styles.haloWrap} pointerEvents="none">
-      <Svg width={260} height={120} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <RadialGradient
-            id="emberHalo"
-            cx="50%"
-            cy="50%"
-            rx="50%"
-            ry="50%"
-            gradientUnits="userSpaceOnUse"
-          >
-            <Stop offset="0%" stopColor={THEME.ember.base} stopOpacity="0.15" />
-            <Stop offset="100%" stopColor={THEME.ember.base} stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="260" height="120" fill="url(#emberHalo)" />
-      </Svg>
+    <View style={styles.dotOuter}>
+      <View style={styles.dotInner} />
     </View>
   );
 }
@@ -105,6 +87,50 @@ function ActionButton({
   );
 }
 
+// ─── Glass summary card ───────────────────────────────────────────────────────
+
+function SummaryCard() {
+  const banger = useBanger();
+  const concentrate = useConcentrate();
+  const calibration = useCalibration();
+
+  const profileName = banger?.name ?? '—';
+  const materialName = concentrate?.name
+    ? concentrate.name.toUpperCase()
+    : '—';
+  const peakTemp = calibration?.displayed ?? null;
+
+  return (
+    <View style={styles.card}>
+      <LinearGradient
+        colors={['transparent', 'rgba(246,222,210,0.40)', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.cardRimGradient}
+      />
+      <View style={[styles.cardRow, styles.cardRowBorder]}>
+        <Text style={styles.cardLabel}>PROFILE</Text>
+        <Text style={styles.cardValue}>{profileName}</Text>
+      </View>
+      <View style={[styles.cardRow, styles.cardRowBorder]}>
+        <Text style={styles.cardLabel}>MATERIAL</Text>
+        <Text style={styles.cardValue}>{materialName}</Text>
+      </View>
+      <View style={styles.cardRow}>
+        <Text style={styles.cardLabel}>PEAK TEMP</Text>
+        {peakTemp !== null ? (
+          <View style={styles.tempRow}>
+            <Text style={styles.cardValue}>{peakTemp}°</Text>
+            <Text style={styles.tempSuffix}>F</Text>
+          </View>
+        ) : (
+          <Text style={styles.cardValue}>—</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CompleteStage() {
@@ -132,19 +158,18 @@ export function CompleteStage() {
   const headline = (() => {
     if (!hasValidSession) return 'Session ended.';
     if (endedEarly) return 'Ended early.';
-    return 'Sesh done.';
+    return 'Sesh logged.';
   })();
 
-  // Sub copy adapts to outcome context
+  // Sub copy adapts to outcome context (used for non-successful outcomes)
   const subCopy = (() => {
     if (!hasValidSession) return 'No session data recorded.';
     if (endedEarly && hadMissedWindow) return 'Window was missed before completing the full flow.';
     if (endedEarly) return 'Session stopped before the clean phase.';
-    if (hadMissedWindow) return 'Completed with a missed window. Consider a longer cool time next run.';
-    return 'Full cycle complete.';
+    return null;
   })();
 
-  // Stagger: eyebrow, headline, elapsed/sub, button
+  // Stagger: dot, headline, duration, summary card, button (5 elements)
   const STAGGER = 60;
   const sv0 = useSharedValue(0);
   const sv1 = useSharedValue(0);
@@ -184,37 +209,40 @@ export function CompleteStage() {
   const s3 = makeStyle(sv3);
   const s4 = makeStyle(sv4);
 
-  // TODO: persist session data to storage once a save action is wired up
-  // (store currently holds session in memory only — no persistence layer yet)
-
   return (
     <View style={styles.container}>
-      {/* Phase completion label */}
+      {/* Glowing amber dot */}
       <Animated.View style={s0}>
-        <Text style={styles.eyebrow}>COMPLETE</Text>
+        <GlowDot />
       </Animated.View>
 
-      {/* Headline with ember halo behind it */}
+      {/* Headline */}
       <Animated.View style={[styles.headlineWrap, s1]}>
-        <EmberHalo />
         <Text style={styles.headline}>{headline}</Text>
       </Animated.View>
 
-      {/* Elapsed time — only when we have a real session */}
-      {elapsed !== null && (
+      {/* Giant amber duration — only when we have a real successful session */}
+      {elapsed !== null && !endedEarly && (
         <Animated.View style={s2}>
-          <Text style={styles.elapsed}>{elapsed} elapsed</Text>
+          <Text style={styles.duration}>{elapsed}</Text>
         </Animated.View>
       )}
 
-      {/* Outcome sub copy */}
-      <Animated.View style={s3}>
-        <Text style={styles.subCopy}>{subCopy}</Text>
+      {/* Sub copy for early/missed outcomes (replaces duration slot) */}
+      {subCopy !== null && (
+        <Animated.View style={s2}>
+          <Text style={styles.subCopy}>{subCopy}</Text>
+        </Animated.View>
+      )}
+
+      {/* Glass summary card */}
+      <Animated.View style={[styles.cardWrap, s3]}>
+        <SummaryCard />
       </Animated.View>
 
-      {/* New session button — resets store cleanly */}
+      {/* New session button */}
       <Animated.View style={[styles.btnWrap, s4]}>
-        <ActionButton label="New session" onPress={reset} />
+        <ActionButton label="NEW SESH" onPress={reset} />
       </Animated.View>
     </View>
   );
@@ -225,51 +253,131 @@ export function CompleteStage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: SPACE.xs,
     paddingHorizontal: 22,
-    paddingBottom: 130,
+    paddingBottom: 80,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  eyebrow: {
-    ...TYPE.eyebrow,
-    textAlign: 'center',
+  // Glowing amber dot
+  dotOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: THEME.ember.base,
+    shadowColor: '#ff7a00',
+    shadowRadius: 18,
+    shadowOpacity: 0.85,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+    marginBottom: SPACE.lg,
   },
+  dotInner: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(246,222,210,0.20)',
+  },
+  // Headline
   headlineWrap: {
-    marginTop: 8,
     alignItems: 'center',
   },
-  haloWrap: {
-    position: 'absolute',
-    width: 260,
-    height: 120,
-    top: -30,
-    left: -30,
-  },
   headline: {
-    fontFamily: FONTS.sans + '_300Light',
-    fontSize: 32,
-    letterSpacing: -1.12,
+    fontFamily: 'Geist_400Regular',
+    fontSize: 24,
+    letterSpacing: -0.48,
     color: THEME.bone[100],
     textAlign: 'center',
-    lineHeight: 36,
   },
-  elapsed: {
-    fontFamily: FONTS.sans + '_400Regular',
-    fontSize: 13,
-    color: THEME.bone[50],
-    marginTop: 8,
+  // Giant amber duration
+  duration: {
+    fontFamily: 'Geist_300Light',
+    fontSize: 56,
+    letterSpacing: -2.24,
+    lineHeight: 60,
+    color: THEME.ember.base,
     textAlign: 'center',
+    marginTop: 8,
+    textShadowColor: 'rgba(255,122,0,0.30)',
+    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 0 },
   },
+  // Sub copy for non-successful outcomes
   subCopy: {
-    fontFamily: FONTS.sans + '_400Regular',
+    fontFamily: 'Geist_400Regular',
     fontSize: 12,
     color: THEME.bone[35],
-    marginTop: 6,
+    marginTop: 8,
     textAlign: 'center',
     lineHeight: 18,
   },
+  // Glass summary card
+  cardWrap: {
+    width: '100%',
+    maxWidth: 320,
+    alignSelf: 'center',
+    marginTop: 24,
+  },
+  card: {
+    width: '100%',
+    borderRadius: 24,
+    backgroundColor: 'rgba(246,222,210,0.04)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246,222,210,0.20)',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    gap: 14,
+    shadowColor: '#000000',
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  cardRimGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  cardRowBorder: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(246,222,210,0.06)',
+    paddingBottom: 14,
+  },
+  cardLabel: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: THEME.bone[70],
+  },
+  cardValue: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 13,
+    color: THEME.bone[100],
+  },
+  tempRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
+  },
+  tempSuffix: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: THEME.ember.base,
+  },
+  // Button
   btnWrap: {
     marginTop: 24,
     width: '100%',
@@ -305,9 +413,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionBtnText: {
-    fontFamily: FONTS.sans + '_600SemiBold',
-    fontSize: 13,
-    letterSpacing: 0.26,
-    color: THEME.bone[100],
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.8,
+    color: '#1c110a',
+    textTransform: 'uppercase',
   },
 });

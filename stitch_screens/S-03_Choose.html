@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>S-03 Choose Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-fixed": "#161c26",
+                      "background": "#1c110a",
+                      "tertiary": "#95ccff",
+                      "surface-container-high": "#35271f",
+                      "on-background": "#f6ded2",
+                      "surface": "#1c110a",
+                      "outline-variant": "#584235",
+                      "surface-container": "#291d16",
+                      "on-tertiary-fixed": "#001d32",
+                      "error-container": "#93000a",
+                      "on-tertiary": "#003352",
+                      "surface-variant": "#40322a",
+                      "on-primary-container": "#5c2800",
+                      "tertiary-fixed": "#cde5ff",
+                      "surface-container-low": "#251912",
+                      "surface-container-lowest": "#160c06",
+                      "primary-fixed": "#ffdbc8",
+                      "inverse-on-surface": "#3b2d26",
+                      "error": "#ffb4ab",
+                      "secondary-container": "#414753",
+                      "secondary-fixed-dim": "#c1c6d5",
+                      "surface-container-highest": "#40322a",
+                      "surface-tint": "#ffb68b",
+                      "on-secondary-fixed-variant": "#414753",
+                      "on-primary-fixed": "#321200",
+                      "primary-fixed-dim": "#ffb68b",
+                      "primary": "#ffb68b",
+                      "tertiary-fixed-dim": "#95ccff",
+                      "on-primary": "#522300",
+                      "on-secondary": "#2b313c",
+                      "secondary": "#c1c6d5",
+                      "on-error": "#690005",
+                      "primary-container": "#ff7a00",
+                      "outline": "#a78b7c",
+                      "inverse-surface": "#f6ded2",
+                      "surface-bright": "#45362e",
+                      "on-primary-fixed-variant": "#753400",
+                      "on-secondary-container": "#b0b5c3",
+                      "inverse-primary": "#994700",
+                      "on-tertiary-container": "#003a5c",
+                      "secondary-fixed": "#dde2f1",
+                      "on-surface-variant": "#e0c0af",
+                      "on-tertiary-fixed-variant": "#004a75",
+                      "tertiary-container": "#00a8ff",
+                      "on-error-container": "#ffdad6",
+                      "surface-dim": "#1c110a",
+                      "on-surface": "#f6ded2"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "element-gap": "24px",
+                      "xl": "128px",
+                      "xs": "8px",
+                      "container-padding": "40px",
+                      "sm": "16px",
+                      "md": "32px",
+                      "lg": "64px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Geist"
+                      ],
+                      "data-value": [
+                              "Geist Mono"
+                      ],
+                      "body-main": [
+                              "Geist"
+                      ],
+                      "display-lg": [
+                              "Geist"
+                      ],
+                      "data-label": [
+                              "Geist Mono"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-value": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-main": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.04em",
+                                      "fontWeight": "300"
+                              }
+                      ],
+                      "data-label": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+            },
+          }
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-on-surface min-h-screen relative overflow-hidden flex flex-col items-center">
+<!-- Atmospheric Flares Background -->
+<div class="fixed inset-0 pointer-events-none z-[-1]">
+<!-- Top flare -->
+<div class="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary/10 rounded-full blur-[120px] mix-blend-screen opacity-60"></div>
+<!-- Bottom scattered flares -->
+<div class="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-surface-container/30 rounded-full blur-[100px] mix-blend-screen opacity-40"></div>
+<div class="absolute bottom-[10%] right-[-10%] w-[500px] h-[500px] bg-outline/10 rounded-full blur-[90px] mix-blend-screen opacity-30"></div>
+</div>
+<!-- Header / Persistent Orb -->
+<header class="w-full flex flex-col items-center pt-md pb-lg z-10">
+<!-- Breathing Orb -->
+<div class="w-16 h-16 rounded-full bg-primary-container shadow-[0_0_30px_rgba(255,122,0,0.6)] flex items-center justify-center mb-md scale-90 relative">
+<!-- Glow layers -->
+<div class="absolute inset-0 rounded-full bg-primary-fixed blur-[10px] opacity-50 mix-blend-screen"></div>
+<div class="absolute inset-2 rounded-full bg-white/20 blur-[2px]"></div>
+<span class="material-symbols-outlined text-surface font-light text-2xl z-10" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-surface text-center px-container-padding">Start a sesh.</h1>
+</header>
+<!-- Main Content Area -->
+<main class="w-full max-w-4xl px-container-padding flex flex-col gap-lg pb-xl z-10 flex-grow">
+<!-- New Sesh Floating Glass Bubble -->
+<button class="group w-full max-w-sm mx-auto relative flex flex-col items-center justify-center p-md rounded-xl bg-white/5 backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/30 shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-500 hover:bg-white/10 overflow-hidden">
+<!-- Internal gradient surface volume -->
+<div class="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 pointer-events-none rounded-xl"></div>
+<div class="w-20 h-20 rounded-full bg-primary-container shadow-[0_0_20px_rgba(255,122,0,0.4)] flex items-center justify-center mb-sm group-hover:scale-105 transition-transform duration-500 relative z-10">
+<span class="material-symbols-outlined text-surface text-4xl" style="font-variation-settings: 'FILL' 1;">add</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface tracking-tight relative z-10">New sesh</span>
+</button>
+<!-- Saved Presets Section -->
+<section class="flex flex-col gap-sm w-full max-w-2xl mx-auto mt-md">
+<!-- Section Header Tag -->
+<div class="w-fit mb-xs">
+<span class="px-sm py-xs rounded-full bg-white/5 backdrop-blur-[22px] border-t-[0.5px] border-l-[0.5px] border-white/30 font-data-label text-data-label text-outline uppercase tracking-widest inline-block shadow-[0_4px_16px_rgba(0,0,0,0.3)]">SAVED</span>
+</div>
+<!-- Preset List -->
+<div class="flex flex-col gap-unit">
+<!-- Preset Card 1 -->
+<button class="w-full flex items-center justify-between p-sm rounded-full bg-white/2 backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/20 hover:border-primary/50 hover:bg-white/5 transition-all duration-300 group shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+<!-- Glass volume -->
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none rounded-full"></div>
+<div class="flex items-center gap-sm relative z-10">
+<div class="w-12 h-12 rounded-full border-[0.5px] border-white/10 flex items-center justify-center bg-black/40 group-hover:border-primary/30 transition-colors">
+<span class="material-symbols-outlined text-primary/80 font-light text-xl">hexagon</span>
+</div>
+<div class="flex flex-col items-start">
+<span class="font-headline-md text-headline-md text-on-surface text-[20px]">Deep Focus</span>
+<span class="font-data-value text-data-value text-outline">Binaural • 45m</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors pr-xs relative z-10">play_arrow</span>
+</button>
+<!-- Preset Card 2 -->
+<button class="w-full flex items-center justify-between p-sm rounded-full bg-white/2 backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/20 hover:border-primary/50 hover:bg-white/5 transition-all duration-300 group shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none rounded-full"></div>
+<div class="flex items-center gap-sm relative z-10">
+<div class="w-12 h-12 rounded-full border-[0.5px] border-white/10 flex items-center justify-center bg-black/40 group-hover:border-primary/30 transition-colors">
+<span class="material-symbols-outlined text-tertiary/80 font-light text-xl">change_history</span>
+</div>
+<div class="flex flex-col items-start">
+<span class="font-headline-md text-headline-md text-on-surface text-[20px]">Evening Wind Down</span>
+<span class="font-data-value text-data-value text-outline">Ambient • 30m</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-tertiary transition-colors pr-xs relative z-10">play_arrow</span>
+</button>
+<!-- Preset Card 3 -->
+<button class="w-full flex items-center justify-between p-sm rounded-full bg-white/2 backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/20 hover:border-primary/50 hover:bg-white/5 transition-all duration-300 group shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none rounded-full"></div>
+<div class="flex items-center gap-sm relative z-10">
+<div class="w-12 h-12 rounded-full border-[0.5px] border-white/10 flex items-center justify-center bg-black/40 group-hover:border-primary/30 transition-colors">
+<span class="material-symbols-outlined text-outline font-light text-xl">radio_button_unchecked</span>
+</div>
+<div class="flex flex-col items-start">
+<span class="font-headline-md text-headline-md text-on-surface text-[20px]">Morning Ritual</span>
+<span class="font-data-value text-data-value text-outline">Isochronic • 15m</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface transition-colors pr-xs relative z-10">play_arrow</span>
+</button>
+</div>
+</section>
+</main>
+</body></html>

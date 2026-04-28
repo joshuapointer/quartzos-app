@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -13,10 +12,8 @@ import Animated, {
 import {
   DUR,
   EASE_OUT_EXPO,
-  RADIUS,
   SPACE,
   THEME,
-  TYPE,
 } from '../theme';
 import {
   useCalibration,
@@ -67,84 +64,135 @@ function formatTime(totalSeconds: number): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function DropRateStrip({ dropRate }: { dropRate: number }) {
-  const fast = dropRate > 3;
+function SnowflakeIcon({ size = 12, color = THEME.quartz.bright }: { size?: number; color?: string }) {
+  const thickness = size / 8;
   return (
-    <View
-      style={[
-        styles.dropPill,
-        fast ? styles.dropPillFast : styles.dropPillNormal,
-      ]}
-    >
-      <Text
-        style={[
-          styles.dropLabel,
-          fast ? styles.dropLabelFast : styles.dropLabelNormal,
-        ]}
-      >
-        {fast ? 'DROPPING TOO FAST' : 'COOL RATE'}
-      </Text>
-      <Text style={[styles.dropValue, fast && { color: THEME.danger }]}>
-        {dropRate.toFixed(1)}°/s · ideal 2°/s
-      </Text>
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          position: 'absolute',
+          width: size,
+          height: thickness,
+          backgroundColor: color,
+          borderRadius: thickness / 2,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          width: thickness,
+          height: size,
+          backgroundColor: color,
+          borderRadius: thickness / 2,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          width: size,
+          height: thickness,
+          backgroundColor: color,
+          borderRadius: thickness / 2,
+          transform: [{ rotate: '60deg' }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          width: size,
+          height: thickness,
+          backgroundColor: color,
+          borderRadius: thickness / 2,
+          transform: [{ rotate: '-60deg' }],
+        }}
+      />
     </View>
   );
 }
 
-function ActionButton({
-  label,
-  onPress,
-  disabled = false,
-  accessibilityLabel,
+function DropRateStrip({ dropRate }: { dropRate: number }) {
+  const fast = dropRate > 3;
+  const chipColor = fast ? THEME.danger : THEME.quartz.bright;
+  return (
+    <View style={styles.dropChipWrap}>
+      <View style={[styles.dropPill, fast ? styles.dropPillFast : styles.dropPillNormal]}>
+        <SnowflakeIcon size={12} color={chipColor} />
+        <Text style={[styles.dropLabel, { color: chipColor }]}>
+          {fast ? 'DROPPING TOO FAST' : 'COOL RATE'}{' '}
+          {dropRate.toFixed(1)}°/s
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// Bottom action pill — emissive amber, phase-dynamic
+function BottomActionPill({
+  cur,
+  heatActive,
+  startHeating,
 }: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  accessibilityLabel: string;
+  cur: string;
+  heatActive: boolean;
+  startHeating: () => void;
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    opacity: disabled ? 0.45 : 1,
   }));
 
+  // Derive label + glyph + tappable per phase
+  const config: { label: string; glyph: string | null; tappable: boolean } = (() => {
+    if (cur === 'load') return { label: 'COLD LOAD', glyph: null, tappable: false };
+    if (cur === 'heat') {
+      if (heatActive) return { label: 'TORCHING', glyph: null, tappable: false };
+      return { label: 'START HEATING', glyph: '→', tappable: true };
+    }
+    if (cur === 'cool') return { label: 'LIFT TO DAB', glyph: '↑', tappable: false };
+    if (cur === 'dab') return { label: 'PLACE BACK', glyph: '↻', tappable: false };
+    if (cur === 'dunk') return { label: 'DUNK Q-TIP', glyph: '↓', tappable: false };
+    if (cur === 'clean') return { label: 'SWAB CLEAN', glyph: '→', tappable: false };
+    return { label: '', glyph: null, tappable: false };
+  })();
+
   function handlePressIn() {
-    if (disabled) return;
+    if (!config.tappable) return;
     scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
-    if (disabled) return;
+    if (!config.tappable) return;
     scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
   async function handlePress() {
-    if (disabled) return;
+    if (!config.tappable) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    onPress();
+    startHeating();
   }
 
   return (
-    <Animated.View style={[styles.actionShadow, animStyle]}>
-      <LinearGradient
-        colors={[THEME.ember.base, THEME.ember.deep]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.actionGradient}
-      >
-        <View style={styles.actionHighlight} />
+    <View style={styles.bottomPillAnchor} pointerEvents="box-none">
+      <Animated.View style={[styles.bottomPillShadow, animStyle]}>
         <Pressable
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           onPress={handlePress}
-          style={styles.actionPressable}
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          accessibilityState={{ disabled }}
-          disabled={disabled}
+          style={styles.bottomPill}
+          accessibilityRole={config.tappable ? 'button' : 'text'}
+          accessibilityLabel={config.label}
+          accessibilityHint={config.tappable ? undefined : 'Auto-advances on temp'}
+          disabled={!config.tappable}
         >
-          <Text style={styles.actionBtnText}>{label}</Text>
+          {/* Top-edge highlight bar */}
+          <View style={styles.bottomPillHighlight} />
+          <View style={styles.bottomPillInner}>
+            <Text style={styles.bottomPillLabel}>{config.label}</Text>
+            {config.glyph !== null && (
+              <Text style={styles.bottomPillGlyph}>{config.glyph}</Text>
+            )}
+          </View>
         </Pressable>
-      </LinearGradient>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -202,7 +250,7 @@ export function SessionStage() {
     }
   }, [windowState]);
 
-  // ── Eyebrow ───────────────────────────────────────────────────────────────
+  // ── Eyebrow / phase-label header ─────────────────────────────────────────
   const reheatSuffix = isReheat && cur === 'heat' ? ' · REHEAT' : '';
   // Only show session clock when startedAt is available (null guard)
   const clockSuffix = startedAt != null ? ` · ${formatTime(sessionSeconds)}` : '';
@@ -261,25 +309,20 @@ export function SessionStage() {
     return '';
   })();
 
-  // ── Stagger entrance (fixed 5 shared values, always declared) ────────────
   const sv0 = useSharedValue(0);
   const sv1 = useSharedValue(0);
   const sv2 = useSharedValue(0);
   const sv3 = useSharedValue(0);
-  const sv4 = useSharedValue(0);
-  // Separate shared value for dab window countdown
   const sv5 = useSharedValue(0);
 
   const hasCoolStrip = cur === 'cool';
   const showCoolStrip = cur === 'cool' && coolDropRate > 0;
-  const hasAction = cur === 'heat' && !heatActive;
 
   useEffect(() => {
     sv0.value = 0;
     sv1.value = 0;
     sv2.value = 0;
     sv3.value = 0;
-    sv4.value = 0;
     sv5.value = 0;
 
     enterSv(sv0, 0);
@@ -293,11 +336,6 @@ export function SessionStage() {
     }
     if (cur === 'dab') {
       enterSv(sv5, STAGGER_MS * next);
-      next += 1;
-    }
-    if (hasAction) {
-      enterSv(sv4, STAGGER_MS * next);
-      next += 1;
     }
   }, [cur, heatActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -305,7 +343,6 @@ export function SessionStage() {
   const s1 = useStaggerStyle(sv1);
   const s2 = useStaggerStyle(sv2);
   const s3 = useStaggerStyle(sv3);
-  const s4 = useStaggerStyle(sv4);
   const s5 = useStaggerStyle(sv5);
 
   // Missed window desaturates the headline to bone instead of ember tones
@@ -313,9 +350,9 @@ export function SessionStage() {
 
   return (
     <View style={styles.container}>
-      {/* Phase label with session clock — announced as live region for a11y */}
+      {/* Phase-label header — centered mono eyebrow */}
       <Animated.View
-        style={s0}
+        style={[styles.eyebrowRow, s0]}
         accessibilityLiveRegion="polite"
         accessibilityLabel={eyebrowText}
       >
@@ -339,7 +376,7 @@ export function SessionStage() {
         </Animated.View>
       )}
 
-      {/* Drop-rate strip, cool only, hidden until first reading arrives */}
+      {/* Drop-rate glass chip, cool only, hidden until first reading arrives */}
       {showCoolStrip && (
         <Animated.View style={s3}>
           <DropRateStrip dropRate={coolDropRate} />
@@ -353,16 +390,12 @@ export function SessionStage() {
         </Animated.View>
       )}
 
-      {/* Action buttons */}
-      {hasAction && (
-        <Animated.View style={[styles.actionWrap, s4]}>
-          <ActionButton
-            label="Start heating"
-            onPress={startHeating}
-            accessibilityLabel="Start heating timer manually"
-          />
-        </Animated.View>
-      )}
+      {/* Fixed bottom action pill — shown every phase */}
+      <BottomActionPill
+        cur={cur}
+        heatActive={heatActive}
+        startHeating={startHeating}
+      />
     </View>
   );
 }
@@ -374,30 +407,54 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: SPACE.xs,
     paddingHorizontal: 22,
-    paddingBottom: 130,
+    paddingBottom: 120,
     flexDirection: 'column',
   },
-  eyebrow: {
-    ...TYPE.eyebrow,
+
+  // ── Phase label header ──────────────────────────────────────────────────
+  eyebrowRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  eyebrow: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: 'rgba(246, 222, 210, 0.50)',
+    textAlign: 'center',
+  },
+
+  // ── Headline ────────────────────────────────────────────────────────────
   headlineWrap: {
     marginTop: 6,
+    alignItems: 'center',
   },
   headline: {
     fontFamily: 'Geist_300Light',
-    fontSize: 26,
-    letterSpacing: -0.91,
-    lineHeight: 30,
+    fontSize: 28,
+    letterSpacing: -1.12,
+    lineHeight: 32,
+    maxWidth: 280,
+    textAlign: 'center',
   },
+
+  // ── Sub copy ─────────────────────────────────────────────────────────────
   sub: {
     fontFamily: 'Geist_400Regular',
-    fontSize: 12.5,
+    fontSize: 13,
     color: THEME.bone[50],
-    lineHeight: 12.5 * 1.5,
+    lineHeight: 19,
     marginTop: 10,
+    maxWidth: 300,
+    textAlign: 'center',
+    alignSelf: 'center',
   },
+
+  // ── Missed hint ──────────────────────────────────────────────────────────
   missedHint: {
     marginTop: 10,
+    alignItems: 'center',
   },
   missedHintText: {
     fontFamily: 'GeistMono_400Regular',
@@ -406,87 +463,97 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: THEME.bone[35],
   },
-  dropPill: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    paddingVertical: SPACE.sm,
-    paddingHorizontal: 10,
-    borderRadius: SPACE.sm,
-    borderWidth: 1,
+
+  // ── Drop-rate glass chip ─────────────────────────────────────────────────
+  dropChipWrap: {
+    alignItems: 'center',
     marginTop: 14,
   },
+  dropPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 9999,
+    gap: 8,
+    borderWidth: 0.5,
+  },
   dropPillNormal: {
-    backgroundColor: 'rgba(20,16,12,0.50)',
-    borderColor: 'rgba(56,52,48,1)',
+    backgroundColor: 'rgba(246, 222, 210, 0.04)',
+    borderColor: 'rgba(246, 222, 210, 0.18)',
   },
   dropPillFast: {
-    backgroundColor: 'rgba(50,16,10,0.60)',
-    borderColor: 'rgba(100,40,30,0.60)',
+    backgroundColor: 'rgba(50, 16, 10, 0.60)',
+    borderColor: 'rgba(100, 40, 30, 0.60)',
   },
   dropLabel: {
-    fontFamily: 'GeistMono_400Regular',
-    fontSize: 9,
-    letterSpacing: 0.9,
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 10,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
-  dropLabelNormal: {
-    color: THEME.bone[50],
-  },
-  dropLabelFast: {
-    color: THEME.danger,
-  },
-  dropValue: {
-    fontFamily: 'GeistMono_400Regular',
-    fontSize: 10.5,
-    color: THEME.bone[50],
-  },
+
+  // ── Dab window countdown ─────────────────────────────────────────────────
   dabWindowWrap: {
     marginTop: 10,
+    alignItems: 'center',
   },
   dabWindowText: {
     fontFamily: 'GeistMono_400Regular',
     fontSize: 11,
     letterSpacing: 0.6,
     color: THEME.bone[50],
+    textAlign: 'center',
   },
-  actionWrap: {
-    marginTop: 20,
-  },
-  actionShadow: {
-    borderRadius: RADIUS.pill,
-    shadowColor: THEME.ember.base,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 22,
-    elevation: 8,
-  },
-  actionGradient: {
-    borderRadius: RADIUS.pill,
-    overflow: 'hidden',
-  },
-  actionHighlight: {
+
+  // ── Bottom emissive amber action pill ────────────────────────────────────
+  bottomPillAnchor: {
     position: 'absolute',
-    top: 0,
+    bottom: 28,
     left: 0,
     right: 0,
+    alignItems: 'center',
+  },
+  bottomPillShadow: {
+    borderRadius: 9999,
+    shadowColor: THEME.ember.base,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 28,
+    elevation: 12,
+  },
+  bottomPill: {
+    borderRadius: 9999,
+    backgroundColor: THEME.ember.base,
+    overflow: 'hidden',
+  },
+  bottomPillHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 18,
+    right: 18,
     height: 1,
     backgroundColor: 'rgba(255, 240, 220, 0.45)',
-    borderTopLeftRadius: RADIUS.pill,
-    borderTopRightRadius: RADIUS.pill,
     zIndex: 1,
   },
-  actionPressable: {
-    width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: 26,
+  bottomPillInner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 36,
+    gap: 8,
   },
-  actionBtnText: {
-    fontFamily: 'Geist_600SemiBold',
-    fontSize: 13,
-    letterSpacing: 0.26,
-    color: THEME.bone[100],
+  bottomPillLabel: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: '#1c110a',
+  },
+  bottomPillGlyph: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    color: '#1c110a',
   },
 });

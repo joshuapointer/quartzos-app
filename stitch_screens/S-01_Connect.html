@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Connect Dab Rite</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#161c26",
+                        "background": "#1c110a",
+                        "tertiary": "#95ccff",
+                        "surface-container-high": "#35271f",
+                        "on-background": "#f6ded2",
+                        "surface": "#1c110a",
+                        "outline-variant": "#584235",
+                        "surface-container": "#291d16",
+                        "on-tertiary-fixed": "#001d32",
+                        "error-container": "#93000a",
+                        "on-tertiary": "#003352",
+                        "surface-variant": "#40322a",
+                        "on-primary-container": "#5c2800",
+                        "tertiary-fixed": "#cde5ff",
+                        "surface-container-low": "#251912",
+                        "surface-container-lowest": "#160c06",
+                        "primary-fixed": "#ffdbc8",
+                        "inverse-on-surface": "#3b2d26",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#414753",
+                        "secondary-fixed-dim": "#c1c6d5",
+                        "surface-container-highest": "#40322a",
+                        "surface-tint": "#ffb68b",
+                        "on-secondary-fixed-variant": "#414753",
+                        "on-primary-fixed": "#321200",
+                        "primary-fixed-dim": "#ffb68b",
+                        "primary": "#ffb68b",
+                        "tertiary-fixed-dim": "#95ccff",
+                        "on-primary": "#522300",
+                        "on-secondary": "#2b313c",
+                        "secondary": "#c1c6d5",
+                        "on-error": "#690005",
+                        "primary-container": "#ff7a00",
+                        "outline": "#a78b7c",
+                        "inverse-surface": "#f6ded2",
+                        "surface-bright": "#45362e",
+                        "on-primary-fixed-variant": "#753400",
+                        "on-secondary-container": "#b0b5c3",
+                        "inverse-primary": "#994700",
+                        "on-tertiary-container": "#003a5c",
+                        "secondary-fixed": "#dde2f1",
+                        "on-surface-variant": "#e0c0af",
+                        "on-tertiary-fixed-variant": "#004a75",
+                        "tertiary-container": "#00a8ff",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#1c110a",
+                        "on-surface": "#f6ded2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "element-gap": "24px",
+                        "xl": "128px",
+                        "xs": "8px",
+                        "container-padding": "40px",
+                        "sm": "16px",
+                        "md": "32px",
+                        "lg": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "data-value": ["Geist Mono"],
+                        "body-main": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "data-label": ["Geist Mono"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+                        "data-value": ["14px", { "lineHeight": "1.4", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "body-main": ["16px", { "lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "300" }],
+                        "data-label": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-on-surface min-h-screen flex flex-col items-center justify-center relative overflow-hidden selection:bg-primary-container selection:text-background">
+<!-- Ambient Lighting Blooms -->
+<div class="fixed top-[-15%] left-[-15%] w-[600px] h-[600px] bg-primary-container/10 blur-[150px] rounded-full pointer-events-none mix-blend-screen"></div>
+<div class="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-tertiary-container/5 blur-[120px] rounded-full pointer-events-none mix-blend-screen"></div>
+<!-- Main Content Cluster -->
+<main class="relative z-10 flex flex-col items-center justify-center p-container-padding max-w-2xl w-full">
+<!-- Multi-layered Refractive Glass Orb (Idle State) -->
+<div class="relative flex items-center justify-center w-[280px] h-[280px] mb-lg group">
+<!-- External diffuse glow -->
+<div class="absolute inset-0 bg-tertiary-container/20 rounded-full blur-[60px] scale-110"></div>
+<!-- Outer Glass Shell -->
+<div class="relative w-full h-full rounded-full backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/30 bg-gradient-to-br from-white/[0.05] to-transparent shadow-[inset_0_0_40px_rgba(255,255,255,0.05),0_10px_40px_rgba(0,0,0,0.8)] flex items-center justify-center">
+<!-- Mid Layer Refraction -->
+<div class="w-[180px] h-[180px] rounded-full border border-tertiary-container/10 bg-tertiary-container/[0.02] backdrop-blur-md flex items-center justify-center shadow-[inset_0_0_20px_rgba(0,168,255,0.1)]">
+<!-- Core Emitter (Idle Cool Blue) -->
+<div class="w-[80px] h-[80px] rounded-full bg-gradient-to-tr from-tertiary-container/40 to-transparent blur-[8px] shadow-[0_0_30px_rgba(0,168,255,0.3)]"></div>
+</div>
+<!-- Optical Highlight (Top curved reflection) -->
+<div class="absolute top-[5%] left-[15%] right-[15%] h-[20%] rounded-t-full bg-gradient-to-b from-white/10 to-transparent blur-[2px] opacity-70"></div>
+</div>
+</div>
+<!-- Etched Typography -->
+<h1 class="font-display-lg text-display-lg text-on-surface text-center mb-xl tracking-tight drop-shadow-[0_0_12px_rgba(246,222,210,0.15)] max-w-md">
+            Connect your Dab Rite to begin.
+        </h1>
+<!-- Emissive Amber Pill Button -->
+<button class="group relative px-10 py-5 rounded-full bg-primary-container hover:bg-primary transition-colors duration-500 shadow-[0_0_25px_rgba(255,122,0,0.4)] hover:shadow-[0_0_40px_rgba(255,122,0,0.6)] flex items-center gap-4">
+<!-- Inner pill for text clarity -->
+<span class="font-data-label text-data-label text-background uppercase tracking-[0.15em]">
+                CONNECT DAB RITE
+            </span>
+<!-- Decorative technical indicator inside button -->
+<span class="w-1.5 h-1.5 rounded-full bg-background/50 animate-pulse"></span>
+</button>
+</main>
+</body></html>

@@ -3,28 +3,42 @@
     "id": "probe",
     "name": "Probe (Terpometer V1)",
     "method": "contact",
-    "description": "Contact probe touches interior surface. Reads SURFACE TRUTH directly.",
-    "calibration_note": "No offset applied \u2014 your reading IS the surface temp."
+    "emissivity_bias_f": 0,
+    "applies_gradient_lag": false,
+    "description": "Contact thermocouple touches the interior quartz floor. Reads interior SURFACE TRUTH directly via physical conduction.",
+    "calibration_note": "No offsets applied — your reading IS the interior surface temp. Setpoint = concentrate.surface_temp_optimal_f directly."
   },
   {
     "id": "ir",
-    "name": "IR Thermometer (Dab Rite Pro, Octave, Terpometer Gen 2)",
+    "name": "IR Thermometer (Dab Rite Pro v2.2, Octave, Terpometer Gen 2)",
     "method": "ir",
-    "description": "Non-contact IR. Aim per banger geometry \u2014 bucket vs slurper-class read differently.",
-    "calibration_note": "Apply banger.ir_offset_sign * banger.ir_offset_f. Bucket-class subtracts (display lower than interior). Slurper-class adds (display higher than interior \u2014 thinner wall, direct flame contact). Cooldown-trigger workflow: dab on descent through target, NOT at peak torch."
+    "emissivity_bias_f": 15,
+    "applies_gradient_lag": true,
+    "firmware_emissivity": 0.95,
+    "material_true_emissivity_clear_quartz": 0.92,
+    "description": "Non-contact infrared thermopile. Aim per banger geometry — bucket-class reads the exterior floor (cooler than interior during cooldown), slurper-class reads side-of-column (closer to interior). Firmware ε_set = 0.95; clear quartz ε_actual ≈ 0.92.",
+    "calibration_note": "Apply both dT_Gradient (banger geometry) and dT_emissivity (firmware-vs-material bias). The 0.03 emissivity mismatch causes the sensor to UNDER-report by ~15°F at typical dab temperatures. Workflow: dab on descent through target, NOT at peak torch."
   },
   {
     "id": "enail",
     "name": "E-Nail PID Setpoint",
     "method": "enail",
-    "description": "Coil temp controller. Set & forget. Coil reads 30-80\u00b0F higher than surface (varies by brand).",
-    "calibration_note": "Add ~50\u00b0F midpoint to surface target. MiniNail-on-MiniNail is factory-calibrated to display surface temp directly \u2014 set PID to surface target, not the +50\u00b0F estimate."
+    "emissivity_bias_f": 50,
+    "applies_gradient_lag": false,
+    "pid_offset_range_f": [
+      30,
+      80
+    ],
+    "description": "Coil temperature controller. Set-and-forget. Coil reads 30-80°F higher than interior surface (varies by brand). emissivity_bias_f here is repurposed for the coil-vs-surface offset midpoint.",
+    "calibration_note": "Add ~50°F midpoint to surface_temp_optimal_f. MiniNail-on-MiniNail is factory-calibrated to display surface temp directly — set PID to surface target, not the +50°F estimate. Other brands: tune via test dabs."
   },
   {
     "id": "visual",
     "name": "No Thermometer (Visual / Timing)",
     "method": "visual",
-    "description": "Glow + count method. Approximate. App estimates based on form factor.",
+    "emissivity_bias_f": 0,
+    "applies_gradient_lag": false,
+    "description": "Glow + count method. Approximate. App estimates from form factor and cooldown_seconds.",
     "calibration_note": "Use IR-equivalent values as approximate guidance. Visual cue (banger.visual_cue) is the primary signal."
   }
 ]

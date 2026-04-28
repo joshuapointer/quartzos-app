@@ -246,7 +246,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
               {banger.geometry.toUpperCase()} · {banger.category.toUpperCase()} · {banger.heat_time} HEAT
             </Text>
             <Text style={[styles.cardIR, { color: irColor }]}>
-              {irSign}{banger.ir_offset_f}°
+              {irSign}{banger.gradient_lag_f}°
             </Text>
           </View>
         </View>

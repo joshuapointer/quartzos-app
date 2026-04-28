@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Session Summary</title>
+<!-- Google Fonts: Geist & Geist Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&amp;family=Geist:wght@300;400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#161c26",
+                    "background": "#1c110a",
+                    "tertiary": "#95ccff",
+                    "surface-container-high": "#35271f",
+                    "on-background": "#f6ded2",
+                    "surface": "#1c110a",
+                    "outline-variant": "#584235",
+                    "surface-container": "#291d16",
+                    "on-tertiary-fixed": "#001d32",
+                    "error-container": "#93000a",
+                    "on-tertiary": "#003352",
+                    "surface-variant": "#40322a",
+                    "on-primary-container": "#5c2800",
+                    "tertiary-fixed": "#cde5ff",
+                    "surface-container-low": "#251912",
+                    "surface-container-lowest": "#160c06",
+                    "primary-fixed": "#ffdbc8",
+                    "inverse-on-surface": "#3b2d26",
+                    "error": "#ffb4ab",
+                    "secondary-container": "#414753",
+                    "secondary-fixed-dim": "#c1c6d5",
+                    "surface-container-highest": "#40322a",
+                    "surface-tint": "#ffb68b",
+                    "on-secondary-fixed-variant": "#414753",
+                    "on-primary-fixed": "#321200",
+                    "primary-fixed-dim": "#ffb68b",
+                    "primary": "#ffb68b",
+                    "tertiary-fixed-dim": "#95ccff",
+                    "on-primary": "#522300",
+                    "on-secondary": "#2b313c",
+                    "secondary": "#c1c6d5",
+                    "on-error": "#690005",
+                    "primary-container": "#ff7a00",
+                    "outline": "#a78b7c",
+                    "inverse-surface": "#f6ded2",
+                    "surface-bright": "#45362e",
+                    "on-primary-fixed-variant": "#753400",
+                    "on-secondary-container": "#b0b5c3",
+                    "inverse-primary": "#994700",
+                    "on-tertiary-container": "#003a5c",
+                    "secondary-fixed": "#dde2f1",
+                    "on-surface-variant": "#e0c0af",
+                    "on-tertiary-fixed-variant": "#004a75",
+                    "tertiary-container": "#00a8ff",
+                    "on-error-container": "#ffdad6",
+                    "surface-dim": "#1c110a",
+                    "on-surface": "#f6ded2"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "element-gap": "24px",
+                    "xl": "128px",
+                    "xs": "8px",
+                    "container-padding": "40px",
+                    "sm": "16px",
+                    "md": "32px",
+                    "lg": "64px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Geist"],
+                    "data-value": ["Geist Mono"],
+                    "body-main": ["Geist"],
+                    "display-lg": ["Geist"],
+                    "data-label": ["Geist Mono"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+                    "data-value": ["14px", { "lineHeight": "1.4", "letterSpacing": "0em", "fontWeight": "400" }],
+                    "body-main": ["16px", { "lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400" }],
+                    "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "300" }],
+                    "data-label": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom scrollbar and base adjustments */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-on-background min-h-screen flex flex-col items-center justify-center p-container-padding relative overflow-hidden font-body-main text-body-main selection:bg-primary-container/20">
+<!-- Atmospheric background light bleed -->
+<div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,122,0,0.03)_0%,rgba(28,17,10,0)_60%)] pointer-events-none"></div>
+<!-- Main Content Canvas (No Nav Shell due to completion/transactional intent) -->
+<main class="w-full max-w-[360px] flex flex-col items-center z-10">
+<!-- Glowing Complete Orb -->
+<div class="w-6 h-6 rounded-full bg-primary-container shadow-[0_0_24px_rgba(255,122,0,0.8)] mb-lg relative">
+<div class="absolute inset-0 rounded-full bg-white/20 animate-pulse mix-blend-overlay"></div>
+</div>
+<!-- Typography Anchor -->
+<div class="flex flex-col items-center text-center mb-xl">
+<h1 class="font-headline-md text-headline-md text-on-surface mb-sm">Sesh logged.</h1>
+<div class="font-display-lg text-display-lg text-primary-container drop-shadow-[0_0_12px_rgba(255,122,0,0.3)]">4:20</div>
+</div>
+<!-- Glassmorphism Summary Card -->
+<div class="w-full bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-[22px] backdrop-saturate-[1.2] border-t-[0.5px] border-l-[0.5px] border-white/30 rounded-lg p-md flex flex-col gap-element-gap relative mb-xl shadow-[0_16px_32px_rgba(0,0,0,0.5)]">
+<!-- Top rim highlight for thickness -->
+<div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+<!-- Etched Data Rows -->
+<div class="flex items-end justify-between border-b border-white/[0.05] pb-sm">
+<span class="font-data-label text-data-label text-secondary">PROFILE</span>
+<span class="font-data-value text-data-value text-on-surface drop-shadow-[0_0_4px_rgba(246,222,210,0.2)]">S-17</span>
+</div>
+<div class="flex items-end justify-between border-b border-white/[0.05] pb-sm">
+<span class="font-data-label text-data-label text-secondary">MATERIAL</span>
+<span class="font-data-value text-data-value text-on-surface drop-shadow-[0_0_4px_rgba(246,222,210,0.2)]">FLOWER</span>
+</div>
+<div class="flex items-end justify-between">
+<span class="font-data-label text-data-label text-secondary">PEAK TEMP</span>
+<div class="flex items-baseline gap-xs drop-shadow-[0_0_4px_rgba(246,222,210,0.2)]">
+<span class="font-data-value text-data-value text-on-surface">385°</span>
+<span class="font-data-label text-data-label text-primary-container">F</span>
+</div>
+</div>
+</div>
+<!-- Emissive Amber Pill Button -->
+<button class="w-full max-w-[280px] py-4 rounded-full bg-primary-container text-on-primary-container font-data-label text-data-label uppercase tracking-widest shadow-[0_0_20px_rgba(255,122,0,0.4)] hover:shadow-[0_0_32px_rgba(255,122,0,0.6)] hover:bg-surface-tint hover:-translate-y-[1px] transition-all duration-300 flex items-center justify-center relative overflow-hidden">
+<span class="relative z-10">NEW SESH</span>
+<!-- Inner pill highlight -->
+<div class="absolute inset-x-4 top-1 h-[2px] bg-white/20 rounded-full blur-[1px]"></div>
+</button>
+</main>
+</body></html>

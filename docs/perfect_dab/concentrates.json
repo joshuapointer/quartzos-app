@@ -13,13 +13,18 @@
     "good_for_cold_start": true,
     "notes": [
       "Cold start GOLD STANDARD",
-      "710 Labs anchor: 400-450\u00b0F surface",
-      "Above 520\u00b0F = generic dab taste"
+      "710 Labs anchor: 400-450°F surface",
+      "Above 520°F = generic dab taste"
     ],
     "confidence": "BRAND+COMMUNITY",
     "tags": [
       "SOLVENTLESS",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 415,
+    "fluid_target_range_f": [
+      380,
+      455
     ]
   },
   {
@@ -36,14 +41,19 @@
     "good_for_cold_start": true,
     "notes": [
       "Cold start STRONGLY recommended",
-      "Mood/Puffco anchor: 375-450\u00b0F surface",
-      "Pushing past 500\u00b0F defeats the cure"
+      "Mood/Puffco anchor: 375-450°F surface",
+      "Pushing past 500°F defeats the cure"
     ],
     "confidence": "BRAND+MFR",
     "tags": [
       "SOLVENTLESS",
       "COLD_START",
       "2026_DOMINANT"
+    ],
+    "fluid_target_optimal_f": 395,
+    "fluid_target_range_f": [
+      310,
+      445
     ]
   },
   {
@@ -66,6 +76,11 @@
     "tags": [
       "SOLVENTLESS",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 405,
+    "fluid_target_range_f": [
+      375,
+      445
     ]
   },
   {
@@ -81,20 +96,25 @@
     "terpene_profile": "high",
     "good_for_cold_start": true,
     "notes": [
-      "Slurper preferred \u2014 separates phases dynamically",
-      "Crystals need >=480\u00b0F to melt cleanly"
+      "Slurper preferred — separates phases dynamically",
+      "Crystals need >=480°F to melt cleanly"
     ],
     "confidence": "COMMUNITY+BRAND",
     "tags": [
       "SOLVENTLESS",
       "BLEND"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      425,
+      480
     ]
   },
   {
     "id": "rosin-badder",
     "name": "Rosin Badder",
     "category": "solventless",
-    "description": "Whipped/agitated rosin. Hashwriter avg 520\u00b0F Terpometer interior.",
+    "description": "Whipped/agitated rosin. Hashwriter avg 520°F Terpometer interior.",
     "surface_temp_range_f": [
       480,
       540
@@ -108,13 +128,18 @@
     "confidence": "COMMUNITY",
     "tags": [
       "SOLVENTLESS"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      415,
+      475
     ]
   },
   {
     "id": "hot-cure",
     "name": "Hot Cure Rosin",
     "category": "solventless",
-    "description": "Whipped/cured at 90-225\u00b0F. Profile shifts to heavier sesquiterpenes.",
+    "description": "Whipped/cured at 90-225°F. Profile shifts to heavier sesquiterpenes.",
     "surface_temp_range_f": [
       480,
       545
@@ -124,11 +149,16 @@
     "good_for_cold_start": false,
     "notes": [
       "Cold start optional",
-      "Caryophyllene dominant \u2014 needs more heat than fresh"
+      "Caryophyllene dominant — needs more heat than fresh"
     ],
     "confidence": "BRAND+COMMUNITY",
     "tags": [
       "SOLVENTLESS"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      415,
+      480
     ]
   },
   {
@@ -151,6 +181,11 @@
     "tags": [
       "SOLVENTLESS",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 410,
+    "fluid_target_range_f": [
+      385,
+      455
     ]
   },
   {
@@ -167,12 +202,17 @@
     "good_for_cold_start": true,
     "notes": [
       "Treat like live rosin",
-      "Genericized term in 2026 \u2014 many producers"
+      "Genericized term in 2026 — many producers"
     ],
     "confidence": "BRAND",
     "tags": [
       "SOLVENTLESS",
       "PREMIUM"
+    ],
+    "fluid_target_optimal_f": 415,
+    "fluid_target_range_f": [
+      380,
+      455
     ]
   },
   {
@@ -195,13 +235,18 @@
     "tags": [
       "SOLVENTLESS",
       "PREMIUM"
+    ],
+    "fluid_target_optimal_f": 410,
+    "fluid_target_range_f": [
+      380,
+      445
     ]
   },
   {
     "id": "bubble-6star",
-    "name": "Bubble Hash \u00b7 6-Star (Full Melt)",
+    "name": "Bubble Hash · 6-Star (Full Melt)",
     "category": "hash",
-    "description": "Ice water hash, full-melt grade. Hashwriter avg 477.5\u00b0F Terpometer interior.",
+    "description": "Ice water hash, full-melt grade. Hashwriter avg 477.5°F Terpometer interior.",
     "surface_temp_range_f": [
       450,
       510
@@ -211,19 +256,24 @@
     "good_for_cold_start": true,
     "notes": [
       "Cold start YES",
-      "Above 500\u00b0F starts charring even 6-star"
+      "Above 500°F starts charring even 6-star"
     ],
     "confidence": "BRAND+COMMUNITY",
     "tags": [
       "HASH",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 425,
+    "fluid_target_range_f": [
+      385,
+      445
     ]
   },
   {
     "id": "bubble-half-melt",
-    "name": "Bubble Hash \u00b7 3-4 Star (Half Melt)",
+    "name": "Bubble Hash · 3-4 Star (Half Melt)",
     "category": "hash",
-    "description": "Half-melt bubble. Field consensus: don't dab \u2014 press to rosin.",
+    "description": "Half-melt bubble. Field consensus: don't dab — press to rosin.",
     "surface_temp_range_f": [
       470,
       520
@@ -240,13 +290,18 @@
     "tags": [
       "HASH",
       "NOT_IDEAL"
+    ],
+    "fluid_target_optimal_f": 430,
+    "fluid_target_range_f": [
+      405,
+      455
     ]
   },
   {
     "id": "dry-sift",
     "name": "Dry Sift (Full Melt)",
     "category": "hash",
-    "description": "Mechanically separated trichomes via 45-160\u03bcm screens.",
+    "description": "Mechanically separated trichomes via 45-160μm screens.",
     "surface_temp_range_f": [
       450,
       520
@@ -262,6 +317,11 @@
     "tags": [
       "HASH",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 425,
+    "fluid_target_range_f": [
+      385,
+      455
     ]
   },
   {
@@ -277,7 +337,7 @@
     "terpene_profile": "high",
     "good_for_cold_start": true,
     "notes": [
-      "Press Club: 350\u00b0F surface (NOT same as rosin 450\u00b0F)",
+      "Press Club: 350°F surface (NOT same as rosin 450°F)",
       "Often a smoke-first product",
       "Cold start strongly recommended"
     ],
@@ -285,6 +345,11 @@
     "tags": [
       "HASH",
       "LOW_TEMP"
+    ],
+    "fluid_target_optimal_f": 335,
+    "fluid_target_range_f": [
+      285,
+      385
     ]
   },
   {
@@ -301,13 +366,18 @@
     "good_for_cold_start": false,
     "warning": "Will leave significant residue",
     "notes": [
-      "NOT OPTIMAL for dabbing \u2014 expect residue",
+      "NOT OPTIMAL for dabbing — expect residue",
       "Better in pipe, joint, or hot knife"
     ],
     "confidence": "BRAND",
     "tags": [
       "HASH",
       "NOT_IDEAL"
+    ],
+    "fluid_target_optimal_f": 460,
+    "fluid_target_range_f": [
+      435,
+      485
     ]
   },
   {
@@ -324,13 +394,18 @@
     "good_for_cold_start": false,
     "notes": [
       "Cold start optional",
-      "Stay <=545\u00b0F surface to preserve linalool + humulene",
+      "Stay <=545°F surface to preserve linalool + humulene",
       "Most popular hydrocarbon format"
     ],
     "confidence": "MFR+BRAND+COMMUNITY",
     "tags": [
       "HYDROCARBON",
       "POPULAR"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      415,
+      480
     ]
   },
   {
@@ -347,11 +422,16 @@
     "good_for_cold_start": false,
     "notes": [
       "Cold start NOT typical",
-      "Sesquiterpene-heavy \u2014 takes more heat"
+      "Sesquiterpene-heavy — takes more heat"
     ],
     "confidence": "BRAND+COMMUNITY",
     "tags": [
       "HYDROCARBON"
+    ],
+    "fluid_target_optimal_f": 480,
+    "fluid_target_range_f": [
+      455,
+      515
     ]
   },
   {
@@ -374,6 +454,11 @@
     "tags": [
       "HYDROCARBON",
       "LEGACY"
+    ],
+    "fluid_target_optimal_f": 480,
+    "fluid_target_range_f": [
+      445,
+      515
     ]
   },
   {
@@ -394,6 +479,11 @@
     "confidence": "COMMUNITY",
     "tags": [
       "HYDROCARBON"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      415,
+      475
     ]
   },
   {
@@ -415,6 +505,11 @@
     "confidence": "COMMUNITY",
     "tags": [
       "HYDROCARBON"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      415,
+      485
     ]
   },
   {
@@ -436,13 +531,18 @@
     "tags": [
       "HYDROCARBON",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 445,
+    "fluid_target_range_f": [
+      415,
+      480
     ]
   },
   {
     "id": "sauce-htfse",
     "name": "Sauce (HTFSE)",
     "category": "hydrocarbon",
-    "description": "High-terpene full-spectrum extract. ~50% terpenes \u2014 viscous syrup with diamonds.",
+    "description": "High-terpene full-spectrum extract. ~50% terpenes — viscous syrup with diamonds.",
     "surface_temp_range_f": [
       500,
       580
@@ -458,6 +558,11 @@
     "tags": [
       "HYDROCARBON",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 465,
+    "fluid_target_range_f": [
+      435,
+      515
     ]
   },
   {
@@ -475,19 +580,24 @@
     "notes": [
       "Pearls essential",
       "Cold start useful",
-      "Source-conflict: Mood (e-rig) vs Hemper (IR-bottom) \u2014 sensor-driven"
+      "Source-conflict: Mood (e-rig) vs Hemper (IR-bottom) — sensor-driven"
     ],
     "confidence": "MFR+BRAND",
     "tags": [
       "HYDROCARBON",
       "PURE"
+    ],
+    "fluid_target_optimal_f": 480,
+    "fluid_target_range_f": [
+      435,
+      535
     ]
   },
   {
     "id": "diamonds-sauce",
     "name": "Diamonds & Sauce",
     "category": "hydrocarbon",
-    "description": "Combined product \u2014 crystals in terpene-rich sauce.",
+    "description": "Combined product — crystals in terpene-rich sauce.",
     "surface_temp_range_f": [
       510,
       570
@@ -504,13 +614,18 @@
       "HYDROCARBON",
       "COLD_START",
       "BLEND"
+    ],
+    "fluid_target_optimal_f": 465,
+    "fluid_target_range_f": [
+      445,
+      505
     ]
   },
   {
     "id": "crystalline",
     "name": "THCa Crystalline / Isolate",
     "category": "hydrocarbon",
-    "description": "Pure powder, >99% THCa. Zero terpenes \u2014 no flavor to preserve.",
+    "description": "Pure powder, >99% THCa. Zero terpenes — no flavor to preserve.",
     "surface_temp_range_f": [
       525,
       600
@@ -527,6 +642,11 @@
       "HYDROCARBON",
       "PURE",
       "NICHE"
+    ],
+    "fluid_target_optimal_f": 495,
+    "fluid_target_range_f": [
+      460,
+      535
     ]
   },
   {
@@ -542,13 +662,18 @@
     "terpene_profile": "high",
     "good_for_cold_start": false,
     "notes": [
-      "Mostly vaped not dabbed \u2014 flag distinction",
+      "Mostly vaped not dabbed — flag distinction",
       "If dabbing jar form: treat like diamonds & sauce"
     ],
     "confidence": "BRAND",
     "tags": [
       "HYDROCARBON",
       "TRENDING"
+    ],
+    "fluid_target_optimal_f": 465,
+    "fluid_target_range_f": [
+      435,
+      505
     ]
   },
   {
@@ -565,11 +690,16 @@
     "good_for_cold_start": false,
     "notes": [
       "Cold start optional",
-      "Fading in dab market \u2014 common in carts"
+      "Fading in dab market — common in carts"
     ],
     "confidence": "BRAND",
     "tags": [
       "DISTILLATE"
+    ],
+    "fluid_target_optimal_f": 495,
+    "fluid_target_range_f": [
+      455,
+      535
     ]
   },
   {
@@ -584,15 +714,20 @@
     "surface_temp_optimal_f": 580,
     "terpene_profile": "none",
     "good_for_cold_start": false,
-    "warning": "No flavor \u2014 rarely dabbed alone",
+    "warning": "No flavor — rarely dabbed alone",
     "notes": [
       "Cold start NOT recommended",
-      "Hemper 400-500\u00b0F (smooth) vs Zen Leaf 600-650\u00b0F (cloud) \u2014 both valid",
+      "Hemper 400-500°F (smooth) vs Zen Leaf 600-650°F (cloud) — both valid",
       "Rarely dabbed alone"
     ],
     "confidence": "BRAND",
     "tags": [
       "DISTILLATE"
+    ],
+    "fluid_target_optimal_f": 515,
+    "fluid_target_range_f": [
+      475,
+      555
     ]
   },
   {
@@ -608,20 +743,25 @@
     "terpene_profile": "low",
     "good_for_cold_start": false,
     "notes": [
-      "CBN boiling: 365\u00b0F at 1 atm",
+      "CBN boiling: 365°F at 1 atm",
       "Often blended for synergy"
     ],
     "confidence": "SCIENCE+BRAND",
     "tags": [
       "DISTILLATE",
       "NICHE"
+    ],
+    "fluid_target_optimal_f": 460,
+    "fluid_target_range_f": [
+      425,
+      505
     ]
   },
   {
     "id": "cbg-distillate",
     "name": "CBG Distillate",
     "category": "distillate",
-    "description": "CBG-focused. Springer study: degradation begins ~608\u00b0F.",
+    "description": "CBG-focused. Springer study: degradation begins ~608°F.",
     "surface_temp_range_f": [
       480,
       560
@@ -630,19 +770,24 @@
     "terpene_profile": "low",
     "good_for_cold_start": false,
     "notes": [
-      "CBG boiling: 126\u00b0F (very low) \u2014 needs gentle heat"
+      "CBG boiling: 126°F (very low) — needs gentle heat"
     ],
     "confidence": "SCIENCE+BRAND",
     "tags": [
       "DISTILLATE",
       "NICHE"
+    ],
+    "fluid_target_optimal_f": 455,
+    "fluid_target_range_f": [
+      415,
+      495
     ]
   },
   {
     "id": "thcv-distillate",
     "name": "THCV Distillate",
     "category": "distillate",
-    "description": "THCV boiling 428\u00b0F (highest of common cannabinoids), but matrix needs more.",
+    "description": "THCV boiling 428°F (highest of common cannabinoids), but matrix needs more.",
     "surface_temp_range_f": [
       540,
       610
@@ -651,13 +796,18 @@
     "terpene_profile": "low",
     "good_for_cold_start": false,
     "notes": [
-      "Anecdotal practice \u2014 sparse data"
+      "Anecdotal practice — sparse data"
     ],
     "confidence": "SCIENCE+ANECDOTAL",
     "tags": [
       "DISTILLATE",
       "NICHE",
       "NOVEL"
+    ],
+    "fluid_target_optimal_f": 505,
+    "fluid_target_range_f": [
+      475,
+      545
     ]
   },
   {
@@ -680,6 +830,11 @@
     "tags": [
       "NOVEL",
       "COLD_START"
+    ],
+    "fluid_target_optimal_f": 465,
+    "fluid_target_range_f": [
+      445,
+      505
     ]
   },
   {
@@ -694,7 +849,7 @@
     "surface_temp_optimal_f": 540,
     "terpene_profile": "low",
     "good_for_cold_start": false,
-    "warning": "Regulatory uncertainty \u2014 Nov 2026 federal hemp ban",
+    "warning": "Regulatory uncertainty — Nov 2026 federal hemp ban",
     "notes": [
       "REGULATORY FLAG: H.R. 5371 (Nov 2026) federal hemp redefinition",
       "State bans growing",
@@ -704,6 +859,11 @@
     "tags": [
       "NOVEL",
       "GRAY_MARKET"
+    ],
+    "fluid_target_optimal_f": 475,
+    "fluid_target_range_f": [
+      445,
+      515
     ]
   },
   {
@@ -715,7 +875,7 @@
     "surface_temp_optimal_f": null,
     "terpene_profile": "high",
     "good_for_cold_start": false,
-    "blocked": "This is a pre-roll format. Light it and smoke it \u2014 don't put it on a banger.",
+    "blocked": "This is a pre-roll format. Light it and smoke it — don't put it on a banger.",
     "notes": [
       "SMOKED, not dabbed",
       "One of hottest infused-preroll subcategories 2024-26"
@@ -723,7 +883,9 @@
     "confidence": "N/A",
     "tags": [
       "SMOKE_ONLY"
-    ]
+    ],
+    "fluid_target_optimal_f": null,
+    "fluid_target_range_f": null
   },
   {
     "id": "kief",
@@ -742,7 +904,9 @@
     "confidence": "N/A",
     "tags": [
       "NOT_FOR_DAB"
-    ]
+    ],
+    "fluid_target_optimal_f": null,
+    "fluid_target_range_f": null
   },
   {
     "id": "rso",
@@ -755,16 +919,18 @@
     "good_for_cold_start": false,
     "blocked": "RSO is meant for oral or topical use. Dabbing is harsh due to chlorophyll, waxes, and residual solvents.",
     "notes": [
-      "NOT FOR DABBING \u2014 sublingual, capsules, food"
+      "NOT FOR DABBING — sublingual, capsules, food"
     ],
     "confidence": "N/A",
     "tags": [
       "ORAL_TOPICAL"
-    ]
+    ],
+    "fluid_target_optimal_f": null,
+    "fluid_target_range_f": null
   },
   {
     "id": "bubble-1-2",
-    "name": "Bubble Hash \u00b7 1-2 Star",
+    "name": "Bubble Hash · 1-2 Star",
     "category": "hash",
     "description": "Cooking-grade ice water hash. Not dabbable.",
     "surface_temp_range_f": null,
@@ -773,11 +939,13 @@
     "good_for_cold_start": false,
     "blocked": "1-2 star bubble has too much plant matter. Use it for edibles or press multiple grades together to rosin.",
     "notes": [
-      "Edibles only \u2014 too much plant matter"
+      "Edibles only — too much plant matter"
     ],
     "confidence": "N/A",
     "tags": [
       "NOT_FOR_DAB"
-    ]
+    ],
+    "fluid_target_optimal_f": null,
+    "fluid_target_range_f": null
   }
 ]
