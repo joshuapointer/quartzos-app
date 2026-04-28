@@ -1,100 +1,37 @@
-import { useEffect, useRef } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import { useRouter, useRootNavigationState } from 'expo-router';
-import { MMKV } from 'react-native-mmkv';
+/**
+ * app/index.tsx
+ *
+ * Phase 8 — single entrypoint for the new linear flow. Renders QFlowShell
+ * directly; the shell handles every stage (connect → choose → build → session
+ * → complete) with no router pushes.
+ *
+ * Legacy routes under app/(connected), app/onboarding, app/(modals) remain
+ * registered with the file-based router but are no longer navigated to from
+ * here.
+ */
 
-import { spacing, colors } from '../src/design/tokens';
-import { bleManager } from '../src/ble/BleManager';
-import { useBleStore } from '../src/state/bleStore';
+import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 
-const AUTO_CONNECT_TIMEOUT_MS = 3000;
+import QFlowShell from '../src/flow/QFlowShell';
+import { useFlowFonts } from '../src/flow/useFlowFonts';
 
-const storage = new MMKV({ id: 'quartzos' });
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* ignore */
+});
 
 export default function Index() {
-  const router = useRouter();
-  const navigationState = useRootNavigationState();
-  const navigatedRef = useRef(false);
+  const { ready } = useFlowFonts();
 
   useEffect(() => {
-    if (!navigationState?.key) return; // navigator not yet mounted
-
-    let connectTimeout: ReturnType<typeof setTimeout> | undefined;
-    let unsub: (() => void) | undefined;
-
-    // Defer one tick so the navigation container is fully ready for dispatch
-    const init = setTimeout(() => {
-      const lastDeviceId = storage.getString('lastDeviceId');
-
-      if (!lastDeviceId) {
-        if (!navigatedRef.current) {
-          navigatedRef.current = true;
-          router.replace('/onboarding/permissions');
-        }
-        return;
-      }
-
-      void bleManager.connectToDevice(lastDeviceId).catch(() => {});
-
-      connectTimeout = setTimeout(() => {
-        if (navigatedRef.current) return;
-        navigatedRef.current = true;
-        const state = useBleStore.getState().connectionState;
-        router.replace(state === 'READY' ? '/(connected)/home' : '/(modals)/scan');
-      }, AUTO_CONNECT_TIMEOUT_MS);
-
-      unsub = useBleStore.subscribe((s) => {
-        if (s.connectionState === 'READY' && !navigatedRef.current) {
-          navigatedRef.current = true;
-          clearTimeout(connectTimeout);
-          router.replace('/(connected)/home');
-        }
+    if (ready) {
+      SplashScreen.hideAsync().catch(() => {
+        /* ignore */
       });
-    }, 0);
+    }
+  }, [ready]);
 
-    return () => {
-      clearTimeout(init);
-      clearTimeout(connectTimeout);
-      unsub?.();
-    };
-  }, [router, navigationState?.key]);
+  if (!ready) return null;
 
-  return (
-    <View style={styles.root}>
-      <View style={styles.center}>
-        <Text style={styles.wordmark}>quartzie</Text>
-        <Text style={styles.tagline}>Connecting…</Text>
-      </View>
-    </View>
-  );
+  return <QFlowShell />;
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.bgDeep,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  wordmark: {
-    fontFamily: 'Georgia',
-    fontStyle: 'italic',
-    fontSize: 42,
-    fontWeight: '400',
-    color: colors.bone90,
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontFamily: 'SpaceGrotesk_500Medium',
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-    color: colors.bone50,
-    marginTop: 12,
-  },
-});

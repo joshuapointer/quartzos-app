@@ -4,6 +4,7 @@ import { StyleSheet, LogBox } from 'react-native';
 LogBox.ignoreLogs(['Sending `onAnimatedValueUpdate` with no listeners registered.']);
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
@@ -14,6 +15,18 @@ import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
+import {
+  Geist_300Light,
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+  Geist_800ExtraBold,
+} from '@expo-google-fonts/geist';
+import {
+  GeistMono_400Regular,
+  GeistMono_500Medium,
+} from '@expo-google-fonts/geist-mono';
 
 import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
@@ -35,14 +48,25 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [sgLoaded] = useFonts({
     SpaceGrotesk_300Light,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_700Bold,
   });
+  const [geistLoaded] = useFonts({
+    Geist_300Light,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    Geist_800ExtraBold,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
+  });
   const [dbReady, setDbReady] = useState(false);
-  const ready = dbReady && (fontsLoaded ?? false);
+  const fontsLoaded = (sgLoaded ?? false) && (geistLoaded ?? false);
+  const ready = dbReady && fontsLoaded;
 
   useEffect(() => {
     let cancelled = false;
@@ -69,34 +93,36 @@ export default function RootLayout() {
   }, [ready]);
 
   return (
-    <ThemeProvider>
-      <GestureHandlerRootView style={styles.root}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.bgDeep },
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="onboarding/permissions" />
-          <Stack.Screen name="onboarding/pair" />
-          <Stack.Screen name="(connected)" />
-          <Stack.Screen
-            name="(modals)/scan"
-            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-          />
-          <Stack.Screen
-            name="(modals)/color-picker"
-            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-          />
-          <Stack.Screen
-            name="(modals)/notification-config"
-            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-          />
-        </Stack>
-      </GestureHandlerRootView>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <GestureHandlerRootView style={styles.root}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.bgDeep },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="onboarding/permissions" />
+            <Stack.Screen name="onboarding/pair" />
+            <Stack.Screen name="(connected)" />
+            <Stack.Screen
+              name="(modals)/scan"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="(modals)/color-picker"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="(modals)/notification-config"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+          </Stack>
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
