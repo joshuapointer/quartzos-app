@@ -14,6 +14,11 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
+import { bleManager } from '../ble/BleManager';
+import { useBleStore } from '../state/bleStore';
+import { useSettingsStore } from '../state/settingsStore';
+import { torchDetector } from '../utils/TorchDetector';
+
 import type { OrbProps, OrbState } from './components/Orb';
 import {
   BANGERS,
@@ -77,6 +82,7 @@ export type FlowState = {
   heatStage: number;
   heatTimeFactor: number;
   heatReason: HeatReason;
+  heatActive: boolean;
   coolTemp: number;
   coolDropRate: number;
   startedAt: number | null;
@@ -95,6 +101,7 @@ export type FlowState = {
   setColdStart: (v: boolean) => void;
   liftToDab: () => void;
   placeBack: () => void;
+  startHeating: () => void;
   advancePhase: () => void;
   reset: () => void;
 };
@@ -158,6 +165,22 @@ function wallById(id: string): Wall {
   return WALLS.find((w) => w.id === id) ?? WALLS[1];
 }
 
+function syncAlarmsToDevice(bangerId: string | null, concId: string | null, wallId: string) {
+  const b = bangerById(bangerId);
+  const c = concById(concId);
+  const w = wallById(wallId);
+  if (!b || !c) return;
+  const calibration = computeCalibration(b, c, w);
+  const settings = useSettingsStore.getState().settings;
+  bleManager.writeSettings({
+    ...settings,
+    dabAlarmF: calibration.displayed,
+    dunkAlarmF: calibration.dunk,
+  }).catch((err) => {
+    console.warn('[Flow] Failed to sync alarms to device:', err);
+  });
+}
+
 // ─── Initial state ───────────────────────────────────────────────────────────
 
 const INITIAL: Pick<
@@ -181,6 +204,7 @@ const INITIAL: Pick<
   | 'heatStage'
   | 'heatTimeFactor'
   | 'heatReason'
+  | 'heatActive'
   | 'coolTemp'
   | 'coolDropRate'
   | 'startedAt'
@@ -204,6 +228,7 @@ const INITIAL: Pick<
   heatStage: 0,
   heatTimeFactor: 1,
   heatReason: 'normal',
+  heatActive: false,
   coolTemp: 0,
   coolDropRate: 0,
   startedAt: null,
@@ -230,6 +255,13 @@ export const useFlow = create<FlowState>()(
       const wall = wallById(state.wallId);
 
       if (phaseKey === 'heat') {
+        if (!state.heatActive) {
+          void torchDetector.startListening(() => {
+            get().startHeating();
+          });
+          return;
+        }
+
         const hs = banger?.heat_seconds ?? [25, 35];
         const phaseDur = ((hs[0] + hs[1]) / 2) * 1000 * state.heatTimeFactor;
         const startedAt = Date.now();
@@ -263,37 +295,43 @@ export const useFlow = create<FlowState>()(
           }
         }, COOL_TICK_MS);
 
-        // Live IR temp simulation + reheat triggers.
+        // Live IR temp tracking + reheat triggers.
         const calibration = banger && concentrate
           ? computeCalibration(banger, concentrate, wall)
           : null;
         const targetDisplay = calibration?.displayed ?? 550;
         const targetLow = calibration?.low ?? targetDisplay - 15;
 
-        const peak = targetDisplay + 80;
-        const ratePerSec = state.heatTimeFactor >= 1 ? 2.0 : 3.5;
-        let lastTemp = peak;
-        let lastSampleAt = startedAt;
+        let lastTemp = useBleStore.getState().liveTempF;
+        let lastSampleAt = Date.now();
         let consecutiveFastDrops = 0;
 
         set((s) => {
-          s.coolTemp = peak;
-          s.coolDropRate = ratePerSec;
+          s.coolTemp = lastTemp;
+          s.coolDropRate = 0;
         });
 
         coolTimer = setInterval(() => {
           const now = Date.now();
-          const elapsedSec = (now - startedAt) / 1000;
-          const t = Math.max(150, peak - ratePerSec * elapsedSec);
+          const t = useBleStore.getState().liveTempF;
           const dt = (now - lastSampleAt) / 1000;
           const drop = dt > 0 ? (lastTemp - t) / dt : 0;
           lastTemp = t;
           lastSampleAt = now;
 
           set((s) => {
-            s.coolTemp = Math.round(t);
+            s.coolTemp = t;
             s.coolDropRate = drop;
           });
+
+          if (t <= 0) return; // skip triggers if sensor unplugged or reading 0
+
+          // Lift detection: sudden drop in temp or temp drops to ambient
+          if (drop > 15 || t < 150) {
+            clearCoolTimer();
+            get().liftToDab();
+            return;
+          }
 
           if (drop > COOL_FAST_DROP_THRESHOLD) {
             consecutiveFastDrops += 1;
@@ -350,7 +388,32 @@ export const useFlow = create<FlowState>()(
         return;
       }
 
-      // 'dab' and 'load' have no auto timer — user actions drive them.
+      if (phaseKey === 'dab') {
+        const startedAt = Date.now();
+        phaseTimer = setInterval(() => {
+          const t = useBleStore.getState().liveTempF;
+          const elapsed = Date.now() - startedAt;
+          // Wait 3s before arming. When t > 150, banger is placed back.
+          if (elapsed > 3000 && t > 150) {
+            clearPhaseTimer();
+            get().placeBack();
+          }
+        }, 500);
+        return;
+      }
+
+      if (phaseKey === 'load') {
+        // Cold-start load — wait until user begins torching (temp rises)
+        phaseTimer = setInterval(() => {
+          const t = useBleStore.getState().liveTempF;
+          // If temp rises above 100F, they started torching!
+          if (t > 100) {
+            clearPhaseTimer();
+            get().advancePhase();
+          }
+        }, 500);
+        return;
+      }
     };
 
     const startSessionTimer = () => {
@@ -375,9 +438,11 @@ export const useFlow = create<FlowState>()(
       if (heatIdx < 0) return;
       clearPhaseTimer();
       clearCoolTimer();
+      void torchDetector.stopListening();
       set((draft) => {
         draft.heatTimeFactor = 0.5;
         draft.heatReason = reason;
+        draft.heatActive = false;
         draft.phaseProgress = 0;
         draft.heatStage = 0;
         draft.phaseIdx = heatIdx;
@@ -397,9 +462,7 @@ export const useFlow = create<FlowState>()(
         set((s) => {
           s.searching = true;
         });
-        connectTimer = setTimeout(() => {
-          get().finishConnect();
-        }, CONNECT_DURATION_MS);
+        bleManager.startScan();
       },
 
       finishConnect: () => {
@@ -413,6 +476,7 @@ export const useFlow = create<FlowState>()(
 
       disconnect: () => {
         clearAllTimers();
+        void bleManager.disconnect();
         set((s) => {
           Object.assign(s, INITIAL);
         });
@@ -435,6 +499,7 @@ export const useFlow = create<FlowState>()(
           s.heatStage = 0;
           s.heatTimeFactor = 1;
           s.heatReason = 'normal';
+          s.heatActive = false;
           s.windowState = 'waiting';
           s.coolTemp = 0;
           s.coolDropRate = 0;
@@ -450,6 +515,7 @@ export const useFlow = create<FlowState>()(
           return;
         }
         // Transition into session.
+        syncAlarmsToDevice(s.bangerId, s.concId, s.wallId);
         set((draft) => {
           draft.stage = 'session';
           draft.phaseTrack = draft.coldStart ? [...PHASES_COLD] : [...PHASES_HOT];
@@ -459,6 +525,7 @@ export const useFlow = create<FlowState>()(
           draft.heatStage = 0;
           draft.heatTimeFactor = 1;
           draft.heatReason = 'normal';
+          draft.heatActive = false;
           draft.windowState = 'waiting';
           draft.coolTemp = 0;
           draft.coolDropRate = 0;
@@ -507,6 +574,7 @@ export const useFlow = create<FlowState>()(
         const cold = !!(concentrate?.cold_start_good && banger?.cold_start === 'YES');
 
         clearAllTimers();
+        syncAlarmsToDevice(preset.banger, preset.concentrate, preset.wall);
         set((s) => {
           s.activePresetId = presetId;
           s.bangerId = preset.banger;
@@ -522,6 +590,7 @@ export const useFlow = create<FlowState>()(
           s.heatStage = 0;
           s.heatTimeFactor = 1;
           s.heatReason = 'normal';
+          s.heatActive = false;
           s.windowState = 'waiting';
           s.coolTemp = 0;
           s.coolDropRate = 0;
@@ -556,6 +625,14 @@ export const useFlow = create<FlowState>()(
         startPhaseEffects();
       },
 
+      startHeating: () => {
+        void torchDetector.stopListening();
+        set((draft) => {
+          draft.heatActive = true;
+        });
+        startPhaseEffects();
+      },
+
       advancePhase: () => {
         const s = get();
         const last = s.phaseTrack.length - 1;
@@ -580,6 +657,7 @@ export const useFlow = create<FlowState>()(
 
       reset: () => {
         clearAllTimers();
+        void torchDetector.stopListening();
         set((s) => {
           // Preserve connected status; reset everything else to choose stage.
           const wasConnected = s.connected;
@@ -641,12 +719,14 @@ export const useOrbProps = (): OrbProps => {
   const builderStep = useFlow((s) => s.builderStep);
   const heatTimeFactor = useFlow((s) => s.heatTimeFactor);
   const heatReason = useFlow((s) => s.heatReason);
+  const heatActive = useFlow((s) => s.heatActive);
   const coolTemp = useFlow((s) => s.coolTemp);
   const coolDropRate = useFlow((s) => s.coolDropRate);
   const searching = useFlow((s) => s.searching);
   const connected = useFlow((s) => s.connected);
   const banger = useBanger();
   const calibration = useCalibration();
+  const liveTempF = useBleStore((s) => s.liveTempF);
 
   return useMemo<OrbProps>(() => {
     const target = calibration?.displayed ?? 550;
@@ -701,10 +781,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'cool') {
-        const peak = target + 80;
-        const floor = target - 10;
-        const fallback = Math.round(peak - (peak - floor) * phaseProgress);
-        const t = Math.round(coolTemp || fallback);
+        const t = liveTempF; // Always use the latest liveTempF
         const inWindow = t <= high && t >= low;
         const fastDrop = coolDropRate > COOL_FAST_DROP_THRESHOLD;
         const orbState: OrbState = fastDrop
@@ -733,8 +810,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'dunk') {
-        const dunk = calibration?.dunk ?? target - 280;
-        const t = Math.round(target - (target - dunk) * phaseProgress);
+        const t = liveTempF;
         return {
           state: 'dunk' satisfies OrbState,
           size: 240,
@@ -746,8 +822,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'clean') {
-        const dunk = calibration?.dunk ?? target - 280;
-        const t = Math.max(78, Math.round(dunk - 80 * phaseProgress));
+        const t = liveTempF;
         return {
           state: 'clean' satisfies OrbState,
           size: 170,
@@ -778,11 +853,27 @@ export const useOrbProps = (): OrbProps => {
     builderStep,
     heatTimeFactor,
     heatReason,
+    heatActive,
     coolTemp,
     coolDropRate,
     searching,
     connected,
     banger,
     calibration,
+    liveTempF,
   ]);
 };
+
+// Bridge BLE state to Flow state
+useBleStore.subscribe((state, prevState) => {
+  const flow = useFlow.getState();
+  if (state.connectionState === 'READY' && prevState.connectionState !== 'READY') {
+    if (flow.stage === 'connect') {
+      flow.finishConnect();
+    }
+  } else if (state.connectionState === 'IDLE' && prevState.connectionState !== 'IDLE') {
+    if (flow.connected) {
+      flow.disconnect();
+    }
+  }
+});

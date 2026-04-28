@@ -16,7 +16,6 @@ import {
   encodeQuerySettings,
   encodeWriteAll,
   encodeWriteColors,
-  fragmentFrame,
   rgb565to888,
   rgb888to565,
 } from '../DabRiteProtocol';
@@ -345,34 +344,6 @@ describe('decodeTempStream', () => {
   test('returns null on missing CRLF', () => {
     const buf = new Uint8Array([0xFE, 0xFD, 0x02, 0x77, 0x8B, 0x00, 0x0A]);
     expect(decodeTempStream(buf)).toBeNull();
-  });
-});
-
-describe('fragmentFrame', () => {
-  test('splits a 22-byte frame into [20, 2] with default MTU', () => {
-    const frame = encodeQuerySettings();
-    const chunks = fragmentFrame(frame);
-    expect(chunks).toHaveLength(2);
-    expect(chunks[0]).toHaveLength(20);
-    expect(chunks[1]).toHaveLength(2);
-    // Trailing chunk should be the CRLF.
-    expect(Array.from(chunks[1])).toEqual([0x0D, 0x0A]);
-  });
-
-  test('returns the frame as a single chunk when it fits within MTU', () => {
-    const small = new Uint8Array([1, 2, 3, 4]);
-    const chunks = fragmentFrame(small, 20);
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0]).toBe(small);
-  });
-
-  test('respects a custom MTU', () => {
-    const frame = new Uint8Array(10);
-    const chunks = fragmentFrame(frame, 4);
-    expect(chunks).toHaveLength(3);
-    expect(chunks[0]).toHaveLength(4);
-    expect(chunks[1]).toHaveLength(4);
-    expect(chunks[2]).toHaveLength(2);
   });
 });
 

@@ -156,12 +156,12 @@ export function SessionStage() {
   const sessionSeconds = useFlow((s) => s.sessionSeconds);
   const heatTimeFactor = useFlow((s) => s.heatTimeFactor);
   const heatReason = useFlow((s) => s.heatReason);
+  const heatActive = useFlow((s) => s.heatActive);
   const coolDropRate = useFlow((s) => s.coolDropRate);
   const windowState = useFlow((s) => s.windowState);
   const windowSecondsLeft = useFlow((s) => s.windowSecondsLeft);
   const startedAt = useFlow((s) => s.startedAt);
-  const liftToDab = useFlow((s) => s.liftToDab);
-  const placeBack = useFlow((s) => s.placeBack);
+  const startHeating = useFlow((s) => s.startHeating);
 
   const banger = useBanger();
   const calibration = useCalibration();
@@ -218,6 +218,7 @@ export function SessionStage() {
   const headline = (() => {
     if (cur === 'load') return 'Load the banger cold.';
     if (cur === 'heat') {
+      if (!heatActive) return 'Waiting for torch...';
       if (!isReheat) return 'Torch the banger.';
       if (heatReason === 'missed') return 'Window slipped. Reheat.';
       return 'Underheated. Top it off.';
@@ -239,6 +240,8 @@ export function SessionStage() {
       return `Drop the dab in cold, cap it, then torch up to ${targetTemp}°. Cold-start protects the terps.`;
     }
     if (cur === 'heat') {
+      if (!heatActive)
+        return 'Light your torch, we will listen for it. Or tap below to start manually.';
       if (!isReheat)
         return `${banger?.name ?? 'Banger'} · target ${banger?.heat_time ?? '—'}. Torch off when timer ends.`;
       if (heatReason === 'missed')
@@ -269,7 +272,7 @@ export function SessionStage() {
 
   const hasCoolStrip = cur === 'cool';
   const showCoolStrip = cur === 'cool' && coolDropRate > 0;
-  const hasAction = cur === 'cool' || cur === 'dab';
+  const hasAction = cur === 'heat' && !heatActive;
 
   useEffect(() => {
     sv0.value = 0;
@@ -294,8 +297,9 @@ export function SessionStage() {
     }
     if (hasAction) {
       enterSv(sv4, STAGGER_MS * next);
+      next += 1;
     }
-  }, [cur]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cur, heatActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const s0 = useStaggerStyle(sv0);
   const s1 = useStaggerStyle(sv1);
@@ -306,11 +310,6 @@ export function SessionStage() {
 
   // Missed window desaturates the headline to bone instead of ember tones
   const headlineColor = isMissed ? THEME.bone[50] : THEME.bone[100];
-
-  // Lift to dab is only actionable if we are in cool and not missed
-  const liftDisabled = cur === 'cool' && isMissed;
-  // Place back is always actionable when in dab
-  const placeBackDisabled = false;
 
   return (
     <View style={styles.container}>
@@ -357,21 +356,11 @@ export function SessionStage() {
       {/* Action buttons */}
       {hasAction && (
         <Animated.View style={[styles.actionWrap, s4]}>
-          {cur === 'cool' ? (
-            <ActionButton
-              label="Lift to dab"
-              onPress={liftToDab}
-              disabled={liftDisabled}
-              accessibilityLabel="Lift banger to begin dab"
-            />
-          ) : (
-            <ActionButton
-              label="Place back on DabRite"
-              onPress={placeBack}
-              disabled={placeBackDisabled}
-              accessibilityLabel="Place banger back on DabRite to continue"
-            />
-          )}
+          <ActionButton
+            label="Start heating"
+            onPress={startHeating}
+            accessibilityLabel="Start heating timer manually"
+          />
         </Animated.View>
       )}
     </View>

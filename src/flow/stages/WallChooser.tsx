@@ -179,6 +179,7 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     paddingBottom: 12,
     paddingRight: 22,
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     gap: 8,
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   irBadge: {
     ...(TYPE.mono as object),

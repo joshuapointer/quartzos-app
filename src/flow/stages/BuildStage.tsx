@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 4,
     paddingHorizontal: 22,
-    paddingBottom: 22,
+    paddingBottom: 14,
   },
   progressRow: {
     flexDirection: 'row',

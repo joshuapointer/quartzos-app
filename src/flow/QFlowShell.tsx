@@ -64,17 +64,30 @@ export default function QFlowShell() {
   const connected = useFlow((s) => s.connected);
   const phaseIdx = useFlow((s) => s.phaseIdx);
   const disconnect = useFlow((s) => s.disconnect);
+  const builderStep = useFlow((s) => s.builderStep);
   const orbProps = useOrbProps();
 
   // Re-key on session phase boundary so the body cross-fades each phase.
   const stageKey = stage === 'session' ? `session-${phaseIdx}` : stage;
 
-  const targetOrbHeight = (orbProps.size ?? 200) + 30;
-  const targetOrbMarginTop = stage === 'connect' ? 80 : 8;
+  let targetOrbHeight = (orbProps.size ?? 200) + 30;
+  let targetOrbMarginTop = stage === 'connect' ? 80 : 8;
+  let targetOrbOpacity = 1;
+  let targetOrbScale = 1;
+
+  // Hide the orb on Banger (0) and Concentrate (1) steps to give choosers max space
+  if (stage === 'build' && (builderStep === 0 || builderStep === 1)) {
+    targetOrbHeight = 0;
+    targetOrbMarginTop = 0;
+    targetOrbOpacity = 0;
+    targetOrbScale = 0.5; // Shrink it down while fading
+  }
 
   const orbCellAnimStyle = useAnimatedStyle(() => ({
     height: withTiming(targetOrbHeight, { duration: 700, easing: STAGE_EASE }),
     marginTop: withTiming(targetOrbMarginTop, { duration: 700, easing: STAGE_EASE }),
+    opacity: withTiming(targetOrbOpacity, { duration: 500, easing: STAGE_EASE }),
+    transform: [{ scale: withTiming(targetOrbScale, { duration: 700, easing: STAGE_EASE }) }],
   }));
 
   return (

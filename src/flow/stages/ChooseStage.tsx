@@ -363,7 +363,6 @@ const st = StyleSheet.create({
     flexDirection: 'column',
     paddingTop: 4,
     paddingHorizontal: 22,
-    paddingBottom: 130,
   },
   header: {
     marginBottom: 14,
@@ -393,6 +392,6 @@ const st = StyleSheet.create({
   },
   listContent: {
     gap: 8,
-    paddingBottom: 8,
+    paddingBottom: 130,
   },
 });

@@ -395,7 +395,7 @@ export default function ReviewStep() {
 const styles = StyleSheet.create({
   scrollContent: {
     gap: 12,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
 
   calibCardWrap: {

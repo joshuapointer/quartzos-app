@@ -34,7 +34,6 @@ import {
   encodeQuerySettings,
   encodeWriteAll,
   encodeWriteColors,
-  fragmentFrame,
 } from './DabRiteProtocol';
 import type { ConnectionState, DeviceSettings, RGB565 } from './types';
 
@@ -152,7 +151,6 @@ export class BleManager {
   private device: Device | null = null;
   private ff01Sub: Subscription | null = null;
   private disconnectSub: Subscription | null = null;
-  private negotiatedMtu: number = ATT_MTU + 3; // BLE chunk size = mtu - 3 ATT bytes
 
   private queryInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -240,16 +238,12 @@ export class BleManager {
 
       // iOS auto-negotiates MTU at connect time; requestMTU is a no-op there but harmless.
       // On Android, default is 23 — we must explicitly request a larger MTU so the 22-byte
-      // WRITE_ALL frame fits in a single write (preventing fragmented writes that crash firmware).
-      this.negotiatedMtu = device.mtu && device.mtu >= ATT_MTU + 3 ? device.mtu : ATT_MTU + 3;
+      // WRITE_ALL frame fits in a single write.
       try {
         const negotiated = await device.requestMTU(185);
-        if (negotiated.mtu && negotiated.mtu > 0) {
-          this.negotiatedMtu = negotiated.mtu;
-        }
-        console.log('[BLE] MTU is', this.negotiatedMtu);
+        console.log('[BLE] MTU negotiated:', negotiated.mtu);
       } catch (e) {
-        console.warn('[BLE] requestMTU failed; using', this.negotiatedMtu, e);
+        console.warn('[BLE] requestMTU failed (normal on iOS):', e);
       }
 
       this.setState('READY');
@@ -478,21 +472,18 @@ export class BleManager {
     }
   }
 
-  /** Writes a frame to FF02 in ATT-sized fragments. */
+  /** Writes a frame to FF02 in a single transmission. */
   private async sendFrame(frame: Uint8Array): Promise<void> {
     const device = this.device;
     if (!device) throw new Error('BLE not connected');
-    const chunkSize = Math.max(this.negotiatedMtu - 3, ATT_MTU);
-    const chunks = fragmentFrame(frame, chunkSize);
-    for (const chunk of chunks) {
-      const b64 = Buffer.from(chunk).toString('base64');
-      await this.rnBle.writeCharacteristicWithResponseForDevice(
-        device.id,
-        SERVICE_UUID,
-        CHAR_FF02_UUID,
-        b64,
-      );
-    }
+    
+    const b64 = Buffer.from(frame).toString('base64');
+    await this.rnBle.writeCharacteristicWithResponseForDevice(
+      device.id,
+      SERVICE_UUID,
+      CHAR_FF02_UUID,
+      b64,
+    );
   }
 
   private handleDisconnected(): void {
