@@ -84,7 +84,10 @@ const DEFAULT_SIZE: Record<OrbState, number> = {
   'heat-reheat': 290,
   cool: 240,
   'cool-fast-drop': 240,
-  'cool-in-window': 240,
+  // The dab window is the moment the product exists for — give the orb the
+  // largest stage of the cool phase. Slightly under heat (290) so the visual
+  // hierarchy still reads "after the burn" rather than "second torch".
+  'cool-in-window': 280,
   dab: 240,
   dunk: 240,
   clean: 170,
@@ -285,7 +288,25 @@ function TempDialInner({
   const breathe = useSharedValue(0);
   const searchPulse = useSharedValue(0);
 
+  // Caustics + breathe only run when the orb is in a live state. Idle, standby,
+  // searching, and complete are static moments — leaving worklets repeating
+  // forever during build choosers (orb suppressed at scale 0.5) was wasted UI
+  // thread work.
+  const isLive =
+    state === 'cool' ||
+    state === 'cool-fast-drop' ||
+    state === 'cool-in-window' ||
+    state === 'dab' ||
+    state === 'dunk' ||
+    state === 'clean';
+
   useEffect(() => {
+    if (!isLive) {
+      cancelAnimation(causticCw);
+      cancelAnimation(causticCcw);
+      cancelAnimation(breathe);
+      return;
+    }
     causticCw.value = withRepeat(
       withTiming(1, { duration: 30000, easing: Easing.linear }),
       -1,
@@ -309,7 +330,7 @@ function TempDialInner({
       cancelAnimation(causticCcw);
       cancelAnimation(breathe);
     };
-  }, [breathe, causticCcw, causticCw]);
+  }, [isLive, breathe, causticCcw, causticCw]);
 
   useEffect(() => {
     if (state === 'searching') {
@@ -640,8 +661,24 @@ function OrbInner(props: OrbProps) {
     sizeShared.value = withTiming(targetSize, MORPH);
   }, [targetSize, sizeShared]);
 
+  // One-shot peak pulse on entry to cool-in-window. The dab window is the
+  // single moment the product exists to mark — multiply onto the size scale
+  // for a quick swell that reads as "the moment landed".
+  const peakPulse = useSharedValue(1);
+  const prevStateRef = React.useRef<OrbState>(state);
+  useEffect(() => {
+    const prev = prevStateRef.current;
+    prevStateRef.current = state;
+    if (prev !== 'cool-in-window' && state === 'cool-in-window') {
+      peakPulse.value = withSequence(
+        withTiming(1.06, { duration: 220, easing: Easing.out(Easing.exp) }),
+        withTiming(1.0, { duration: 480, easing: Easing.bezier(0.22, 1, 0.36, 1) }),
+      );
+    }
+  }, [state, peakPulse]);
+
   const morphStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: sizeShared.value / BASE }],
+    transform: [{ scale: (sizeShared.value / BASE) * peakPulse.value }],
   }));
 
   // Crossfade when state changes — keeps label/treatment swap soft.

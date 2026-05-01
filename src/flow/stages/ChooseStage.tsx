@@ -1,14 +1,11 @@
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import Svg, {
   Circle,
@@ -22,24 +19,7 @@ import PresetRow from '../components/PresetRow';
 import { SAVED_PRESETS } from '../data';
 import { useFlow } from '../store';
 import { THEME } from '../theme';
-
-const EASE_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
-
-function useStaggerEntrance(idx: number) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
-
-  useEffect(() => {
-    const delay = idx * 55;
-    opacity.value = withDelay(delay, withTiming(1, { duration: 600, easing: EASE_EXPO }));
-    translateY.value = withDelay(delay, withTiming(0, { duration: 600, easing: EASE_EXPO }));
-  }, [idx, opacity, translateY]);
-
-  return useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-}
+import { useStaggerEntrance } from '../components/useStaggerEntrance';
 
 function NewSeshCircle() {
   const size = 80;

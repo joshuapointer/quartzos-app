@@ -12,8 +12,8 @@
  * snappy-but-smooth expo ease-out feel across stage changes.
  */
 
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -70,26 +70,42 @@ export default function QFlowShell() {
   // Re-key on session phase boundary so the body cross-fades each phase.
   const stageKey = stage === 'session' ? `session-${phaseIdx}` : stage;
 
+  // Guard the disconnect tap during a live session — the destructive path
+  // sits in the persistent header 10pt from the wordmark and a stray thumb
+  // mid-dab would drop the rig and lose the session record.
+  const handleDisconnect = useCallback(() => {
+    if (stage === 'session') {
+      Alert.alert(
+        'End the sesh?',
+        'Disconnecting now will stop tracking and discard the rest of this session.',
+        [
+          { text: 'Stay connected', style: 'cancel' },
+          { text: 'Disconnect', style: 'destructive', onPress: disconnect },
+        ],
+      );
+      return;
+    }
+    disconnect();
+  }, [stage, disconnect]);
+
   let targetOrbHeight = (orbProps.size ?? 200) + 30;
   let targetOrbMarginTop = stage === 'connect' ? 80 : 8;
   let targetOrbOpacity = 1;
   let targetOrbScale = 1;
 
-  // Hide the orb on Banger (0) and Concentrate (1) steps to give choosers max space
-  if (stage === 'build' && (builderStep === 0 || builderStep === 1)) {
+  // Suppress the orb during all chooser steps (Banger/Concentrate/Wall) — only
+  // reveal at ReviewStep (3), so its return reads as the calibration locking in.
+  if (stage === 'build' && builderStep < 3) {
     targetOrbHeight = 0;
     targetOrbMarginTop = 0;
     targetOrbOpacity = 0;
     targetOrbScale = 0.5; // Shrink it down while fading
   }
 
-  // CompleteStage renders its own amber dot, so suppress the shell orb here.
-  if (stage === 'complete') {
-    targetOrbHeight = 0;
-    targetOrbMarginTop = 0;
-    targetOrbOpacity = 0;
-    targetOrbScale = 0.5;
-  }
+  // Keep the orb on CompleteStage — its 150pt 'complete' state morphs in as
+  // the closing visual, so the curtain falls instead of dropping. Without
+  // this, the eye climbs from a 280pt orb during the dab window to a 24pt
+  // dot at close — a 10× hierarchy collapse.
 
   const orbCellAnimStyle = useAnimatedStyle(() => ({
     height: withTiming(targetOrbHeight, { duration: 700, easing: STAGE_EASE }),
@@ -104,7 +120,7 @@ export default function QFlowShell() {
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <QWordmark
             connected={connected}
-            onDisconnect={connected && stage !== 'connect' ? disconnect : undefined}
+            onDisconnect={connected && stage !== 'connect' ? handleDisconnect : undefined}
           />
 
           {/* Persistent orb cell — height and top margin morph as stage changes. */}

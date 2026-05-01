@@ -37,7 +37,9 @@ export const THEME = {
     glow:   'rgba(0, 168, 255, 0.30)',    // tertiary-container at 30% alpha
   },
   danger:  '#ffb4ab',
-  warn:    '#ffb68b',
+  // Distinct from ember.bright (#ffb68b) — a warmer, more saturated amber
+  // so a "+N°" warning reads differently than an active ember accent.
+  warn:    '#ffa45c',
   success: '#7ec8a0',
 } as const;
 

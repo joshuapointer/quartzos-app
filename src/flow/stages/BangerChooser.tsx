@@ -278,22 +278,32 @@ export default function BangerChooser() {
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }
 
+  // Auto-select on scroll, but only after the user has interacted. This keeps
+  // BuildStage's "Make a selection to continue" hint honest on first mount and
+  // forces an explicit choice rather than implicitly committing the user to
+  // whatever happened to be centered.
+  const userInteractedRef = useRef(false);
+
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      // Auto-select the centered card if none selected yet
-      if (viewableItems.length > 0 && !bangerId) {
-        const first = viewableItems[0]?.item as Banger | undefined;
-        if (first) setBangerId(first.id);
-      }
+      if (!userInteractedRef.current) return;
+      if (viewableItems.length === 0) return;
+      const first = viewableItems[0]?.item as Banger | undefined;
+      if (first) setBangerId(first.id);
     },
-    [bangerId, setBangerId],
+    [setBangerId],
   );
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 });
 
   function handleCardPress(b: Banger) {
+    userInteractedRef.current = true;
     void Haptics.selectionAsync();
     setBangerId(b.id);
+  }
+
+  function handleScrollBeginDrag() {
+    userInteractedRef.current = true;
   }
 
   return (
@@ -328,6 +338,7 @@ export default function BangerChooser() {
         decelerationRate="fast"
         contentContainerStyle={styles.carousel}
         onViewableItemsChanged={handleViewableItemsChanged}
+        onScrollBeginDrag={handleScrollBeginDrag}
         viewabilityConfig={viewabilityConfig.current}
         renderItem={({ item: b }) => (
           <BangerCard

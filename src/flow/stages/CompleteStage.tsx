@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -26,16 +26,6 @@ function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = String(seconds % 60).padStart(2, '0');
   return `${m}:${s}`;
-}
-
-// ─── Glowing amber dot ────────────────────────────────────────────────────────
-
-function GlowDot() {
-  return (
-    <View style={styles.dotOuter}>
-      <View style={styles.dotInner} />
-    </View>
-  );
 }
 
 // ─── Action button ────────────────────────────────────────────────────────────
@@ -117,7 +107,9 @@ function SummaryCard() {
         <Text style={styles.cardValue}>{materialName}</Text>
       </View>
       <View style={styles.cardRow}>
-        <Text style={styles.cardLabel}>PEAK TEMP</Text>
+        {/* Calibrated target the Dab Rite watched for — not a recorded peak.
+            "PEAK TEMP" implied a measurement; this is the dial number. */}
+        <Text style={styles.cardLabel}>TARGET</Text>
         {peakTemp !== null ? (
           <View style={styles.tempRow}>
             <Text style={styles.cardValue}>{peakTemp}°</Text>
@@ -152,13 +144,44 @@ export function CompleteStage() {
   // windowState reflects the last known state from the store.
   const hadMissedWindow = windowState === 'missed';
 
-  const elapsed = hasValidSession ? formatElapsed(sessionSeconds) : null;
+  // Animate the duration counting up from 0 to sessionSeconds on mount —
+  // turns the static receipt-style readout into a beat that lands the close.
+  const [animatedSeconds, setAnimatedSeconds] = useState(0);
+  useEffect(() => {
+    if (!hasValidSession) return;
+    const target = sessionSeconds;
+    const startedAt = Date.now();
+    const DUR_MS = 800;
+    let raf: ReturnType<typeof setInterval> | null = setInterval(() => {
+      const t = Math.min(1, (Date.now() - startedAt) / DUR_MS);
+      // ease-out-quart — fast start, slow finish
+      const eased = 1 - Math.pow(1 - t, 4);
+      setAnimatedSeconds(Math.round(target * eased));
+      if (t >= 1 && raf != null) {
+        clearInterval(raf);
+        raf = null;
+      }
+    }, 28);
+    return () => {
+      if (raf != null) clearInterval(raf);
+    };
+  }, [hasValidSession, sessionSeconds]);
+
+  const elapsed = hasValidSession ? formatElapsed(animatedSeconds) : null;
 
   // Headline adapts to session outcome
   const headline = (() => {
     if (!hasValidSession) return 'Session ended.';
     if (endedEarly) return 'Ended early.';
     return 'Sesh logged.';
+  })();
+
+  // One short warm acknowledgment line for successful sessions — the brand
+  // promise is "ritualistic, restrained": one line, in bone[50], no theater.
+  const acknowledgment = (() => {
+    if (!hasValidSession || endedEarly) return null;
+    if (hadMissedWindow) return 'Window slipped — next one lands.';
+    return 'Window held.';
   })();
 
   // Sub copy adapts to outcome context (used for non-successful outcomes)
@@ -169,7 +192,7 @@ export function CompleteStage() {
     return null;
   })();
 
-  // Stagger: dot, headline, duration, summary card, button (5 elements)
+  // Stagger: headline, duration, acknowledgment, summary card, button.
   const STAGGER = 60;
   const sv0 = useSharedValue(0);
   const sv1 = useSharedValue(0);
@@ -196,42 +219,54 @@ export function CompleteStage() {
     enter(sv4, STAGGER * 4);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const makeStyle = (sv: typeof sv0) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({
-      opacity: sv.value,
-      transform: [{ translateY: (1 - sv.value) * 12 }],
-    }));
-
-  const s0 = makeStyle(sv0);
-  const s1 = makeStyle(sv1);
-  const s2 = makeStyle(sv2);
-  const s3 = makeStyle(sv3);
-  const s4 = makeStyle(sv4);
+  const s0 = useAnimatedStyle(() => ({
+    opacity: sv0.value,
+    transform: [{ translateY: (1 - sv0.value) * 12 }],
+  }));
+  const s1 = useAnimatedStyle(() => ({
+    opacity: sv1.value,
+    transform: [{ translateY: (1 - sv1.value) * 12 }],
+  }));
+  const s2 = useAnimatedStyle(() => ({
+    opacity: sv2.value,
+    transform: [{ translateY: (1 - sv2.value) * 12 }],
+  }));
+  const s3 = useAnimatedStyle(() => ({
+    opacity: sv3.value,
+    transform: [{ translateY: (1 - sv3.value) * 12 }],
+  }));
+  const s4 = useAnimatedStyle(() => ({
+    opacity: sv4.value,
+    transform: [{ translateY: (1 - sv4.value) * 12 }],
+  }));
 
   return (
     <View style={styles.container}>
-      {/* Glowing amber dot */}
-      <Animated.View style={s0}>
-        <GlowDot />
-      </Animated.View>
-
-      {/* Headline */}
-      <Animated.View style={[styles.headlineWrap, s1]}>
+      {/* Headline — orb above (rendered by QFlowShell at 'complete' state)
+          carries the visual closure; the dot was undersized after the orb
+          climax during the dab window. */}
+      <Animated.View style={[styles.headlineWrap, s0]}>
         <Text style={styles.headline}>{headline}</Text>
       </Animated.View>
 
       {/* Giant amber duration — only when we have a real successful session */}
       {elapsed !== null && !endedEarly && (
-        <Animated.View style={s2}>
+        <Animated.View style={s1}>
           <Text style={styles.duration}>{elapsed}</Text>
         </Animated.View>
       )}
 
       {/* Sub copy for early/missed outcomes (replaces duration slot) */}
       {subCopy !== null && (
-        <Animated.View style={s2}>
+        <Animated.View style={s1}>
           <Text style={styles.subCopy}>{subCopy}</Text>
+        </Animated.View>
+      )}
+
+      {/* Warm acknowledgment line — one short beat under the duration */}
+      {acknowledgment !== null && (
+        <Animated.View style={s2}>
+          <Text style={styles.acknowledgment}>{acknowledgment}</Text>
         </Animated.View>
       )}
 
@@ -257,29 +292,10 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Glowing amber dot
-  dotOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: THEME.ember.base,
-    shadowColor: '#ff7a00',
-    shadowRadius: 18,
-    shadowOpacity: 0.85,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
-    marginBottom: SPACE.lg,
-  },
-  dotInner: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(246,222,210,0.20)',
+    // Headline sits at the top under the persistent orb cell — let stagger
+    // staircase the rest of the column below it rather than centering.
+    justifyContent: 'flex-start',
+    paddingTop: 8,
   },
   // Headline
   headlineWrap: {
@@ -313,6 +329,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  // Warm acknowledgment under the duration ("Window held." etc.)
+  acknowledgment: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 14,
+    color: THEME.bone[50],
+    marginTop: 6,
+    textAlign: 'center',
+    letterSpacing: -0.14,
   },
   // Glass summary card
   cardWrap: {

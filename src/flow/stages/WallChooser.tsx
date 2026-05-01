@@ -190,7 +190,9 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 0.5,
     borderColor: 'rgba(180, 200, 230, 0.10)',
-    backgroundColor: 'transparent',
+    // Match BangerChooser/ConcChooser inactive chip background so chips look
+    // identical across choosers under the warm-obsidian gradient backdrop.
+    backgroundColor: 'rgba(180, 200, 230, 0.04)',
   },
   chipActive: {
     backgroundColor: THEME.ember.base,

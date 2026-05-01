@@ -20,6 +20,7 @@ import {
   useBanger,
   useFlow,
 } from '../store';
+import { useBleStore } from '../../state/bleStore';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -64,62 +65,33 @@ function formatTime(totalSeconds: number): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SnowflakeIcon({ size = 12, color = THEME.quartz.bright }: { size?: number; color?: string }) {
-  const thickness = size / 8;
+// Downward chevron — self-describing for a falling-temp readout. Replaces an
+// earlier 4-bar snowflake that read as a cross at 12px.
+function DropGlyph({ size = 11, color = THEME.danger }: { size?: number; color?: string }) {
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View
-        style={{
-          position: 'absolute',
-          width: size,
-          height: thickness,
-          backgroundColor: color,
-          borderRadius: thickness / 2,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          width: thickness,
-          height: size,
-          backgroundColor: color,
-          borderRadius: thickness / 2,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          width: size,
-          height: thickness,
-          backgroundColor: color,
-          borderRadius: thickness / 2,
-          transform: [{ rotate: '60deg' }],
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          width: size,
-          height: thickness,
-          backgroundColor: color,
-          borderRadius: thickness / 2,
-          transform: [{ rotate: '-60deg' }],
-        }}
-      />
-    </View>
+    <Text
+      style={{
+        fontFamily: 'GeistMono_500Medium',
+        fontSize: size,
+        lineHeight: size + 1,
+        color,
+        includeFontPadding: false,
+      }}
+    >
+      ↓
+    </Text>
   );
 }
 
 function DropRateStrip({ dropRate }: { dropRate: number }) {
-  const fast = dropRate > 3;
-  const chipColor = fast ? THEME.danger : THEME.quartz.bright;
+  // Chip only renders for fast-drop now (see showCoolStrip gate above), so
+  // styling collapses to the danger variant.
   return (
     <View style={styles.dropChipWrap}>
-      <View style={[styles.dropPill, fast ? styles.dropPillFast : styles.dropPillNormal]}>
-        <SnowflakeIcon size={12} color={chipColor} />
-        <Text style={[styles.dropLabel, { color: chipColor }]}>
-          {fast ? 'DROPPING TOO FAST' : 'COOL RATE'}{' '}
-          {dropRate.toFixed(1)}°/s
+      <View style={[styles.dropPill, styles.dropPillFast]}>
+        <DropGlyph size={11} color={THEME.danger} />
+        <Text style={[styles.dropLabel, { color: THEME.danger }]}>
+          DROPPING FAST · {dropRate.toFixed(1)}°/s
         </Text>
       </View>
     </View>
@@ -156,38 +128,60 @@ function BottomActionPill({
   })();
 
   function handlePressIn() {
-    if (!config.tappable) return;
-    scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
+    // Acknowledge the touch even when not tappable — a small dip + soft selection
+    // haptic tells the user "I heard you, the temperature isn't there yet".
+    scale.value = withSpring(config.tappable ? 0.97 : 0.99, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
-    if (!config.tappable) return;
     scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
   async function handlePress() {
-    if (!config.tappable) return;
+    if (!config.tappable) {
+      void Haptics.selectionAsync();
+      return;
+    }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     startHeating();
   }
 
   return (
     <View style={styles.bottomPillAnchor} pointerEvents="box-none">
-      <Animated.View style={[styles.bottomPillShadow, animStyle]}>
+      <Animated.View
+        style={[
+          styles.bottomPillShadow,
+          !config.tappable && styles.bottomPillShadowReadout,
+          animStyle,
+        ]}
+      >
         <Pressable
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           onPress={handlePress}
-          style={styles.bottomPill}
+          style={[styles.bottomPill, !config.tappable && styles.bottomPillReadout]}
           accessibilityRole={config.tappable ? 'button' : 'text'}
           accessibilityLabel={config.label}
-          accessibilityHint={config.tappable ? undefined : 'Auto-advances on temp'}
-          disabled={!config.tappable}
+          accessibilityHint={config.tappable ? undefined : 'Auto-advances on temperature'}
         >
-          {/* Top-edge highlight bar */}
-          <View style={styles.bottomPillHighlight} />
+          {/* Top-edge highlight bar — only on the active CTA, not on readouts */}
+          {config.tappable && <View style={styles.bottomPillHighlight} />}
           <View style={styles.bottomPillInner}>
-            <Text style={styles.bottomPillLabel}>{config.label}</Text>
+            <Text
+              style={[
+                styles.bottomPillLabel,
+                !config.tappable && styles.bottomPillLabelReadout,
+              ]}
+            >
+              {config.label}
+            </Text>
             {config.glyph !== null && (
-              <Text style={styles.bottomPillGlyph}>{config.glyph}</Text>
+              <Text
+                style={[
+                  styles.bottomPillGlyph,
+                  !config.tappable && styles.bottomPillGlyphReadout,
+                ]}
+              >
+                {config.glyph}
+              </Text>
             )}
           </View>
         </Pressable>
@@ -213,6 +207,7 @@ export function SessionStage() {
 
   const banger = useBanger();
   const calibration = useCalibration();
+  const liveTempF = useBleStore((s) => s.liveTempF);
 
   // Bounds-guard phaseIdx against a stale or resetting track
   const safeIdx = phaseIdx >= 0 && phaseIdx < phaseTrack.length ? phaseIdx : 0;
@@ -250,6 +245,24 @@ export function SessionStage() {
     }
   }, [windowState]);
 
+  // ── Haptic on dab-window arrival ──────────────────────────────────────────
+  // The peak of the entire product. cool-in-window is an orb-state derived
+  // from temp + calibration; the phase-transition haptic doesn't fire here,
+  // so without this the moment lands silent.
+  const wasInWindowRef = useRef(false);
+  useEffect(() => {
+    const inWindow =
+      cur === 'cool' &&
+      calibration != null &&
+      liveTempF >= calibration.low &&
+      liveTempF <= calibration.high;
+    const was = wasInWindowRef.current;
+    wasInWindowRef.current = inWindow;
+    if (!was && inWindow) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [cur, liveTempF, calibration]);
+
   // ── Eyebrow / phase-label header ─────────────────────────────────────────
   const reheatSuffix = isReheat && cur === 'heat' ? ' · REHEAT' : '';
   // Only show session clock when startedAt is available (null guard)
@@ -257,16 +270,22 @@ export function SessionStage() {
   const eyebrowText = `${cur.toUpperCase()}${reheatSuffix}${clockSuffix}`;
 
   // ── Dab window countdown (count-down: time remaining in window) ───────────
+  // Show a closing-now state at zero so the user isn't left without feedback
+  // for the brief gap before windowState transitions to 'missed'.
   const dabWindowText =
-    cur === 'dab' && !isMissed && windowSecondsLeft > 0
-      ? `${windowSecondsLeft}s left`
+    cur === 'dab' && !isMissed
+      ? windowSecondsLeft > 0
+        ? `${windowSecondsLeft}s left`
+        : 'closing now'
       : null;
 
   // ── Headline ──────────────────────────────────────────────────────────────
   const headline = (() => {
     if (cur === 'load') return 'Load the banger cold.';
     if (cur === 'heat') {
-      if (!heatActive) return 'Waiting for torch...';
+      // Active imperative even before torch detect — keeps headline + bottom
+      // pill on the same emotional beat ("Strike the torch." / START HEATING).
+      if (!heatActive) return 'Strike the torch.';
       if (!isReheat) return 'Torch the banger.';
       if (heatReason === 'missed') return 'Window slipped. Reheat.';
       return 'Underheated. Top it off.';
@@ -284,8 +303,9 @@ export function SessionStage() {
   // ── Sub copy ──────────────────────────────────────────────────────────────
   const subCopy = (() => {
     if (cur === 'load') {
-      const targetTemp = calibration?.displayed ?? '—';
-      return `Drop the dab in cold, cap it, then torch up to ${targetTemp}°. Cold-start protects the terps.`;
+      // Cold-start was explained on ReviewStep — at execution time the user
+      // has the rig in hand and shouldn't be re-reading the rationale.
+      return 'Load concentrate cold, then cap.';
     }
     if (cur === 'heat') {
       if (!heatActive)
@@ -297,12 +317,15 @@ export function SessionStage() {
       return "IR saw a fast drop. Banger didn't soak the heat. Half-time torch to bring it back up.";
     }
     if (cur === 'cool') {
-      const targetTemp = calibration?.displayed ?? '—';
-      return `Cooling toward ${targetTemp}°. Lift the banger when the orb says LIFT TO DAB.`;
+      // No sub copy at the highest-tension moment. The orb shows the live
+      // temp; ReviewStep already showed the target. Two numbers competing
+      // here forces the user to compute a delta during the dab window.
+      return '';
     }
     if (cur === 'dab') {
       if (isMissed) return 'Temp dropped before you lifted. Place back and let it reheat.';
-      return 'Apply the concentrate. Tap done when the banger comes back to the DabRite.';
+      // Auto-advances when the banger returns to the sensor — no Done button.
+      return 'Apply the concentrate. Place back when finished.';
     }
     if (cur === 'dunk') return 'Cool enough to dunk and pull cap.';
     if (cur === 'clean') return 'Q-tip the inside before the puddle hardens.';
@@ -315,8 +338,11 @@ export function SessionStage() {
   const sv3 = useSharedValue(0);
   const sv5 = useSharedValue(0);
 
-  const hasCoolStrip = cur === 'cool';
-  const showCoolStrip = cur === 'cool' && coolDropRate > 0;
+  // Only surface the drop-rate chip when it's actionable (fast drop) — during
+  // normal cool the orb's live temp is enough; the chip just adds noise to the
+  // highest-tension moment.
+  const showCoolStrip = cur === 'cool' && coolDropRate > 3;
+  const hasCoolStrip = showCoolStrip;
 
   useEffect(() => {
     sv0.value = 0;
@@ -364,10 +390,12 @@ export function SessionStage() {
         <Text style={[styles.headline, { color: headlineColor }]}>{headline}</Text>
       </Animated.View>
 
-      {/* Sub copy */}
-      <Animated.View style={s2}>
-        <Text style={styles.sub}>{subCopy}</Text>
-      </Animated.View>
+      {/* Sub copy — suppressed for phases (cool) that should be silent */}
+      {subCopy.length > 0 && (
+        <Animated.View style={s2}>
+          <Text style={styles.sub}>{subCopy}</Text>
+        </Animated.View>
+      )}
 
       {/* Missed window hint — quiet, no shouting */}
       {isMissed && cur === 'dab' && (
@@ -523,10 +551,23 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 12,
   },
+  // Readout variant — shown while the pill is a status, not an action.
+  // Tames the glow so the orb stays the loud element, but keeps the ember tint
+  // so the bottom rail still belongs to the same family.
+  bottomPillShadowReadout: {
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 4,
+  },
   bottomPill: {
     borderRadius: 9999,
     backgroundColor: THEME.ember.base,
     overflow: 'hidden',
+  },
+  bottomPillReadout: {
+    backgroundColor: 'rgba(255, 122, 0, 0.22)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 122, 0, 0.45)',
   },
   bottomPillHighlight: {
     position: 'absolute',
@@ -551,9 +592,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: '#1c110a',
   },
+  bottomPillLabelReadout: {
+    color: THEME.ember.bright,
+  },
   bottomPillGlyph: {
     fontFamily: 'GeistMono_500Medium',
     fontSize: 12,
     color: '#1c110a',
+  },
+  bottomPillGlyphReadout: {
+    color: THEME.ember.bright,
   },
 });

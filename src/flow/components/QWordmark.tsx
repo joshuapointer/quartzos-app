@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
   },
   disconnectText: {
     fontFamily: 'GeistMono_400Regular',
-    fontSize: 9,
-    letterSpacing: 0.16 * 9,
+    fontSize: 11,
+    letterSpacing: 0.14 * 11,
     color: THEME.bone[50],
   },
 });

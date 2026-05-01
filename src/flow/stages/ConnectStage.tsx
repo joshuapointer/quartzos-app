@@ -1,12 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withSpring,
@@ -15,24 +14,9 @@ import Animated, {
 
 import { useFlow } from '../store';
 import { THEME } from '../theme';
+import { useStaggerEntrance } from '../components/useStaggerEntrance';
 
 const EASE_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
-
-function useStaggerEntrance(idx: number) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
-
-  useEffect(() => {
-    const delay = idx * 75;
-    opacity.value = withDelay(delay, withTiming(1, { duration: 600, easing: EASE_EXPO }));
-    translateY.value = withDelay(delay, withTiming(0, { duration: 600, easing: EASE_EXPO }));
-  }, [idx, opacity, translateY]);
-
-  return useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-}
 
 function PulseDot() {
   const opacity = useSharedValue(0.4);
@@ -203,33 +187,64 @@ const btnStyles = StyleSheet.create({
   },
 });
 
+const SCAN_TIMEOUT_MS = 25000;
+
 export default function ConnectStage() {
   const connect = useFlow((s) => s.connect);
   const searching = useFlow((s) => s.searching);
 
+  // Surface a recovery state if a scan runs for too long without finding the
+  // Dab Rite. Without it, a first-timer with the device powered off is
+  // stranded on a pulsing "SEARCHING…" with no feedback.
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!searching) {
+      setTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setTimedOut(true), SCAN_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [searching]);
+
+  function handleConnect() {
+    setTimedOut(false);
+    connect();
+  }
+
+  // While timed out, present the button as ready-to-retry (not searching),
+  // even though the store's searching flag is still true under the hood.
+  const buttonSearching = searching && !timedOut;
+
   const s0 = useStaggerEntrance(0);
   const s1 = useStaggerEntrance(1);
   const s2 = useStaggerEntrance(2);
+
+  const footerText = timedOut
+    ? 'CHECK THE DAB RITE IS POWERED ON'
+    : searching
+      ? 'SCANNING FOR DEVICE'
+      : 'POWER ON THE DAB RITE TO PAIR';
 
   return (
     <View style={st.container}>
 
       <Animated.View style={[st.headlineWrapper, s0]}>
         <Text style={st.headline}>
-          {'Connect your\nDab Rite to begin.'}
+          {timedOut
+            ? "We couldn't\nfind your Dab Rite."
+            : 'Connect your\nDab Rite to begin.'}
         </Text>
       </Animated.View>
 
       <View style={st.spacer} />
 
       <Animated.View style={s1}>
-        <ConnectButton searching={searching} onPress={connect} />
+        <ConnectButton searching={buttonSearching} onPress={handleConnect} />
       </Animated.View>
 
       <Animated.View style={s2}>
-        <Text style={st.footer}>
-          {searching ? 'SCANNING FOR DEVICE' : 'POWER ON THE DAB RITE TO PAIR'}
-        </Text>
+        <Text style={st.footer}>{footerText}</Text>
       </Animated.View>
 
     </View>
