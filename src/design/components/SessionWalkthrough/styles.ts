@@ -290,7 +290,7 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: '#f6ded2',
+    color: colors.bone100,
   },
 
   autoAdvanceHint: {
