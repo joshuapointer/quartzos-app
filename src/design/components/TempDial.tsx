@@ -29,11 +29,11 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 type DialState = 'idle' | 'heating' | 'target' | 'cooling' | 'dunk';
 
 const PALETTE: Record<DialState, { ring: string; text: string; lensTop: string; lensBottom: string }> = {
-  idle:    { ring: colors.quartzDim,    text: colors.bone90,  lensTop: colors.lensIdle,    lensBottom: colors.surface1 },
-  heating: { ring: colors.emberMid,     text: colors.bone100, lensTop: colors.lensHeating, lensBottom: colors.surface1 },
-  target:  { ring: colors.emberBright,  text: '#f6ded2',      lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
-  cooling: { ring: colors.emberCool,    text: colors.bone90,  lensTop: colors.lensCooling, lensBottom: colors.surface1 },
-  dunk:    { ring: colors.quartzBright, text: '#cde5ff',      lensTop: colors.lensDunk,    lensBottom: colors.surface1 },
+  idle:    { ring: colors.quartzDim,    text: colors.bone90,        lensTop: colors.lensIdle,    lensBottom: colors.surface1 },
+  heating: { ring: colors.emberMid,     text: colors.bone100,       lensTop: colors.lensHeating, lensBottom: colors.surface1 },
+  target:  { ring: colors.emberBright,  text: colors.bone100,       lensTop: colors.lensTarget,  lensBottom: colors.surface2 },
+  cooling: { ring: colors.emberCool,    text: colors.bone90,        lensTop: colors.lensCooling, lensBottom: colors.surface1 },
+  dunk:    { ring: colors.quartzBright, text: colors.tertiaryFixed, lensTop: colors.lensDunk,    lensBottom: colors.surface1 },
 };
 
 const STATE_LABELS: Record<DialState, string> = {
@@ -313,7 +313,7 @@ export function TempDial({
           style={StyleSheet.absoluteFill}
         />
         <LinearGradient
-          colors={['rgba(255,240,220,0.07)', 'rgba(255,240,220,0)']}
+          colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 0.5 }}
           style={[StyleSheet.absoluteFill, { borderRadius: lensSize / 2 }]}
@@ -325,7 +325,7 @@ export function TempDial({
             left: '12%',
             right: '12%',
             height: 0.5,
-            backgroundColor: 'rgba(255,240,220,0.08)',
+            backgroundColor: 'rgba(255,255,255,0.08)',
           }}
         />
       </View>
