@@ -59,9 +59,9 @@ function PresetGlyph({ kind, size = 44 }: { kind: GlyphKind; size?: number }) {
     quartz: {
       cx: '35%', cy: '30%',
       stops: [
-        { offset: '0%',   color: '#ffb68b', opacity: 1 },
-        { offset: '45%',  color: '#ff7a00', opacity: 1 },
-        { offset: '100%', color: '#5c2800', opacity: 1 },
+        { offset: '0%',   color: THEME.ember.bright, opacity: 1 },
+        { offset: '45%',  color: THEME.ember.base,   opacity: 1 },
+        { offset: '100%', color: THEME.ember.deep,   opacity: 1 },
       ],
     },
     opaque: {
@@ -91,7 +91,7 @@ function PresetGlyph({ kind, size = 44 }: { kind: GlyphKind; size?: number }) {
   };
 
   const g = gradients[kind];
-  const glowColor = kind === 'custom' ? THEME.ember.base : kind === 'quartz' ? '#ff7a00' : kind === 'low' ? THEME.quartz.base : THEME.bone[50];
+  const glowColor = kind === 'custom' ? THEME.ember.base : kind === 'quartz' ? THEME.ember.base : kind === 'low' ? THEME.quartz.base : THEME.bone[50];
 
   return (
     <View
