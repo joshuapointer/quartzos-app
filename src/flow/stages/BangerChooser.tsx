@@ -3,8 +3,8 @@
  *
  * Step 1: Pick your vessel.
  * Layout:
- *   – Geometry chips row (Bucket / Slurper / Insert) as scrollable icon+label pills
- *   – Large horizontal carousel — one card visible + next peeking, snap-to-item
+ *   – Geometry selector row (Bucket / Slurper / Insert) — three equal cards
+ *   – Large horizontal carousel — one card centered + peek, snap-to-item
  */
 
 import * as Haptics from 'expo-haptics';
@@ -15,7 +15,6 @@ import {
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -36,83 +35,86 @@ import { useFlow } from '../store';
 import { THEME, TYPE } from '../theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const CARD_H = 230;
-const CARD_GAP = 10;
 const SIDE_PAD = 22;
-// Card width: screen minus left pad, gap and right peek
-const CARD_W = SCREEN_W - SIDE_PAD * 2 - CARD_GAP - 36;
+const CARD_GAP = 12;
+// Carousel card width: nearly full width with small peek of the next card
+const CARD_PEEK = 18;
+const CARD_W = SCREEN_W - SIDE_PAD * 2 - CARD_PEEK;
+const CARD_H = 248;
 
 const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 // ─── Geometry filter types ─────────────────────────────────────────────────────
 
-type GeomFilter = 'All' | BangerGeometry;
+type GeomFilter = BangerGeometry;
 
-const GEOM_FILTERS: { key: GeomFilter; label: string; count: number }[] = [
-  { key: 'All',     label: 'All',     count: BANGERS.length },
-  { key: 'bucket',  label: 'Bucket',  count: BANGERS.filter(b => b.geometry === 'bucket').length },
-  { key: 'slurper', label: 'Slurper', count: BANGERS.filter(b => b.geometry === 'slurper').length },
-  { key: 'insert',  label: 'Insert',  count: BANGERS.filter(b => b.geometry === 'insert').length },
+const GEOM_SUBTYPE: Record<GeomFilter, string> = {
+  bucket:  'CUP-SHAPE',
+  slurper: 'VORTEX',
+  insert:  'DROP-IN',
+  enail:   'E-NAIL',
+};
+
+const GEOM_FILTERS: { key: GeomFilter; label: string; sub: string; count: number }[] = [
+  { key: 'bucket',  label: 'Bucket',  sub: GEOM_SUBTYPE.bucket,  count: BANGERS.filter(b => b.geometry === 'bucket').length },
+  { key: 'slurper', label: 'Slurper', sub: GEOM_SUBTYPE.slurper, count: BANGERS.filter(b => b.geometry === 'slurper').length },
+  { key: 'insert',  label: 'Insert',  sub: GEOM_SUBTYPE.insert,  count: BANGERS.filter(b => b.geometry === 'insert').length },
 ];
 
 function passesGeomFilter(b: Banger, f: GeomFilter): boolean {
-  if (f === 'All') return true;
   return b.geometry === f;
 }
 
-// ─── Geometry chip icons ────────────────────────────────────────────────────────
+// ─── Geometry icons ────────────────────────────────────────────────────────────
+//
+// Drawn at 32 viewBox so the same line-weight reads at chip and card scale.
+// Stroke-only line art on a transparent fill — colour swaps via stroke prop.
 
-function BucketIcon({ color }: { color: string }) {
+function BucketIcon({ color, size = 32 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 20 20">
+    <Svg width={size} height={size} viewBox="0 0 32 32">
       <Path
-        d="M5 5h10v9a2 2 0 01-2 2H7a2 2 0 01-2-2V5z"
-        stroke={color} strokeWidth={1.2} fill="none" strokeLinecap="round" strokeLinejoin="round"
+        d="M9 8h14v14a3 3 0 01-3 3h-8a3 3 0 01-3-3V8z"
+        stroke={color} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round"
       />
-      <Path d="M4 5h12" stroke={color} strokeWidth={1.2} strokeLinecap="round" />
+      <Path d="M8 8h16" stroke={color} strokeWidth={1.4} strokeLinecap="round" />
     </Svg>
   );
 }
 
-function SlurperIcon({ color }: { color: string }) {
+function SlurperIcon({ color, size = 32 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 20 20">
+    <Svg width={size} height={size} viewBox="0 0 32 32">
+      <Path d="M16 4v8" stroke={color} strokeWidth={1.4} strokeLinecap="round" />
       <Path
-        d="M10 3v5M7 8h6v5a2 2 0 01-2 2H9a2 2 0 01-2-2V8z"
-        stroke={color} strokeWidth={1.2} fill="none" strokeLinecap="round" strokeLinejoin="round"
+        d="M11 12h10v10a3 3 0 01-3 3h-4a3 3 0 01-3-3V12z"
+        stroke={color} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round"
       />
-      <Path d="M8 14.5h4" stroke={color} strokeWidth={1.2} strokeLinecap="round" />
-      <Path d="M9 16.5h2v1H9v-1z" stroke={color} strokeWidth={1.2} fill="none" strokeLinecap="round" />
+      <Path d="M13 22h6" stroke={color} strokeWidth={1.4} strokeLinecap="round" />
+      <Path d="M14.5 25h3v2.5h-3z" stroke={color} strokeWidth={1.4} fill="none" strokeLinejoin="round" />
     </Svg>
   );
 }
 
-function InsertIcon({ color }: { color: string }) {
+function InsertIcon({ color, size = 32 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 20 20">
+    <Svg width={size} height={size} viewBox="0 0 32 32">
       <Path
-        d="M6 4h8v8a2 2 0 01-2 2H8a2 2 0 01-2-2V4z"
-        stroke={color} strokeWidth={1.2} fill="none" strokeLinecap="round" strokeLinejoin="round"
+        d="M9 7h14v13a3 3 0 01-3 3h-8a3 3 0 01-3-3V7z"
+        stroke={color} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round"
       />
-      <Path d="M8 14h4v2H8v-2z" stroke={color} strokeWidth={1.2} fill="none" strokeLinecap="round" />
+      <Path d="M13 23h6v3h-6z" stroke={color} strokeWidth={1.4} fill="none" strokeLinejoin="round" />
     </Svg>
   );
 }
 
-function GeomIcon({ geom, color }: { geom: GeomFilter; color: string }) {
-  if (geom === 'bucket')  return <BucketIcon color={color} />;
-  if (geom === 'slurper') return <SlurperIcon color={color} />;
-  if (geom === 'insert')  return <InsertIcon color={color} />;
-  // All: show a simple grid
-  return (
-    <Svg width={20} height={20} viewBox="0 0 20 20">
-      <Path d="M4 4h5v5H4zM11 4h5v5h-5zM4 11h5v5H4zM11 11h5v5h-5z"
-        stroke={color} strokeWidth={1.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+function GeomIcon({ geom, color, size }: { geom: GeomFilter; color: string; size?: number }) {
+  if (geom === 'slurper') return <SlurperIcon color={color} size={size} />;
+  if (geom === 'insert')  return <InsertIcon color={color} size={size} />;
+  return <BucketIcon color={color} size={size} />;
 }
 
-// ─── Geometry chip ─────────────────────────────────────────────────────────────
+// ─── Geometry selector card ────────────────────────────────────────────────────
 
 type GeomChipProps = {
   item: (typeof GEOM_FILTERS)[number];
@@ -121,22 +123,29 @@ type GeomChipProps = {
 };
 
 function GeomChip({ item, active, onPress }: GeomChipProps) {
-  const iconColor = active ? THEME.ember.bright : THEME.bone[50];
+  const iconColor = active ? THEME.ember.bright : THEME.bone[70];
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
+      style={[styles.geomCard, active && styles.geomCardActive]}
       accessibilityRole="button"
       accessibilityLabel={`Filter: ${item.label}`}
       accessibilityState={{ selected: active }}
     >
-      <GeomIcon geom={item.key} color={iconColor} />
-      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
+      <View style={styles.geomIconWrap}>
+        <GeomIcon geom={item.key} color={iconColor} size={30} />
+      </View>
+      <Text style={[styles.geomLabel, active && styles.geomLabelActive]}>
         {item.label}
       </Text>
-      <Text style={[styles.chipCount, active && styles.chipCountActive]}>
-        {item.count}
-      </Text>
+      <View style={[styles.geomTag, active && styles.geomTagActive]}>
+        <Text style={[styles.geomTagText, active && styles.geomTagTextActive]}>
+          {item.sub}
+        </Text>
+        <Text style={[styles.geomTagCount, active && styles.geomTagCountActive]}>
+          {item.count}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -183,13 +192,10 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
 
   const image = BANGER_IMAGES[banger.id];
 
-  const tagLabel = banger.tags[0] ?? banger.category.toUpperCase();
-  const isSlurper = banger.geometry === 'slurper';
-  const irSign   = isSlurper ? '+' : '−';
-  const irColor  = isSlurper ? THEME.ember.bright : THEME.bone[50];
+  const tagLabel = `${banger.geometry.toUpperCase()}-CLASS`;
 
   const ringColor = active
-    ? 'rgba(227, 128, 31, 0.70)'
+    ? 'rgba(255, 122, 0, 0.85)'
     : 'rgba(180, 200, 230, 0.10)';
 
   return (
@@ -203,21 +209,27 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
         accessibilityLabel={banger.name}
         accessibilityState={{ selected: active }}
       >
-        {/* Full-card image — contain scales to fit, dark bg on sides is invisible */}
+        {/* Subtle ember bloom on active card — anchors the glow */}
+        {active && (
+          <View pointerEvents="none" style={styles.cardEmberBloom} />
+        )}
+
+        {/* Banger image, centered with breathing room around it */}
         {image ? (
           <Image
             source={image}
-            style={StyleSheet.absoluteFill}
+            style={styles.cardImage}
             resizeMode="contain"
           />
         ) : null}
 
         {/* Thin scrim only over the bottom label zone */}
         <LinearGradient
-          colors={['transparent', active ? 'rgba(12,6,0,0.95)' : 'rgba(6,10,20,0.95)']}
-          start={{ x: 0.5, y: 0.62 }}
+          colors={['transparent', active ? 'rgba(12,6,0,0.96)' : 'rgba(6,10,20,0.96)']}
+          start={{ x: 0.5, y: 0.55 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
 
         {/* Ring */}
@@ -226,9 +238,11 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
           style={[StyleSheet.absoluteFill, styles.ring, { borderColor: ringColor }]}
         />
 
-        {/* Tag top-left */}
-        <View style={styles.cardTag}>
-          <Text style={styles.cardTagText}>{tagLabel}</Text>
+        {/* Tag top-left — geometry class */}
+        <View style={[styles.cardTag, active && styles.cardTagActive]}>
+          <Text style={[styles.cardTagText, active && styles.cardTagTextActive]}>
+            {tagLabel}
+          </Text>
         </View>
 
         {/* Check badge top-right */}
@@ -238,17 +252,12 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
           </View>
         )}
 
-        {/* Bottom metadata */}
+        {/* Bottom metadata — centered */}
         <View style={styles.cardBottom}>
           <Text style={styles.cardTitle} numberOfLines={1}>{banger.name}</Text>
-          <View style={styles.cardMeta}>
-            <Text style={styles.cardMetaLeft} numberOfLines={1}>
-              {banger.geometry.toUpperCase()} · {banger.category.toUpperCase()} · {banger.heat_time} HEAT
-            </Text>
-            <Text style={[styles.cardIR, { color: irColor }]}>
-              {irSign}{banger.gradient_lag_f}°
-            </Text>
-          </View>
+          <Text style={styles.cardMetaLine} numberOfLines={1}>
+            {banger.geometry.toUpperCase()} · {banger.category.toUpperCase()} · {banger.heat_time} HEAT
+          </Text>
         </View>
       </Pressable>
     </Animated.View>
@@ -261,7 +270,15 @@ export default function BangerChooser() {
   const bangerId    = useFlow((s) => s.bangerId);
   const setBangerId = useFlow((s) => s.setBangerId);
 
-  const [geomFilter, setGeomFilter] = useState<GeomFilter>('All');
+  // Default to the geometry of the already-selected banger if any,
+  // otherwise fall back to the first geometry filter (Bucket).
+  const initialGeom: GeomFilter = useMemo(() => {
+    const current = BANGERS.find((b) => b.id === bangerId);
+    if (current && current.geometry !== 'enail') return current.geometry;
+    return 'bucket';
+  }, [bangerId]);
+
+  const [geomFilter, setGeomFilter] = useState<GeomFilter>(initialGeom);
 
   const items = useMemo(
     () => BANGERS.filter((b) => passesGeomFilter(b, geomFilter)),
@@ -311,12 +328,8 @@ export default function BangerChooser() {
       style={styles.container}
       entering={FadeIn.duration(380).easing(STAGGER_EASING)}
     >
-      {/* Geometry chips row */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
+      {/* Geometry selector — three equal cards, full row */}
+      <View style={styles.geomRow}>
         {GEOM_FILTERS.map((item) => (
           <GeomChip
             key={item.key}
@@ -325,7 +338,7 @@ export default function BangerChooser() {
             onPress={() => handleGeomPress(item.key)}
           />
         ))}
-      </ScrollView>
+      </View>
 
       {/* Large carousel */}
       <FlatList
@@ -361,136 +374,184 @@ const styles = StyleSheet.create({
     // Bleed horizontally so carousel extends to edges
     marginHorizontal: -SIDE_PAD,
   },
-  chipsRow: {
+
+  // ── Geometry selector row (3 equal cards) ──
+  geomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingBottom: 12,
+    gap: 10,
     paddingHorizontal: SIDE_PAD,
-    paddingRight: SIDE_PAD + 8,
+    paddingBottom: 16,
   },
-  chip: {
+  geomCard: {
+    flex: 1,
+    minHeight: 104,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(180, 200, 230, 0.10)',
+    backgroundColor: 'rgba(180, 200, 230, 0.03)',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  geomCardActive: {
+    borderColor: 'rgba(255, 122, 0, 0.85)',
+    backgroundColor: 'rgba(255, 122, 0, 0.18)',
+    shadowColor: THEME.ember.base,
+    shadowRadius: 18,
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
+  },
+  geomIconWrap: {
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  geomLabel: {
+    fontFamily: 'Geist_500Medium',
+    fontSize: 14,
+    letterSpacing: -0.2,
+    color: THEME.bone[90],
+  },
+  geomLabelActive: {
+    color: THEME.bone[100],
+  },
+  geomTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 7,
     borderRadius: 100,
+    backgroundColor: 'rgba(0, 0, 0, 0.32)',
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
-    backgroundColor: 'rgba(180, 200, 230, 0.04)',
+    borderColor: 'rgba(180, 200, 230, 0.08)',
   },
-  chipActive: {
-    backgroundColor: 'rgba(227, 128, 31, 0.14)',
-    borderColor: 'rgba(227, 128, 31, 0.50)',
+  geomTagActive: {
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    borderColor: 'rgba(255, 174, 90, 0.22)',
   },
-  chipLabel: {
+  geomTagText: {
     ...(TYPE.mono as object),
-    fontSize: 10,
-    letterSpacing: 0.12 * 10,
-    color: THEME.bone[50],
-    textTransform: 'uppercase',
-  } as const,
-  chipLabelActive: {
-    color: THEME.bone[90],
-  },
-  chipCount: {
-    ...(TYPE.mono as object),
-    fontSize: 9,
-    letterSpacing: 0.10 * 9,
+    fontSize: 8,
+    letterSpacing: 0.16 * 8,
     color: THEME.bone[35],
     textTransform: 'uppercase',
   } as const,
-  chipCountActive: {
-    color: THEME.ember.bright,
+  geomTagTextActive: {
+    color: THEME.bone[70],
+  },
+  geomTagCount: {
+    ...(TYPE.mono as object),
+    fontSize: 8,
+    letterSpacing: 0.10 * 8,
+    color: THEME.bone[50],
+  } as const,
+  geomTagCountActive: {
+    color: THEME.bone[100],
   },
 
-  // Carousel
+  // ── Carousel ──
   carousel: {
     gap: CARD_GAP,
     paddingHorizontal: SIDE_PAD,
     paddingBottom: 16,
-    paddingRight: SIDE_PAD + 36, // let next card peek
+    paddingRight: SIDE_PAD + CARD_PEEK + CARD_GAP,
   },
   cardWrap: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 18,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#160c06',
   },
   cardShadow: {
     shadowColor: THEME.ember.base,
-    shadowRadius: 28,
-    shadowOpacity: 0.35,
+    shadowRadius: 30,
+    shadowOpacity: 0.40,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
   card: {
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 20,
     overflow: 'hidden',
     justifyContent: 'flex-end',
   },
+  cardEmberBloom: {
+    position: 'absolute',
+    top: -CARD_H * 0.35,
+    left: '50%',
+    width: CARD_H * 1.6,
+    height: CARD_H * 1.6,
+    marginLeft: -CARD_H * 0.8,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(255, 122, 0, 0.10)',
+  },
+  cardImage: {
+    position: 'absolute',
+    top: 36,
+    left: 0,
+    right: 0,
+    bottom: 80,
+  },
   ring: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 20,
+    borderWidth: 1.25,
   },
   cardTag: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    top: 14,
+    left: 14,
     backgroundColor: 'rgba(20, 14, 4, 0.68)',
     borderRadius: 100,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 174, 90, 0.30)',
     paddingVertical: 4,
-    paddingHorizontal: 9,
+    paddingHorizontal: 10,
+  },
+  cardTagActive: {
+    backgroundColor: 'rgba(255, 122, 0, 0.16)',
+    borderColor: 'rgba(255, 122, 0, 0.55)',
   },
   cardTagText: {
     ...(TYPE.mono as object),
-    fontSize: 8.5,
-    letterSpacing: 0.18 * 8.5,
+    fontSize: 9,
+    letterSpacing: 0.18 * 9,
     color: THEME.ember.bright,
     textTransform: 'uppercase',
   } as const,
+  cardTagTextActive: {
+    color: THEME.ember.bright,
+  },
   cardCheck: {
     position: 'absolute',
-    top: 10,
-    right: 12,
+    top: 12,
+    right: 14,
   },
   cardBottom: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 18,
     paddingTop: 10,
-    gap: 4,
+    gap: 6,
+    alignItems: 'center',
   },
   cardTitle: {
     fontFamily: 'Geist_500Medium',
-    fontSize: 18,
+    fontSize: 19,
     color: THEME.bone[100],
     letterSpacing: -0.3,
-    lineHeight: 18 * 1.1,
+    lineHeight: 19 * 1.1,
+    textAlign: 'center',
   },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  cardMetaLeft: {
+  cardMetaLine: {
     ...(TYPE.mono as object),
-    fontSize: 9,
-    letterSpacing: 0.16 * 9,
+    fontSize: 9.5,
+    letterSpacing: 0.14 * 9.5,
     color: THEME.bone[50],
     textTransform: 'uppercase',
-    flex: 1,
-  } as const,
-  cardIR: {
-    ...(TYPE.mono as object),
-    fontSize: 11,
-    letterSpacing: 0.10 * 11,
-    textTransform: 'uppercase',
-    flexShrink: 0,
+    textAlign: 'center',
   } as const,
 });
