@@ -1,54 +1,55 @@
 /**
  * src/flow/theme.ts
  * Design tokens for the linear flow.
- * Aligned to /design.md (apr 2026) — Quartzie warm obsidian palette.
+ * Aligned to /design.md (may 2026) — OLED · white-hot neon edge.
  * Key naming retained (`navy`, `bone`, `ember`, `quartz`) for back-compat;
- * values now resolve to the warm-espresso/ember/quartz tokens.
+ * values resolve to pure-black surfaces, white-intensity heat ramp,
+ * and the unchanged quartz cyan cool ramp.
  */
 
 import { reanimatedEasing } from '@/design/tokens';
 
 export const THEME = {
-  // "navy" key kept for back-compat — values are warm obsidian surface ramp.
+  // "navy" key kept for back-compat — values are pure-black ramp on OLED.
   navy: {
-    0: '#080503',  // surface-container-lowest (the void)
-    1: '#0e0905',  // background
-    2: '#251912',  // surface-container-low
-    3: '#291d16',  // surface-container
-    4: '#40322a',  // surface-container-highest
-    5: '#45362e',  // surface-bright
+    0: '#000000',  // surface-container-lowest (the void)
+    1: '#000000',  // background
+    2: '#0a0a0a',  // surface-container-low
+    3: '#111111',  // surface-container
+    4: '#1f1f1f',  // surface-container-highest
+    5: '#262626',  // surface-bright
   },
   bone: {
-    100: '#f6ded2',  // on-surface
-    90:  '#ecceb9',
-    70:  '#e0c0af',  // on-surface-variant
-    50:  '#a78b7c',  // outline
-    35:  '#7a5c4b',
-    20:  '#584235',  // outline-variant
-    warm04: 'rgba(246, 222, 210, 0.04)',
-    warm08: 'rgba(246, 222, 210, 0.08)',
-    warm10: 'rgba(246, 222, 210, 0.10)',
-    warm18: 'rgba(246, 222, 210, 0.18)',
+    100: '#ffffff',  // on-surface
+    90:  '#d4d4d4',
+    70:  '#a0a0a0',  // on-surface-variant
+    50:  '#666666',  // outline
+    35:  '#444444',
+    20:  '#222222',  // outline-variant
+    warm04: 'rgba(255, 255, 255, 0.04)',
+    warm08: 'rgba(255, 255, 255, 0.08)',
+    warm10: 'rgba(255, 255, 255, 0.10)',
+    warm18: 'rgba(255, 255, 255, 0.18)',
   },
   ember: {
-    bright: '#ffb68b',                    // primary
-    base:   '#ff7a00',                    // primary-container
-    deep:   '#5c2800',                    // on-primary-container
-    glow:   'rgba(255, 122, 0, 0.45)',    // primary-container at 45% alpha
+    bright: '#ffffff',                     // primary (white-hot at-target)
+    base:   '#e6e6e6',                     // primary-container (heating-dim)
+    deep:   '#222222',                     // on-primary-container
+    glow:   'rgba(255, 255, 255, 0.45)',   // primary-container at 45% alpha
   },
   quartz: {
-    bright: '#95ccff',                    // tertiary
-    base:   '#00a8ff',                    // tertiary-container
-    deep:   '#004a75',                    // on-tertiary-fixed-variant
-    glow:   'rgba(0, 168, 255, 0.30)',    // tertiary-container at 30% alpha
+    bright: '#95ccff',
+    base:   '#00a8ff',
+    deep:   '#004a75',
+    glow:   'rgba(0, 168, 255, 0.30)',
   },
   danger: {
-    base:  '#ffb4ab',
+    base:  '#ff5252',
     deep:  '#c44444',
   },
-  // Distinct from ember.bright (#ffb68b) — a warmer, more saturated amber
-  // so a "+N°" warning reads differently than an active ember accent.
-  warn:    '#ffa45c',
+  // Warning amber-yellow — the one warm hue that survives, distinct from
+  // the (now white) ember at-target signal.
+  warn:    '#ffd60a',
   success: '#7ec8a0',
 } as const;
 
@@ -71,7 +72,7 @@ export const TYPE = {
   // headline-md per design.md: Geist Regular (400), -0.02em tracking
   headline:   { fontFamily: 'Geist_400Regular',  letterSpacing: -0.5 },
   body:       { fontFamily: 'Geist_400Regular' },
-  bodyDim:    { fontFamily: 'Geist_400Regular',  color: '#a78b7c' },
+  bodyDim:    { fontFamily: 'Geist_400Regular',  color: '#666666' },
   mono:       { fontFamily: 'GeistMono_400Regular' },
   monoBright: { fontFamily: 'GeistMono_500Medium' },
   eyebrow:    {
@@ -79,7 +80,7 @@ export const TYPE = {
     fontSize:       9,
     letterSpacing:  2.88,
     textTransform:  'uppercase' as const,
-    color:          '#a78b7c',
+    color:          '#666666',
   },
 } as const;
 
