@@ -33,6 +33,8 @@ import {
   type Concentrate,
   type Wall,
 } from './data';
+import { findBanger } from '../data/bangers';
+import { totalHeatSeconds } from '../design/components/SessionWalkthrough/utils';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -262,8 +264,9 @@ export const useFlow = create<FlowState>()(
           return;
         }
 
-        const hs = banger?.heat_seconds ?? [25, 35];
-        const phaseDur = ((hs[0] + hs[1]) / 2) * 1000 * state.heatTimeFactor;
+        const canonicalBanger = banger ? findBanger(banger.id) : undefined;
+        const baseHeatSec = canonicalBanger ? totalHeatSeconds(canonicalBanger) : 30;
+        const phaseDur = baseHeatSec * 1000 * state.heatTimeFactor;
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
           const elapsed = Date.now() - startedAt;
@@ -759,8 +762,9 @@ export const useOrbProps = (): OrbProps => {
       const phaseKey = phaseTrack[phaseIdx];
 
       if (phaseKey === 'heat') {
-        const hs = banger?.heat_seconds ?? [25, 35];
-        const totalSec = ((hs[0] + hs[1]) / 2) * heatTimeFactor;
+        const canonicalBanger = banger ? findBanger(banger.id) : undefined;
+        const baseHeatSec = canonicalBanger ? totalHeatSeconds(canonicalBanger) : 30;
+        const totalSec = baseHeatSec * heatTimeFactor;
         const isReheat = heatTimeFactor < 1;
         return {
           state: (isReheat ? 'heat-reheat' : 'heat') satisfies OrbState,

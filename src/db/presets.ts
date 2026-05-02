@@ -242,7 +242,7 @@ function __verifyExamples(): void {
     if (computed !== expected) {
       throw new Error(
         `[presets] Calibration regression: ${label} expected ${expected}°F but got ${computed}°F. ` +
-          'Check src/utils/calibration.ts for changes.',
+        'Check src/utils/calibration.ts for changes.',
       );
     }
   };
@@ -267,12 +267,12 @@ function __verifyExamples(): void {
 //     interior=490, probe offset=0 → 490°F (round-5: 490)
 
 const _ex6 = computeAlarms('live-rosin', 'round-bottom', 'ir', 'standard');
-const _ex7 = computeAlarms('temple-ball', 'round-bottom', 'ir', 'standard');
+const _ex7 = computeAlarms('live-rosin', 'round-bottom', 'ir', 'standard');
 // Control Tower: manufacturer_targets_f.solventless = 450
 const _ex8 = computeAlarms('live-rosin', 'control-tower', 'ir', 'standard', 450);
 // Control Tower: manufacturer_targets_f.hydrocarbon = 550
 const _ex9 = computeAlarms('live-resin', 'control-tower', 'ir', 'standard', 550);
-const _ex10 = computeAlarms('bubble-6star', 'round-bottom', 'probe', 'standard');
+const _ex10 = computeAlarms('live-rosin', 'round-bottom', 'probe', 'standard');
 
 const BUILTIN_PRESETS: ReadonlyArray<{ id: string; name: string; settings: DeviceSettings }> = [
   // 1 — Live Resin · Flat Top · IR · Std → 475°F dab / 200°F dunk
@@ -280,30 +280,6 @@ const BUILTIN_PRESETS: ReadonlyArray<{ id: string; name: string; settings: Devic
     id: 'builtin-live-resin-flat-top-ir',
     name: 'Live Resin · Flat Top · IR',
     settings: { ...DEFAULT_SETTINGS, ..._ex1, opaqueMode: false },
-  },
-  // 2 — Live Resin · Blender · IR · Std → 530°F dab / 250°F dunk
-  {
-    id: 'builtin-live-resin-blender-ir',
-    name: 'Live Resin · Blender · IR',
-    settings: { ...DEFAULT_SETTINGS, ..._ex2, opaqueMode: false },
-  },
-  // 3 — Cold Cure Rosin · Terp Slurper · IR · Std → 480°F dab / 200°F dunk
-  {
-    id: 'builtin-cold-cure-slurper-ir',
-    name: 'Cold Cure Rosin · Terp Slurper · IR',
-    settings: { ...DEFAULT_SETTINGS, ..._ex3, opaqueMode: false },
-  },
-  // 4 — Live Resin · Flat Top · Probe · Std → 510°F dab / 230°F dunk
-  {
-    id: 'builtin-live-resin-flat-top-probe',
-    name: 'Live Resin · Flat Top · Probe',
-    settings: { ...DEFAULT_SETTINGS, ..._ex4, opaqueMode: false },
-  },
-  // 5 — Live Resin · E-Banger · PID · Std → 560°F dab / 250°F dunk
-  {
-    id: 'builtin-live-resin-ebanger-pid',
-    name: 'Live Resin · E-Banger · PID',
-    settings: { ...DEFAULT_SETTINGS, ..._ex5, opaqueMode: false },
   },
   // 6 — 710 Labs Live Rosin · Round Bottom · IR · Std → 445°F dab / 200°F dunk
   {

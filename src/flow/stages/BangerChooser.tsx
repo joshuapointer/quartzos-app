@@ -214,8 +214,8 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
         {image ? (
           <Image
             source={image}
-            style={[StyleSheet.absoluteFill, { transform: [{ scale: 1.85 }, { translateX: -65, }, { translateY: -48, }] }]}
-            resizeMode="center"
+            style={StyleSheet.absoluteFill}
+            resizeMode="contain"
           />
         ) : null}
 

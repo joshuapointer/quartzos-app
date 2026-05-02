@@ -46,10 +46,9 @@ import { usePressScale } from '../../design';
 import { motion, reanimatedEasing } from '../../design/tokens';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const GRID_GAP = 10;
+const GRID_GAP = 5;
 // Two columns; each col = (screen - 2*side - 1 gap) / 2
 const TILE_W = (SCREEN_W - SCREEN.HPAD * 2 - GRID_GAP) / 2;
-const TILE_H = TILE_W * 0.84; // slightly wider than tall
 
 // Category card sizing — fixed width so 4ish cards fit with the next peeking
 const CAT_CARD_W = 82;
@@ -60,10 +59,10 @@ const CAT_GAP = 10;
 
 type FilterKey = 'All' | ConcentrateCat;
 
-const ALL_CATS: ConcentrateCat[] = ['Solventless', 'Hash', 'Hydrocarbon', 'Distillate', 'Novel'];
+const ALL_CATS: ConcentrateCat[] = ['Solventless', 'Hydrocarbon'];
 
 const FILTERS: { key: FilterKey; label: string; count: number }[] = [
-  { key: 'All', label: 'All', count: CONCENTRATES.length },
+  { key: 'All', label: 'All', count: CONCENTRATES.filter(c => c.cat === 'Solventless' || c.cat === 'Hydrocarbon').length },
   ...ALL_CATS.map(cat => ({
     key: cat as FilterKey,
     label: cat,
@@ -205,6 +204,8 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
     ? ['rgba(18,10,1,0.20)', 'rgba(10,6,0,0.82)']
     : ['rgba(10,6,0,0.30)', 'rgba(12, 6, 0, 0.88)'];
 
+  if (!image) return null;
+
   return (
     <Animated.View style={[styles.tileWrap, animStyle, active && styles.tileShadow, disabled && styles.tileDisabled]}>
       <Pressable
@@ -222,7 +223,7 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
           <Image
             source={image}
             style={StyleSheet.absoluteFill}
-            resizeMode="cover"
+            resizeMode="none"
           />
         ) : (
           // Fallback warm tint
@@ -236,7 +237,7 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
 
         {/* Thin scrim only over the bottom label zone */}
         <LinearGradient
-          colors={['transparent', 'rgba(12, 6, 0, 0.95)']}
+          colors={['transparent', 'rgba(0, 0, 0, 0.98)']}
           start={{ x: 0.5, y: 0.62 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -261,12 +262,12 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
 
         {/* Bottom metadata */}
         <View style={styles.tileBottom}>
-          <Text style={[styles.tileName, disabled && styles.tileDim]} numberOfLines={1}>
-            {conc.name}
-          </Text>
+
           {conc.surface_optimal != null && (
             <View style={styles.tileMeta}>
-              <Text style={[styles.tileCat, disabled && styles.tileDim]}>SURFACE</Text>
+              <Text style={[styles.tileName, disabled && styles.tileDim]} numberOfLines={1}>
+                {conc.name}
+              </Text>
               {!disabled && (
                 <Text style={styles.tileTemp}>{conc.surface_optimal}°F</Text>
               )}
@@ -316,21 +317,7 @@ export default function ConcChooser() {
     <Animated.View
       style={[styles.container, containerStyle]}
     >
-      {/* Category chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
-        {FILTERS.map((item) => (
-          <FilterChip
-            key={item.key}
-            item={item}
-            active={filter === item.key}
-            onPress={() => handleFilterPress(item.key)}
-          />
-        ))}
-      </ScrollView>
+
 
       {/* 2-col grid via FlatList of row-pairs */}
       <FlatList
@@ -360,8 +347,6 @@ export default function ConcChooser() {
                 </Animated.View>
               );
             })}
-            {/* Fill empty cell when odd count */}
-            {row.length < 2 && <View style={styles.tileEmpty} />}
           </View>
         )}
       />
@@ -466,7 +451,7 @@ const styles = StyleSheet.create({
 
   // Grid
   grid: {
-    gap: GRID_GAP,
+
     paddingHorizontal: SCREEN.HPAD,
     paddingBottom: 16,
   },
@@ -478,10 +463,11 @@ const styles = StyleSheet.create({
   // Tile
   tileWrap: {
     width: TILE_W,
-    height: TILE_H,
+    aspectRatio: 900 / 600,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: THEME.navy[0],
+    marginBottom: GRID_GAP,
   },
   tileShadow: {
     shadowColor: THEME.ember.base,
@@ -495,7 +481,7 @@ const styles = StyleSheet.create({
   },
   tileEmpty: {
     width: TILE_W,
-    height: TILE_H,
+    aspectRatio: 900 / 600,
   },
 
   tile: {

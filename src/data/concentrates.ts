@@ -13,10 +13,7 @@
 
 export type ConcentrateCategory =
   | 'solventless'
-  | 'hash'
-  | 'hydrocarbon'
-  | 'distillate'
-  | 'novel';
+  | 'hydrocarbon';
 
 export type TerpeneProfile = 'none' | 'low' | 'med' | 'high';
 
@@ -38,25 +35,14 @@ interface ConcentrateBase {
 export interface SolventlessConcentrate extends ConcentrateBase {
   readonly category: 'solventless';
 }
-export interface HashConcentrate extends ConcentrateBase {
-  readonly category: 'hash';
-}
+
 export interface HydrocarbonConcentrate extends ConcentrateBase {
   readonly category: 'hydrocarbon';
-}
-export interface DistillateConcentrate extends ConcentrateBase {
-  readonly category: 'distillate';
-}
-export interface NovelConcentrate extends ConcentrateBase {
-  readonly category: 'novel';
 }
 
 export type Concentrate =
   | SolventlessConcentrate
-  | HashConcentrate
-  | HydrocarbonConcentrate
-  | DistillateConcentrate
-  | NovelConcentrate;
+  | HydrocarbonConcentrate;
 
 export type ConcentrateId = Concentrate['id'];
 
@@ -151,32 +137,6 @@ export const CONCENTRATES: readonly Concentrate[] = [
     tags: ['SOLVENTLESS'],
   },
   {
-    id: 'hash-rosin-coin',
-    name: 'Hash Rosin Coin',
-    category: 'solventless',
-    description: 'Pressed disk from 5-6 star bubble. Premium fresh-frozen input.',
-    surface_temp_range_f: [450, 520],
-    surface_temp_optimal_f: 475,
-    terpene_profile: 'high',
-    good_for_cold_start: true,
-    notes: ['Cold start YES', 'Flatten coin into hash flag for even melt'],
-    confidence: 'BRAND+COMMUNITY',
-    tags: ['SOLVENTLESS', 'COLD_START'],
-  },
-  {
-    id: 'persy-rosin',
-    name: 'Persy Hash Rosin',
-    category: 'solventless',
-    description: '710 Labs originated. 6-star 90-micron first-wash bubble pressed to rosin.',
-    surface_temp_range_f: [445, 520],
-    surface_temp_optimal_f: 480,
-    terpene_profile: 'high',
-    good_for_cold_start: true,
-    notes: ['Treat like live rosin', 'Genericized term in 2026 — many producers'],
-    confidence: 'BRAND',
-    tags: ['SOLVENTLESS', 'PREMIUM'],
-  },
-  {
     id: 'high-melt-rosin',
     name: 'High-Melt / Nug-Run Hash Rosin',
     category: 'solventless',
@@ -188,80 +148,6 @@ export const CONCENTRATES: readonly Concentrate[] = [
     notes: ['Treat like live rosin', "710 Labs Tier 3, Papa's Select top tier"],
     confidence: 'BRAND',
     tags: ['SOLVENTLESS', 'PREMIUM'],
-  },
-  {
-    id: 'bubble-6star',
-    name: 'Bubble Hash · 6-Star (Full Melt)',
-    category: 'hash',
-    description: 'Ice water hash, full-melt grade. Hashwriter avg 477.5°F Terpometer interior.',
-    surface_temp_range_f: [450, 510],
-    surface_temp_optimal_f: 490,
-    terpene_profile: 'high',
-    good_for_cold_start: true,
-    notes: ['Cold start YES', 'Above 500°F starts charring even 6-star'],
-    confidence: 'BRAND+COMMUNITY',
-    tags: ['HASH', 'COLD_START'],
-  },
-  {
-    id: 'bubble-half-melt',
-    name: 'Bubble Hash · 3-4 Star (Half Melt)',
-    category: 'hash',
-    description: "Half-melt bubble. Field consensus: don't dab — press to rosin.",
-    surface_temp_range_f: [470, 520],
-    surface_temp_optimal_f: 495,
-    terpene_profile: 'med',
-    good_for_cold_start: false,
-    warning: 'Better pressed than dabbed',
-    notes: ['NOT IDEAL for dabbing', 'Better used as rosin starter material'],
-    confidence: 'COMMUNITY',
-    tags: ['HASH', 'NOT_IDEAL'],
-  },
-  {
-    id: 'dry-sift',
-    name: 'Dry Sift (Full Melt)',
-    category: 'hash',
-    description: 'Mechanically separated trichomes via 45-160μm screens.',
-    surface_temp_range_f: [450, 520],
-    surface_temp_optimal_f: 490,
-    terpene_profile: 'high',
-    good_for_cold_start: true,
-    notes: ['Cold start YES', 'Treat like ice water hash'],
-    confidence: 'BRAND+COMMUNITY',
-    tags: ['HASH', 'COLD_START'],
-  },
-  {
-    id: 'temple-ball',
-    name: 'Temple Ball Hash',
-    category: 'hash',
-    description: 'Hand-rolled spherical hash, Nepalese-style. Frenchy Cannoli legacy.',
-    surface_temp_range_f: [350, 450],
-    surface_temp_optimal_f: 400,
-    terpene_profile: 'high',
-    good_for_cold_start: true,
-    notes: [
-      'Press Club: 350°F surface (NOT same as rosin 450°F)',
-      'Often a smoke-first product',
-      'Cold start strongly recommended',
-    ],
-    confidence: 'BRAND',
-    tags: ['HASH', 'LOW_TEMP'],
-  },
-  {
-    id: 'pressed-hash',
-    name: 'Pressed Hashish (Moroccan/Afghan/Charas)',
-    category: 'hash',
-    description: 'Traditional pressed hash. Will char on most bangers.',
-    surface_temp_range_f: [500, 550],
-    surface_temp_optimal_f: 525,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    warning: 'Will leave significant residue',
-    notes: [
-      'NOT OPTIMAL for dabbing — expect residue',
-      'Better in pipe, joint, or hot knife',
-    ],
-    confidence: 'BRAND',
-    tags: ['HASH', 'NOT_IDEAL'],
   },
   {
     id: 'live-resin',
@@ -349,7 +235,7 @@ export const CONCENTRATES: readonly Concentrate[] = [
   },
   {
     id: 'sauce-htfse',
-    name: 'Sauce (HTFSE)',
+    name: 'Sauce',
     category: 'hydrocarbon',
     description:
       'High-terpene full-spectrum extract. ~50% terpenes — viscous syrup with diamonds.',
@@ -424,171 +310,7 @@ export const CONCENTRATES: readonly Concentrate[] = [
     confidence: 'BRAND',
     tags: ['HYDROCARBON', 'TRENDING'],
   },
-  {
-    id: 'co2-oil',
-    name: 'CO2 Oil',
-    category: 'distillate',
-    description: 'Supercritical CO2 extraction. Most volatile terps lost in process.',
-    surface_temp_range_f: [520, 600],
-    surface_temp_optimal_f: 560,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    notes: ['Cold start optional', 'Fading in dab market — common in carts'],
-    confidence: 'BRAND',
-    tags: ['DISTILLATE'],
-  },
-  {
-    id: 'thc-distillate',
-    name: 'THC Distillate',
-    category: 'distillate',
-    description: '~99% pure, viscous, terpene-stripped. Primarily for carts.',
-    surface_temp_range_f: [540, 620],
-    surface_temp_optimal_f: 580,
-    terpene_profile: 'none',
-    good_for_cold_start: false,
-    warning: 'No flavor — rarely dabbed alone',
-    notes: [
-      'Cold start NOT recommended',
-      'Hemper 400-500°F (smooth) vs Zen Leaf 600-650°F (cloud) — both valid',
-      'Rarely dabbed alone',
-    ],
-    confidence: 'BRAND',
-    tags: ['DISTILLATE'],
-  },
-  {
-    id: 'cbn-distillate',
-    name: 'CBN Distillate',
-    category: 'distillate',
-    description: 'CBN-focused, often blended with sleep terpenes.',
-    surface_temp_range_f: [490, 570],
-    surface_temp_optimal_f: 525,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    notes: ['CBN boiling: 365°F at 1 atm', 'Often blended for synergy'],
-    confidence: 'SCIENCE+BRAND',
-    tags: ['DISTILLATE', 'NICHE'],
-  },
-  {
-    id: 'cbg-distillate',
-    name: 'CBG Distillate',
-    category: 'distillate',
-    description: 'CBG-focused. Springer study: degradation begins ~608°F.',
-    surface_temp_range_f: [480, 560],
-    surface_temp_optimal_f: 520,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    notes: ['CBG boiling: 126°F (very low) — needs gentle heat'],
-    confidence: 'SCIENCE+BRAND',
-    tags: ['DISTILLATE', 'NICHE'],
-  },
-  {
-    id: 'thcv-distillate',
-    name: 'THCV Distillate',
-    category: 'distillate',
-    description:
-      'THCV boiling 428°F (highest of common cannabinoids), but matrix needs more.',
-    surface_temp_range_f: [540, 610],
-    surface_temp_optimal_f: 570,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    notes: ['Anecdotal practice — sparse data'],
-    confidence: 'SCIENCE+ANECDOTAL',
-    tags: ['DISTILLATE', 'NICHE', 'NOVEL'],
-  },
-  {
-    id: 'infused-diamonds',
-    name: 'Infused Diamonds',
-    category: 'novel',
-    description: 'Strain-specific or terpene-infused diamonds.',
-    surface_temp_range_f: [510, 570],
-    surface_temp_optimal_f: 530,
-    terpene_profile: 'high',
-    good_for_cold_start: true,
-    notes: ['Cold start YES', 'Treat as diamonds & sauce'],
-    confidence: 'BRAND',
-    tags: ['NOVEL', 'COLD_START'],
-  },
-  {
-    id: 'thcp',
-    name: 'THCP Concentrates',
-    category: 'novel',
-    description: 'Hemp-derived. Very small % since extremely potent (~33x CB1 binding).',
-    surface_temp_range_f: [510, 580],
-    surface_temp_optimal_f: 540,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    warning: 'Regulatory uncertainty — Nov 2026 federal hemp ban',
-    notes: [
-      'REGULATORY FLAG: H.R. 5371 (Nov 2026) federal hemp redefinition',
-      'State bans growing',
-      'Treat as distillate-style',
-    ],
-    confidence: 'ANECDOTAL',
-    tags: ['NOVEL', 'GRAY_MARKET'],
-  },
-  {
-    id: 'hash-holes',
-    name: 'Hash Holes / Donut Joints',
-    category: 'novel',
-    description: 'Pre-roll with central rosin/bubble hash worm. NOT A DAB.',
-    surface_temp_range_f: null,
-    surface_temp_optimal_f: null,
-    terpene_profile: 'high',
-    good_for_cold_start: false,
-    blocked:
-      "This is a pre-roll format. Light it and smoke it — don't put it on a banger.",
-    notes: ['SMOKED, not dabbed', 'One of hottest infused-preroll subcategories 2024-26'],
-    confidence: 'N/A',
-    tags: ['SMOKE_ONLY'],
-  },
-  {
-    id: 'kief',
-    name: 'Kief / Static',
-    category: 'hash',
-    description: 'Loose unrefined trichome powder. Dust, low-melt.',
-    surface_temp_range_f: null,
-    surface_temp_optimal_f: null,
-    terpene_profile: 'med',
-    good_for_cold_start: false,
-    blocked:
-      'Kief is too dusty for direct dabs and will combust unevenly. Press it to rosin first, or use as bowl topper.',
-    notes: [
-      'NOT TYPICALLY DABBED',
-      'Best as bowl topper, joint infusion, or pressed to rosin/hash',
-    ],
-    confidence: 'N/A',
-    tags: ['NOT_FOR_DAB'],
-  },
-  {
-    id: 'rso',
-    name: 'RSO / FECO',
-    category: 'distillate',
-    description: 'Rick Simpson Oil / Full Extract Cannabis Oil. Oral/topical format.',
-    surface_temp_range_f: null,
-    surface_temp_optimal_f: null,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    blocked:
-      'RSO is meant for oral or topical use. Dabbing is harsh due to chlorophyll, waxes, and residual solvents.',
-    notes: ['NOT FOR DABBING — sublingual, capsules, food'],
-    confidence: 'N/A',
-    tags: ['ORAL_TOPICAL'],
-  },
-  {
-    id: 'bubble-1-2',
-    name: 'Bubble Hash · 1-2 Star',
-    category: 'hash',
-    description: 'Cooking-grade ice water hash. Not dabbable.',
-    surface_temp_range_f: null,
-    surface_temp_optimal_f: null,
-    terpene_profile: 'low',
-    good_for_cold_start: false,
-    blocked:
-      '1-2 star bubble has too much plant matter. Use it for edibles or press multiple grades together to rosin.',
-    notes: ['Edibles only — too much plant matter'],
-    confidence: 'N/A',
-    tags: ['NOT_FOR_DAB'],
-  },
+
 ] as const;
 
 /**
