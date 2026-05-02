@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     left: 18,
     right: 18,
     height: 1,
-    backgroundColor: 'rgba(255, 240, 220, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     zIndex: 1,
   },
   bottomPillInner: {
