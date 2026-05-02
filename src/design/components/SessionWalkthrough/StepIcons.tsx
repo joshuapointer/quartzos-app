@@ -50,14 +50,14 @@ export function FlameIcon({ size = 56, opacity = 1 }: { size?: number; opacity?:
       <Svg width={s} height={s} viewBox="0 0 56 56">
         <Defs>
           <SvgGradient id="flamGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0%" stopColor="#f6ded2" stopOpacity={0.9} />
+            <Stop offset="0%" stopColor={colors.bone100} stopOpacity={0.9} />
             <Stop offset="35%" stopColor={colors.emberBright} stopOpacity={1} />
             <Stop offset="75%" stopColor={colors.ember} stopOpacity={1} />
             <Stop offset="100%" stopColor={colors.emberDeep} stopOpacity={1} />
           </SvgGradient>
           <SvgGradient id="innerFlam" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0%" stopColor="#f6ded2" stopOpacity={0.95} />
-            <Stop offset="60%" stopColor="#ffb68b" stopOpacity={0.8} />
+            <Stop offset="0%" stopColor={colors.bone100} stopOpacity={0.95} />
+            <Stop offset="60%" stopColor={colors.emberBright} stopOpacity={0.8} />
             <Stop offset="100%" stopColor={colors.emberBright} stopOpacity={0} />
           </SvgGradient>
         </Defs>
