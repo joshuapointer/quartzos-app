@@ -30,7 +30,7 @@ function tagStyle(tag: string): ChipStyle {
     case '2026_DOMINANT':
     case 'POPULAR':
     case 'TRENDING':
-      return { bg: 'rgba(232,146,64,0.18)', fg: colors.emberBright, border: colors.ember };
+      return { bg: colors.firedAmber + '2E', fg: colors.emberBright, border: colors.ember };
     case 'LEGACY':
       return { bg: 'rgba(65,56,48,0.45)', fg: colors.bone50, border: colors.bone20 };
     default:

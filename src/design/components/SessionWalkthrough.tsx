@@ -429,7 +429,7 @@ function DabIcon({ size = 56 }: { size?: number }) {
         </Defs>
         <Path d="M28 10 C20 10 14 16 14 24 C14 32 20 40 28 46 C36 40 42 32 42 24 C42 16 36 10 28 10 Z" fill="none" stroke="url(#dabGrad)" strokeWidth={2} />
         <SvgCircle cx={28} cy={28} r={6} fill={colors.emberBright} opacity={0.85} />
-        <Path d="M28 22 L28 26 M22 28 L26 28 M28 30 L28 34 M30 28 L34 28" stroke="rgba(244,237,228,0.6)" strokeWidth={1.5} strokeLinecap="round" />
+        <Path d="M28 22 L28 26 M22 28 L26 28 M28 30 L28 34 M30 28 L34 28" stroke={colors.bone100 + '99'} strokeWidth={1.5} strokeLinecap="round" />
       </Svg>
     </View>
   );
@@ -596,7 +596,7 @@ function TorchTimer({ durationSeconds, onComplete, onElapsedChange }: TorchTimer
           cy={RING_RADIUS + 20}
           r={RING_RADIUS}
           fill="none"
-          stroke="rgba(244,237,228,0.06)"
+          stroke={colors.bone100 + '0F'}
           strokeWidth={RING_STROKE}
         />
         {/* Progress */}
@@ -1161,7 +1161,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(244,237,228,0.06)',
+    backgroundColor: colors.bone100 + '0F',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1179,7 +1179,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: 'rgba(244,237,228,0.12)',
+    backgroundColor: colors.bone100 + '1F',
   },
 
   dotActive: {
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
   },
 
   dotDone: {
-    backgroundColor: 'rgba(232,146,64,0.35)',
+    backgroundColor: colors.firedAmber + '59',
   },
 
   stepArea: {
@@ -1199,7 +1199,7 @@ const styles = StyleSheet.create({
   },
 
   stepTitle: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'Geist_400Regular',
     fontSize: 38,
     fontWeight: '400',
     color: colors.bone100,
@@ -1285,7 +1285,7 @@ const styles = StyleSheet.create({
   },
 
   timerCountdown: {
-    fontFamily: 'SpaceGrotesk_300Light',
+    fontFamily: 'GeistMono_300Light',
     fontSize: 48,
     fontWeight: '300',
     fontVariant: ['tabular-nums'],
@@ -1310,11 +1310,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 20,
     borderWidth: 1,
-    backgroundColor: 'rgba(244,237,228,0.03)',
+    backgroundColor: colors.bone100 + '08',
   },
 
   liveTempValue: {
-    fontFamily: 'SpaceGrotesk_300Light',
+    fontFamily: 'GeistMono_300Light',
     fontSize: 36,
     fontWeight: '300',
     fontVariant: ['tabular-nums'],
@@ -1336,7 +1336,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 0.5,
     borderColor: colors.ember + '44',
-    backgroundColor: 'rgba(232,146,64,0.06)',
+    backgroundColor: colors.firedAmber + '0F',
   },
 
   targetPillText: {
@@ -1351,12 +1351,12 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(244,237,228,0.04)',
+    backgroundColor: colors.bone100 + '0A',
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 32,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.08)',
+    borderColor: colors.bone100 + '14',
   },
 
   statCol: {
@@ -1365,7 +1365,7 @@ const styles = StyleSheet.create({
   },
 
   statValue: {
-    fontFamily: 'SpaceGrotesk_300Light',
+    fontFamily: 'GeistMono_300Light',
     fontSize: 28,
     fontWeight: '300',
     fontVariant: ['tabular-nums'],
@@ -1385,7 +1385,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 0.5,
     height: 40,
-    backgroundColor: 'rgba(244,237,228,0.08)',
+    backgroundColor: colors.bone100 + '14',
     marginHorizontal: 24,
   },
 

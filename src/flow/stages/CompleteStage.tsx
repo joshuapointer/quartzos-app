@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 24,
     gap: 14,
-    shadowColor: '#000000',
+    shadowColor: THEME.navy[0],
     shadowOpacity: 0.5,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors, fonts } from '../tokens';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -104,6 +105,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
   },
+  // Wordmark logotype — Georgia italic is an intentional brand exception (the
+  // only non-Geist surface in the app). Keep in sync with DESIGN.md (logotype).
   wordmark: {
     fontFamily: 'Georgia',
     fontStyle: 'italic',
@@ -140,9 +143,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   statusText: {
-    fontFamily: 'SpaceGrotesk_500Medium',
+    ...fonts.labelCaps,
     fontSize: 9.5,
     letterSpacing: 2.2,
-    color: '#a78b7c',
+    color: colors.boneDim,
   },
 });

@@ -79,8 +79,8 @@ function InlineSparkline({ samples, width = 70, height = 16 }: InlineSparklinePr
     >
       <Defs>
         <SVGGradient id="inlineSparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="rgba(232,146,64,0.22)" stopOpacity={1} />
-          <Stop offset="1" stopColor="rgba(232,146,64,0)" stopOpacity={1} />
+          <Stop offset="0" stopColor={colors.firedAmber} stopOpacity={0.22} />
+          <Stop offset="1" stopColor={colors.firedAmber} stopOpacity={0} />
         </SVGGradient>
       </Defs>
       <Path d={fillPath} fill="url(#inlineSparkFill)" />
@@ -112,10 +112,7 @@ function JournalRow({ session, isActive, presetName, onPress }: JournalRowProps)
   const duration = formatDuration(session.startedAt, session.endedAt);
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.row}>
-      {/* Active indicator: ember-glow left edge */}
-      {isActive && <View style={styles.activeEdge} />}
-
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={[styles.row, isActive && styles.rowActive]}>
       {/* Left: tabular date stack */}
       <View style={styles.dateCol}>
         <Text style={styles.dateDay}>{dayOfMonth}</Text>
@@ -126,7 +123,7 @@ function JournalRow({ session, isActive, presetName, onPress }: JournalRowProps)
       {/* Right: name + stats */}
       <View style={styles.contentCol}>
         <View style={styles.nameLine}>
-          <Text style={styles.presetName} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={[styles.presetName, isActive && styles.presetNameActive]} numberOfLines={1} ellipsizeMode="tail">
             {presetName}
           </Text>
           {isActive && (
@@ -319,17 +316,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingRight: spacing.sm,
   },
-  activeEdge: {
-    position: 'absolute',
-    left: -spacing.md,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: colors.firedAmber,
-    shadowColor: colors.firedAmber,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 4,
+  rowActive: {
+    backgroundColor: colors.firedAmber + '1F',
   },
   dateCol: {
     width: 44,
@@ -370,6 +358,9 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.bone100,
   },
+  presetNameActive: {
+    fontWeight: '600',
+  },
   activePill: {
     ...fonts.labelCaps,
     color: colors.firedAmber,
@@ -402,9 +393,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(232,146,64,0.15)',
+    backgroundColor: colors.firedAmber + '26',
     borderWidth: 1.5,
-    borderColor: 'rgba(232,146,64,0.4)',
+    borderColor: colors.firedAmber + '66',
     shadowColor: colors.firedAmber,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,

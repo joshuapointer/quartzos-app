@@ -1456,7 +1456,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metricValue: {
-    fontFamily: 'SpaceGrotesk_300Light',
+    fontFamily: 'GeistMono_300Light',
     fontSize: 24,
     fontWeight: '300',
     fontVariant: ['tabular-nums'],
@@ -1474,7 +1474,7 @@ const styles = StyleSheet.create({
   metricDivider: {
     width: 0.5,
     height: 32,
-    backgroundColor: 'rgba(244,237,228,0.10)',
+    backgroundColor: colors.bone100 + '1A',
   },
 
   // ── Preset bar (session) ───────────────────────────────────────────────────
@@ -1482,7 +1482,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
@@ -1514,7 +1514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   presetBarName: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'Geist_400Regular',
     fontSize: 17,
     color: colors.bone100,
     letterSpacing: -0.34,
@@ -1553,7 +1553,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   startSessionOuterGhost: {
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOpacity: 0.10,
     shadowRadius: 4,
     elevation: 1,
@@ -1626,7 +1626,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   panelTitle: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'Geist_400Regular',
     fontSize: 34,
     fontWeight: '400',
     color: colors.bone100,
@@ -1656,7 +1656,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -1690,7 +1690,7 @@ const styles = StyleSheet.create({
   },
   presetCardMid: { flex: 1, paddingLeft: 12 },
   presetCardName: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'Geist_400Regular',
     fontSize: 18,
     color: colors.bone100,
     letterSpacing: -0.36,
@@ -1701,14 +1701,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   presetTempDab: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'GeistMono_400Regular',
     fontVariant: ['tabular-nums'],
     fontSize: 11,
     color: colors.bone70,
     letterSpacing: 0.3,
   },
   presetTempDunk: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'GeistMono_400Regular',
     fontVariant: ['tabular-nums'],
     fontSize: 11,
     color: colors.quartzDim,
@@ -1752,7 +1752,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.10)',
+    borderColor: colors.bone100 + '1A',
     borderRadius: 100,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -1780,7 +1780,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 10,
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
@@ -1793,7 +1793,7 @@ const styles = StyleSheet.create({
   sessionCardBorder: {
     borderRadius: 18,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.06)',
+    borderColor: colors.bone100 + '0F',
   },
   sessionCardHeader: {
     flexDirection: 'row',
@@ -1801,21 +1801,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sessionCardDate: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'GeistMono_400Regular',
     fontVariant: ['tabular-nums'],
     fontSize: 11,
     color: colors.bone50,
     letterSpacing: 0.3,
   },
   sessionCardDur: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'GeistMono_400Regular',
     fontVariant: ['tabular-nums'],
     fontSize: 11,
     color: colors.bone50,
     letterSpacing: 0.3,
   },
   sessionPeakTemp: {
-    fontFamily: 'SpaceGrotesk_300Light',
+    fontFamily: 'GeistMono_300Light',
     fontVariant: ['tabular-nums'],
     fontSize: 24,
     fontWeight: '300',
@@ -1833,7 +1833,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sessionTimeMono: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'GeistMono_400Regular',
     fontVariant: ['tabular-nums'],
     fontSize: 10,
     color: colors.bone35,
@@ -1859,7 +1859,7 @@ const styles = StyleSheet.create({
   },
   hairline: {
     height: 0.5,
-    backgroundColor: 'rgba(244,237,228,0.06)',
+    backgroundColor: colors.bone100 + '0F',
   },
   sliderRow: { paddingVertical: 14 },
   sliderLabelRow: {
@@ -1874,7 +1874,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   sliderValue: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'GeistMono_400Regular',
     fontVariant: ['tabular-nums'],
     fontSize: 12,
     color: colors.bone50,
@@ -1891,7 +1891,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     backgroundColor: colors.surface3,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.10)',
+    borderColor: colors.bone100 + '1A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1933,14 +1933,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   toggleTrackOn: {
-    backgroundColor: 'rgba(232,146,64,0.20)',
-    borderColor: 'rgba(232,146,64,0.30)',
+    backgroundColor: colors.firedAmber + '33',
+    borderColor: colors.firedAmber + '4D',
   },
   toggleThumbWrap: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.4,
     shadowRadius: 3,
@@ -1977,7 +1977,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.surface3,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.06)',
+    borderColor: colors.bone100 + '0F',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2012,7 +2012,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     backgroundColor: colors.surface3,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.06)',
+    borderColor: colors.bone100 + '0F',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2039,7 +2039,7 @@ const styles = StyleSheet.create({
   saveBarBtn: {
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
@@ -2078,7 +2078,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   emptyStateText: {
-    fontFamily: 'SpaceGrotesk_400Regular',
+    fontFamily: 'Geist_400Regular',
     fontSize: 24,
     color: colors.bone50,
     letterSpacing: -0.48,
@@ -2096,7 +2096,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 0.5,
     borderColor: colors.ember,
-    backgroundColor: 'rgba(232,146,64,0.08)',
+    backgroundColor: colors.firedAmber + '14',
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2145,7 +2145,7 @@ const styles = StyleSheet.create({
   dialGlowRing: {
     position: 'absolute',
     alignSelf: 'center',
-    backgroundColor: 'rgba(232,146,64,0.18)',
+    backgroundColor: colors.firedAmber + '2E',
   },
 
   // ── Thermal ambience rings (living breath behind dial) ─────────────────────

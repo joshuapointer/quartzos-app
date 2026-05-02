@@ -418,13 +418,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 7,
     borderRadius: SCREEN.PILL_RADIUS,
-    backgroundColor: 'rgba(0, 0, 0, 0.32)',
+    backgroundColor: 'rgba(22, 12, 6, 0.55)',
     borderWidth: 0.5,
     borderColor: THEME.bone.warm08,
     alignItems: 'center',
   },
   catCountPillActive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    backgroundColor: 'rgba(22, 12, 6, 0.65)',
     borderColor: 'rgba(255, 174, 90, 0.22)',
   },
   catCountText: {
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     height: TILE_H,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#160c06',
+    backgroundColor: THEME.navy[0],
   },
   tileShadow: {
     shadowColor: THEME.ember.base,

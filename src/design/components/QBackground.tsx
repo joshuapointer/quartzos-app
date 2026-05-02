@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../tokens';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -34,7 +35,7 @@ export function QBackground() {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#160c06' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.voidObsidian }]} />
       <Animated.View style={[StyleSheet.absoluteFill, warmStyle]}>
         <LinearGradient
           colors={['rgba(42,22,6,0.6)', 'transparent']}

@@ -6,7 +6,7 @@
  * values now resolve to the warm-espresso/ember/quartz tokens.
  */
 
-import { Easing } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 
 export const THEME = {
   // "navy" key kept for back-compat — values are warm obsidian surface ramp.

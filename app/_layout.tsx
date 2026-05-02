@@ -8,13 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import {
-  useFonts,
-  SpaceGrotesk_300Light,
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
+import { useFonts } from 'expo-font';
 import {
   Geist_300Light,
   Geist_400Regular,
@@ -24,6 +18,7 @@ import {
   Geist_800ExtraBold,
 } from '@expo-google-fonts/geist';
 import {
+  GeistMono_300Light,
   GeistMono_400Regular,
   GeistMono_500Medium,
 } from '@expo-google-fonts/geist-mono';
@@ -50,12 +45,6 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
-  const [sgLoaded] = useFonts({
-    SpaceGrotesk_300Light,
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
-  });
   const [geistLoaded] = useFonts({
     Geist_300Light,
     Geist_400Regular,
@@ -63,11 +52,12 @@ export default function RootLayout() {
     Geist_600SemiBold,
     Geist_700Bold,
     Geist_800ExtraBold,
+    GeistMono_300Light,
     GeistMono_400Regular,
     GeistMono_500Medium,
   });
   const [dbReady, setDbReady] = useState(false);
-  const fontsLoaded = (sgLoaded ?? false) && (geistLoaded ?? false);
+  const fontsLoaded = geistLoaded ?? false;
   const ready = dbReady && fontsLoaded;
 
   useEffect(() => {

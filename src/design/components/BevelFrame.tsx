@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   },
   inner: {
     borderWidth: 1,
-    borderColor: 'rgba(244,237,228,0.28)',
+    borderColor: colors.bone100 + '47',
     overflow: 'hidden',
   },
 });

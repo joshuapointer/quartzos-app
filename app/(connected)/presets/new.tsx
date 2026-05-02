@@ -565,7 +565,7 @@ function BangerDiagram({ id, active }: { id: BangerId; active: boolean }) {
             borderBottomWidth: 6,
             borderBottomLeftRadius: 14,
             borderBottomRightRadius: 14,
-            backgroundColor: 'rgba(244,237,228,0.04)',
+            backgroundColor: colors.bone100 + '0A',
           }}
         />
       </View>

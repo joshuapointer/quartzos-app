@@ -100,6 +100,11 @@ export const colors = {
   // ── Brass (custom preset accent) ──
   brass: '#C4AC54',
 
+  // Goldener mid-amber — used where the "fire/heat" semantic must read as
+  // saturated gold rather than the pinker firedAmber. Currently consumed by
+  // BangerAnatomy's active wall-thickness zone fill.
+  amberGold: '#e89240',
+
   // ── Inner lens colors (TempDial) ──
   lensIdle:    '#1a2740',
   lensHeating: '#3a1a08',
@@ -191,9 +196,14 @@ export const radius = {
   sm: 8, md: 16, lg: 32, xl: 48, full: 9999,
 } as const;
 
+// Shadow color tints toward warm-obsidian (the void) instead of pure black —
+// a brand-tinted shadow keeps every elevated surface inside the warm world.
+const SHADOW_COLOR = '#160c06';
+
 export const shadow = {
+  color: SHADOW_COLOR,
   card: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
@@ -207,7 +217,7 @@ export const shadow = {
     elevation: 16,
   },
   button: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 6,

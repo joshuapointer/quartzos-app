@@ -118,7 +118,7 @@ const cardSt = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: SCREEN.CARD_MAX,
-    shadowColor: '#000',
+    shadowColor: THEME.navy[0],
     shadowRadius: 24,
     shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 8 },

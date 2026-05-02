@@ -152,14 +152,15 @@ export function ToastHost() {
     current.variant === 'success' ? colors.success :
     colors.firedAmber;
 
+  const messageColor = current.variant === 'info' ? colors.bone100 : accent;
+
   return (
     <Animated.View
       pointerEvents="box-none"
       style={[styles.host, { paddingTop: insets.top + 8 }, animStyle]}
     >
-      <View style={[styles.card, { borderColor: accent + '66' }]}>
-        <View style={[styles.accentBar, { backgroundColor: accent }]} />
-        <Text style={styles.message} numberOfLines={3}>{current.message}</Text>
+      <View style={[styles.card, { borderColor: accent }]}>
+        <Text style={[styles.message, { color: messageColor }]} numberOfLines={3}>{current.message}</Text>
         {current.onRetry && (
           <TouchableOpacity
             onPress={handleRetry}
@@ -203,20 +204,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface3,
     borderRadius: radius.md,
     borderWidth: 1,
-    paddingLeft: 0,
+    paddingLeft: spacing.sm,
     paddingRight: spacing.sm,
     paddingVertical: 10,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.voidObsidian,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
-  },
-  accentBar: {
-    width: 3,
-    alignSelf: 'stretch',
-    marginRight: spacing.sm,
   },
   message: {
     ...fonts.body,

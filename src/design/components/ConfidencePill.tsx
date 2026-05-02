@@ -45,7 +45,7 @@ function letterTint(letter: LetterCode): { bg: string; fg: string } {
     case 'B':
       return { bg: 'rgba(196,172,84,0.18)', fg: colors.brass };
     case 'C':
-      return { bg: 'rgba(232,146,64,0.18)', fg: colors.emberBright };
+      return { bg: colors.firedAmber + '2E', fg: colors.emberBright };
     case 'E':
       return { bg: 'rgba(199,184,164,0.16)', fg: colors.bone70 };
     case 'A':

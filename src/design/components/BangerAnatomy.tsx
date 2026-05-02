@@ -253,10 +253,10 @@ export function BangerAnatomy({
               const isActive = activeZoneIdx === idx;
               const isMuted = activeZoneIdx != null && !isActive;
               const fill = isActive
-                ? 'rgba(232,146,64,0.55)'
+                ? colors.amberGold + '8C'
                 : isMuted
                   ? 'rgba(199,184,164,0.10)'
-                  : 'rgba(232,146,64,0.28)';
+                  : colors.amberGold + '47';
               const stroke = isActive ? colors.emberBright : colors.ember;
               return (
                 <G key={`${z.label}-${idx}`}>

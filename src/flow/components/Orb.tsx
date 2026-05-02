@@ -587,7 +587,7 @@ function TempDialInner({
           cy={cy}
           r={r - 1.5}
           fill="none"
-          stroke="rgba(0, 0, 0, 0.30)"
+          stroke="rgba(22, 12, 6, 0.5)"
           strokeWidth={0.5}
         />
 

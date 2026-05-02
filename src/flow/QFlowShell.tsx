@@ -28,6 +28,7 @@ import QBackground from './QBackground';
 import ErrorBoundary from './ErrorBoundary';
 import { useFlow, useOrbProps } from './store';
 import { useSettingsStore } from '../state/settingsStore';
+import { THEME } from './theme';
 
 import BuildStage from './stages/BuildStage';
 import ChooseStage from './stages/ChooseStage';
@@ -186,15 +187,15 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(22, 12, 6, 0.6)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   devMockText: {
-    color: '#fff',
+    color: THEME.bone[100],
     marginRight: 8,
     fontSize: 14,
-    fontFamily: 'Geist-Medium',
+    fontFamily: 'Geist_500Medium',
   },
 });

@@ -85,7 +85,7 @@ function PresetGlyph({ kind, size = 44 }: { kind: GlyphKind; size?: number }) {
       stops: [
         { offset: '0%',   color: THEME.ember.bright, opacity: 1 },
         { offset: '45%',  color: THEME.ember.deep,   opacity: 1 },
-        { offset: '100%', color: '#160c06',           opacity: 1 },
+        { offset: '100%', color: THEME.navy[0],      opacity: 1 },
       ],
     },
   };

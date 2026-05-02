@@ -234,7 +234,7 @@ export function TempDial({
           height: size,
           borderRadius: size / 2,
           backgroundColor: colors.surface1,
-          shadowColor: '#000',
+          shadowColor: colors.voidObsidian,
           shadowOffset: { width: 0, height: 16 },
           shadowOpacity: 0.5,
           shadowRadius: 32,
@@ -253,7 +253,7 @@ export function TempDial({
           cx={cx}
           cy={cy}
           r={r}
-          stroke="rgba(244,237,228,0.04)"
+          stroke={colors.bone100 + '0A'}
           strokeWidth={1}
           fill="none"
         />
@@ -283,7 +283,7 @@ export function TempDial({
             y1={tick.y1}
             x2={tick.x2}
             y2={tick.y2}
-            stroke={tick.isMajor ? 'rgba(244,237,228,0.28)' : 'rgba(244,237,228,0.09)'}
+            stroke={tick.isMajor ? colors.bone100 + '47' : colors.bone100 + '17'}
             strokeWidth={tick.isMajor ? 1 : 0.5}
           />
         ))}
@@ -298,8 +298,8 @@ export function TempDial({
           borderRadius: lensSize / 2,
           overflow: 'hidden',
           borderWidth: 0.5,
-          borderColor: 'rgba(244,237,228,0.05)',
-          shadowColor: '#000',
+          borderColor: colors.bone100 + '0D',
+          shadowColor: colors.voidObsidian,
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.7,
           shadowRadius: 16,
@@ -338,7 +338,7 @@ export function TempDial({
             fontWeight: '500',
             letterSpacing: 2.0,
             textTransform: 'uppercase',
-            color: 'rgba(244,237,228,0.5)',
+            color: colors.bone100 + '80',
             marginBottom: 8,
           }}
         >
@@ -347,7 +347,7 @@ export function TempDial({
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <Text
             style={{
-              fontFamily: 'SpaceGrotesk_300Light',
+              fontFamily: 'GeistMono_300Light',
               fontSize: numFontSize,
               lineHeight: numFontSize * 0.95,
               fontWeight: '300',
@@ -360,11 +360,11 @@ export function TempDial({
           </Text>
           <Text
             style={{
-              fontFamily: 'SpaceGrotesk_400Regular',
+              fontFamily: 'GeistMono_400Regular',
               fontVariant: ['tabular-nums'],
               fontSize: 11,
               letterSpacing: 1.2,
-              color: 'rgba(244,237,228,0.5)',
+              color: colors.bone100 + '80',
               marginLeft: 5,
               marginTop: 8,
             }}
@@ -375,12 +375,12 @@ export function TempDial({
         {state !== 'idle' && (
           <Text
             style={{
-              fontFamily: 'SpaceGrotesk_400Regular',
+              fontFamily: 'GeistMono_400Regular',
               fontVariant: ['tabular-nums'],
               marginTop: 10,
               fontSize: 10,
               letterSpacing: 1.2,
-              color: 'rgba(244,237,228,0.4)',
+              color: colors.bone100 + '66',
             }}
           >
             {targetMin}–{targetMax}°
