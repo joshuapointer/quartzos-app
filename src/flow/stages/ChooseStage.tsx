@@ -40,9 +40,9 @@ function NewSeshCircle() {
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           <RadialGradient id="newSeshCircle" cx="38%" cy="32%" r="68%" fx="38%" fy="32%">
-            <Stop offset="0%" stopColor="#ff9a30" stopOpacity="1" />
+            <Stop offset="0%" stopColor={THEME.ember.bright} stopOpacity="1" />
             <Stop offset="55%" stopColor={THEME.ember.base} stopOpacity="1" />
-            <Stop offset="100%" stopColor="#b85800" stopOpacity="1" />
+            <Stop offset="100%" stopColor={THEME.ember.deep} stopOpacity="1" />
           </RadialGradient>
           <RadialGradient id="newSeshShimmer" cx="34%" cy="26%" r="38%" fx="34%" fy="26%">
             <Stop offset="0%" stopColor="#ffffff" stopOpacity="0.38" />
