@@ -40,8 +40,8 @@ const CARD_GAP = 12;
 // Banger images are square (512×512) — keep card 1:1 so the full image is
 // visible with no crop and centered in its frame.
 const CARD_PEEK = 32;
-const CARD_W = SCREEN_W - SCREEN.HPAD * 2 - CARD_PEEK;
-const CARD_H = CARD_W;
+const CARD_H = SCREEN_W - SCREEN.HPAD * 2 - CARD_PEEK;
+const CARD_W = CARD_H / 1.25;
 
 // ─── Geometry filter types ─────────────────────────────────────────────────────
 
@@ -214,8 +214,8 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
         {image ? (
           <Image
             source={image}
-            style={StyleSheet.absoluteFill}
-            resizeMode="contain"
+            style={[StyleSheet.absoluteFill, { transform: [{ scale: 1.85 }, { translateX: -65, }, { translateY: -48, }] }]}
+            resizeMode="center"
           />
         ) : null}
 
