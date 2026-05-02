@@ -32,11 +32,13 @@ export type OrbProps = {
   /** Hide the temp readout (dab phase). */
   noReading?: boolean;
   /**
-   * When set, the body renders a countdown ("0:25" → "0:00") instead of the
-   * temperature readout. Used by timed-mode cool phase to count down to the
-   * estimated dab temperature without showing a synthetic temp number.
+   * 0..1 progress for an animated ring rendered around the orb edge.
+   * Convention: the ring shows `ringProgress` of a full circle, so callers
+   * pass `1 - elapsed/total` for a draining ring (cool down) or
+   * `elapsed/total` for a filling ring (dunk). Used by timed-mode cool/dunk
+   * to make the orb feel as alive as the heat phase.
    */
-  countdownMs?: number;
+  ringProgress?: number;
   /**
    * When true, the body breathe animation runs at half rate (4s per half cycle
    * vs 2s) for a calmer "idle" feel. Default false.
@@ -59,7 +61,7 @@ export interface TempDialProps {
   state: OrbState;
   label: string;
   temp?: number;
-  countdownMs?: number;
+  ringProgress?: number;
   noReading: boolean;
   inWindow: boolean;
   fastDrop: boolean;

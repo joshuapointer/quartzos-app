@@ -27,7 +27,7 @@ function OrbInner(props: OrbProps) {
     size: sizeOverride,
     label: labelOverride,
     temp,
-    countdownMs,
+    ringProgress,
     low,
     high,
     heatProgress = 0,
@@ -155,7 +155,7 @@ function OrbInner(props: OrbProps) {
             state={state}
             label={label}
             temp={temp}
-            countdownMs={countdownMs}
+            ringProgress={ringProgress}
             noReading={noReading || state === 'dab'}
             inWindow={inWindow}
             fastDrop={fastDrop}

@@ -1,7 +1,9 @@
 /**
  * Exponential decay model for the post-torch cool-down in timed mode.
  * T(t) = ambient + (peak - ambient) * exp(-k * t)
- * k is tuned so that T(COOL_TOTAL_MS) ≈ target - 5°F.
+ * k is tuned so that T(totalMs) ≈ target - 5°F. `totalMs` defaults to the
+ * legacy COOL_TOTAL_MS but is overridable so the curve can match the
+ * banger's real cool_seconds profile (timed mode passes that through).
  * Drop rate = (peak - ambient) * k * exp(-k * t) * 1000  [°F/sec, positive]
  */
 
@@ -9,8 +11,8 @@ export const COOL_TOTAL_MS = 25000;
 
 const DEFAULT_AMBIENT = 150;
 
-function decayK(peak: number, target: number, ambient: number): number {
-  return -Math.log((target - 5 - ambient) / (peak - ambient)) / COOL_TOTAL_MS;
+function decayK(peak: number, target: number, ambient: number, totalMs: number): number {
+  return -Math.log((target - 5 - ambient) / (peak - ambient)) / totalMs;
 }
 
 function isDegenerate(peak: number, target: number, ambient: number): boolean {
@@ -22,10 +24,11 @@ export function predictCoolTemp(
   peak: number,
   target: number,
   ambient: number = DEFAULT_AMBIENT,
+  totalMs: number = COOL_TOTAL_MS,
 ): number {
   if (isDegenerate(peak, target, ambient)) return target;
   const t = Math.max(0, elapsedMs);
-  const k = decayK(peak, target, ambient);
+  const k = decayK(peak, target, ambient, totalMs);
   return ambient + (peak - ambient) * Math.exp(-k * t);
 }
 
@@ -34,30 +37,10 @@ export function predictCoolDropRate(
   peak: number,
   target: number,
   ambient: number = DEFAULT_AMBIENT,
+  totalMs: number = COOL_TOTAL_MS,
 ): number {
   if (isDegenerate(peak, target, ambient)) return 0;
   const t = Math.max(0, elapsedMs);
-  const k = decayK(peak, target, ambient);
+  const k = decayK(peak, target, ambient, totalMs);
   return (peak - ambient) * k * Math.exp(-k * t) * 1000;
-}
-
-/**
- * Inverse of predictCoolTemp: returns the elapsed ms at which T(t) crosses
- * `desiredTemp`, using the same k tuned for the dab target. Used by timed
- * mode to drive an accurate countdown to the recommended dab temperature.
- *
- * Returns 0 if `desiredTemp` is at or above peak (already past). Returns
- * COOL_TOTAL_MS as a graceful fallback for degenerate inputs.
- */
-export function predictTimeToTemp(
-  desiredTemp: number,
-  peak: number,
-  target: number,
-  ambient: number = DEFAULT_AMBIENT,
-): number {
-  if (isDegenerate(peak, target, ambient)) return COOL_TOTAL_MS;
-  if (desiredTemp >= peak) return 0;
-  if (desiredTemp <= ambient) return COOL_TOTAL_MS;
-  const k = decayK(peak, target, ambient);
-  return -Math.log((desiredTemp - ambient) / (peak - ambient)) / k;
 }

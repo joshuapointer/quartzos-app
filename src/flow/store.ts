@@ -33,7 +33,7 @@ import {
   type Concentrate,
   type Wall,
 } from './data';
-import { predictCoolTemp, predictCoolDropRate, predictTimeToTemp } from './data/coolCurve';
+import { predictCoolTemp, predictCoolDropRate } from './data/coolCurve';
 
 export type { SessionMode } from '../state/settingsStore';
 
@@ -88,7 +88,6 @@ export type FlowState = {
   heatActive: boolean;
   coolTemp: number;
   coolDropRate: number;
-  coolCountdownMs: number;
   startedAt: number | null;
 
   // ── Session mode
@@ -218,7 +217,6 @@ const INITIAL: Pick<
   | 'heatActive'
   | 'coolTemp'
   | 'coolDropRate'
-  | 'coolCountdownMs'
   | 'startedAt'
   | 'sessionMode'
 > = {
@@ -244,7 +242,6 @@ const INITIAL: Pick<
   heatActive: false,
   coolTemp: 0,
   coolDropRate: 0,
-  coolCountdownMs: 0,
   startedAt: null,
   sessionMode: 'live',
 };
@@ -297,11 +294,20 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'cool') {
+        // Cool phase duration drives both the progress arc and the synthetic
+        // curve in timed mode. Live mode keeps the legacy 25s window — there,
+        // phaseProgress is just a UI clock; reactive UI is driven by BLE temp.
+        const coolSecRange = banger?.cool_seconds ?? [30, 50];
+        const coolSecAvg = (coolSecRange[0] + coolSecRange[1]) / 2;
+        const coolDurationMs = state.sessionMode === 'timed'
+          ? coolSecAvg * 1000
+          : COOL_TOTAL_MS;
+
         // Progress timer (does NOT auto-advance from cool). Runs in both modes.
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
           const elapsed = Date.now() - startedAt;
-          const p = Math.min(1, elapsed / COOL_TOTAL_MS);
+          const p = Math.min(1, elapsed / coolDurationMs);
           set((s) => {
             s.phaseProgress = p;
           });
@@ -319,27 +325,21 @@ export const useFlow = create<FlowState>()(
           const targetHigh = calibration?.high ?? targetDisplay + 15;
           const peak = targetHigh + 30;
           const startedAtCool = Date.now();
-          // Time at which the curve crosses the recommended dab temp — the
-          // moment of the dab. Drives the in-orb countdown.
-          const targetTimeMs = predictTimeToTemp(targetDisplay, peak, targetDisplay);
 
           set((s) => {
             s.coolTemp = peak;
             s.coolDropRate = 0;
-            s.coolCountdownMs = targetTimeMs;
           });
 
-          // Tick the countdown smoothly so the displayed seconds advance every
-          // frame the orb morphs through, not just on the per-second sample.
+          // Sample the curve at COOL_TICK_MS so the displayed estimated temp
+          // and the ring progress stay in lockstep with phaseProgress.
           coolTimer = setInterval(() => {
             const elapsed = Date.now() - startedAtCool;
-            const t = predictCoolTemp(elapsed, peak, targetDisplay);
-            const drop = predictCoolDropRate(elapsed, peak, targetDisplay);
-            const remaining = Math.max(0, targetTimeMs - elapsed);
+            const t = predictCoolTemp(elapsed, peak, targetDisplay, undefined, coolDurationMs);
+            const drop = predictCoolDropRate(elapsed, peak, targetDisplay, undefined, coolDurationMs);
             set((s) => {
               s.coolTemp = t;
               s.coolDropRate = drop;
-              s.coolCountdownMs = remaining;
             });
           }, COOL_TICK_MS);
           return;
@@ -502,7 +502,6 @@ export const useFlow = create<FlowState>()(
         draft.phaseIdx = heatIdx;
         draft.coolTemp = 0;
         draft.coolDropRate = 0;
-        draft.coolCountdownMs = 0;
         draft.windowState = 'waiting';
       });
       startPhaseEffects();
@@ -578,7 +577,6 @@ export const useFlow = create<FlowState>()(
           s.windowState = 'waiting';
           s.coolTemp = 0;
           s.coolDropRate = 0;
-          s.coolCountdownMs = 0;
         });
       },
 
@@ -605,7 +603,6 @@ export const useFlow = create<FlowState>()(
           draft.windowState = 'waiting';
           draft.coolTemp = 0;
           draft.coolDropRate = 0;
-          draft.coolCountdownMs = 0;
           draft.startedAt = Date.now();
         });
         startPhaseEffects();
@@ -671,7 +668,6 @@ export const useFlow = create<FlowState>()(
           s.windowState = 'waiting';
           s.coolTemp = 0;
           s.coolDropRate = 0;
-          s.coolCountdownMs = 0;
           s.startedAt = Date.now();
         });
         startPhaseEffects();
@@ -808,7 +804,6 @@ export const useOrbProps = (): OrbProps => {
   const connected = useFlow((s) => s.connected);
   const sessionMode = useFlow((s) => s.sessionMode);
   const coolTemp = useFlow((s) => s.coolTemp);
-  const coolCountdownMs = useFlow((s) => s.coolCountdownMs);
   const banger = useBanger();
   const calibration = useCalibration();
   const liveTempF = useBleStore((s) => s.liveTempF);
@@ -873,16 +868,19 @@ export const useOrbProps = (): OrbProps => {
           : inWindow
             ? 'cool-in-window'
             : 'cool';
-        // Timed mode replaces the (synthetic) live readout with a countdown to
-        // the recommended dab temp — the temp number isn't a real measurement,
-        // so the timer is the truthful surface.
+        // Timed mode shows the synthetic temp behind an "EST. TEMP" eyebrow
+        // and renders an animated ring that drains as the curve approaches
+        // the dab window — same dab-window math as live mode (cool-in-window
+        // fires on `t ∈ [low, high]`), the ring just visualizes time.
         if (sessionMode === 'timed') {
           return {
             state: orbState,
             size: 240,
             temp: t,
-            countdownMs: coolCountdownMs,
-            label: orbState === 'cool' ? 'TIMER' : undefined,
+            ringProgress: 1 - phaseProgress,
+            label: orbState === 'cool' || orbState === 'cool-fast-drop'
+              ? 'EST. TEMP'
+              : undefined,
             low,
             high,
           };
@@ -906,22 +904,40 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'dunk') {
-        const t = sessionMode === 'timed' ? coolTemp : liveTempF;
+        // Timed mode dunk is purely time-driven (DUNK_TOTAL_MS) — surfacing a
+        // stale `coolTemp` here read as a live measurement, which it isn't.
+        // Replace with a ring filling 0→1 over the dunk duration.
+        if (sessionMode === 'timed') {
+          return {
+            state: 'dunk' satisfies OrbState,
+            size: 240,
+            ringProgress: phaseProgress,
+            noReading: true,
+            label: 'DUNKING',
+          };
+        }
         return {
           state: 'dunk' satisfies OrbState,
           size: 240,
-          temp: t,
+          temp: liveTempF,
           low,
           high,
         };
       }
 
       if (phaseKey === 'clean') {
-        const t = sessionMode === 'timed' ? coolTemp : liveTempF;
+        if (sessionMode === 'timed') {
+          return {
+            state: 'clean' satisfies OrbState,
+            size: 170,
+            ringProgress: phaseProgress,
+            noReading: true,
+          };
+        }
         return {
           state: 'clean' satisfies OrbState,
           size: 170,
-          temp: t,
+          temp: liveTempF,
         };
       }
 
@@ -953,7 +969,6 @@ export const useOrbProps = (): OrbProps => {
     connected,
     sessionMode,
     coolTemp,
-    coolCountdownMs,
     banger,
     calibration,
     liveTempF,
