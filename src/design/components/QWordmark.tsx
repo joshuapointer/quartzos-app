@@ -57,16 +57,16 @@ export function QWordmark({ connected = true, state = 'idle' }: Props) {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  // Dot color: hidden when offline; bone35 when idle-connected; ember/quartz when active
+  // Dot color: hidden when offline; outline when idle-connected; ember/quartz when active
   const dotColor = !connected
     ? 'transparent'
     : state === 'dunk'
-    ? '#95ccff'  // quartzBright
+    ? colors.quartzBright
     : state === 'heating' || state === 'target'
-    ? '#ffb68b'  // emberBright
-    : '#a78b7c'; // outline — static idle
+    ? colors.emberBright
+    : colors.outline;
 
-  const glowColor = state === 'dunk' ? '#95ccff' : '#ffb68b';
+  const glowColor = state === 'dunk' ? colors.quartzBright : colors.emberBright;
 
   return (
     <View style={styles.container}>
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontStyle: 'italic',
     fontSize: 22,
-    color: '#f6ded2',
+    color: colors.bone100,
     letterSpacing: -0.2,
   },
   statusRow: {
