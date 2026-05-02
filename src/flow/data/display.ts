@@ -1,4 +1,5 @@
 import type { Concentrate, Banger, OrbStage, OrbPhase, SessionState, OrbProps } from './types';
+import { THEME } from '@/flow/theme';
 
 // ─── coldStartFit ────────────────────────────────────────────────────────────
 // PRD §5.3.4 decision matrix.
@@ -62,8 +63,8 @@ export function computeOrbProps(
     const tempLabel = currentTemp != null ? `${Math.round(currentTemp)}°` : '—';
     const atTemp = target != null && currentTemp != null && currentTemp <= target + 15;
     return {
-      color: atTemp ? '#7EC8A0' : '#ffb68b',
-      glowColor: atTemp ? 'rgba(126,200,160,0.45)' : 'rgba(255,182,139,0.4)',
+      color: atTemp ? THEME.success : THEME.ember.bright,
+      glowColor: atTemp ? 'rgba(126,200,160,0.45)' : 'rgba(255,255,255,0.4)',
       pulseScale: atTemp ? 1.1 : 1.0,
       label: atTemp ? 'At Temp' : 'Cooling',
       sublabel: tempLabel,
@@ -73,7 +74,7 @@ export function computeOrbProps(
 
   if (stage === 'ready') {
     return {
-      color: '#7EC8A0',
+      color: THEME.success,
       glowColor: 'rgba(126,200,160,0.6)',
       pulseScale: 1.12,
       label: 'Dab!',
