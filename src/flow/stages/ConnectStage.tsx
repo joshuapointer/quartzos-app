@@ -135,59 +135,6 @@ const btnStyles = StyleSheet.create({
 
 const SCAN_TIMEOUT_MS = 25000;
 
-function TimerButton({ onPress }: { onPress: () => void }) {
-  const scale = useSharedValue(1);
-  const translateY = useSharedValue(0);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }, { translateY: translateY.value }],
-  }));
-
-  function handlePressIn() {
-    scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
-    translateY.value = withSpring(-1, { damping: 20, stiffness: 300 });
-  }
-
-  function handlePressOut() {
-    scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
-    translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-  }
-
-  return (
-    <Animated.View style={animStyle}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Use timer instead of Dab Rite"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={timerBtnStyle.btn}
-      >
-        <Text style={timerBtnStyle.label}>USE TIMER INSTEAD</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-const timerBtnStyle = StyleSheet.create({
-  btn: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: SCREEN.PILL_RADIUS,
-    backgroundColor: 'rgba(246, 222, 210, 0.04)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(246, 222, 210, 0.18)',
-    alignItems: 'center',
-  },
-  label: {
-    fontFamily: 'GeistMono_500Medium',
-    fontSize: 11,
-    letterSpacing: 1.8,
-    color: THEME.bone[35],
-    textTransform: 'uppercase',
-  },
-});
 
 export default function ConnectStage() {
   const connect = useFlow((s) => s.connect);
@@ -242,22 +189,26 @@ export default function ConnectStage() {
             {'Find your\nDab Rite.'}
           </Text>
         ) : (
-          <Text style={st.awaitingSignal}>AWAITING SIGNAL</Text>
+          <Text style={st.awaitingSignal}>CHOOSE A SESSION</Text>
         )}
       </Animated.View>
 
       <View style={st.spacer} />
 
-      <Animated.View style={s1}>
+      <Animated.View style={[s1, st.btnWrap]}>
         <ConnectButton searching={buttonSearching} onPress={handleConnect} />
       </Animated.View>
 
-      <Animated.View style={s2}>
-        <Text style={st.footer}>{footerText}</Text>
+      <Animated.View style={[s2, st.btnWrap]}>
+        <PrimaryButton
+          label="USE TIMER"
+          onPress={handleTimedMode}
+          accessibilityLabel="Start a timed session without a Dab Rite"
+        />
       </Animated.View>
 
-      <Animated.View style={[s3, st.timerWrapper]}>
-        <TimerButton onPress={handleTimedMode} />
+      <Animated.View style={s3}>
+        <Text style={st.footer}>{footerText}</Text>
       </Animated.View>
 
     </View>
@@ -300,16 +251,16 @@ const st = StyleSheet.create({
     flex: 1,
     minHeight: 32,
   },
+  btnWrap: {
+    marginBottom: 14,
+  },
   footer: {
     fontFamily: 'GeistMono_400Regular',
     fontSize: 11,
     letterSpacing: 1.7,
     color: THEME.bone[35],
-    marginTop: 28,
+    marginTop: 14,
     textTransform: 'uppercase',
     textAlign: 'center',
-  },
-  timerWrapper: {
-    marginTop: 12,
   },
 });

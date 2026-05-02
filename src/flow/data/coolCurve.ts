@@ -40,3 +40,24 @@ export function predictCoolDropRate(
   const k = decayK(peak, target, ambient);
   return (peak - ambient) * k * Math.exp(-k * t) * 1000;
 }
+
+/**
+ * Inverse of predictCoolTemp: returns the elapsed ms at which T(t) crosses
+ * `desiredTemp`, using the same k tuned for the dab target. Used by timed
+ * mode to drive an accurate countdown to the recommended dab temperature.
+ *
+ * Returns 0 if `desiredTemp` is at or above peak (already past). Returns
+ * COOL_TOTAL_MS as a graceful fallback for degenerate inputs.
+ */
+export function predictTimeToTemp(
+  desiredTemp: number,
+  peak: number,
+  target: number,
+  ambient: number = DEFAULT_AMBIENT,
+): number {
+  if (isDegenerate(peak, target, ambient)) return COOL_TOTAL_MS;
+  if (desiredTemp >= peak) return 0;
+  if (desiredTemp <= ambient) return COOL_TOTAL_MS;
+  const k = decayK(peak, target, ambient);
+  return -Math.log((desiredTemp - ambient) / (peak - ambient)) / k;
+}

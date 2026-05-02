@@ -33,7 +33,7 @@ import {
   type Concentrate,
   type Wall,
 } from './data';
-import { predictCoolTemp, predictCoolDropRate } from './data/coolCurve';
+import { predictCoolTemp, predictCoolDropRate, predictTimeToTemp } from './data/coolCurve';
 
 export type { SessionMode } from '../state/settingsStore';
 
@@ -88,6 +88,7 @@ export type FlowState = {
   heatActive: boolean;
   coolTemp: number;
   coolDropRate: number;
+  coolCountdownMs: number;
   startedAt: number | null;
 
   // ── Session mode
@@ -217,6 +218,7 @@ const INITIAL: Pick<
   | 'heatActive'
   | 'coolTemp'
   | 'coolDropRate'
+  | 'coolCountdownMs'
   | 'startedAt'
   | 'sessionMode'
 > = {
@@ -242,6 +244,7 @@ const INITIAL: Pick<
   heatActive: false,
   coolTemp: 0,
   coolDropRate: 0,
+  coolCountdownMs: 0,
   startedAt: null,
   sessionMode: 'live',
 };
@@ -316,21 +319,29 @@ export const useFlow = create<FlowState>()(
           const targetHigh = calibration?.high ?? targetDisplay + 15;
           const peak = targetHigh + 30;
           const startedAtCool = Date.now();
+          // Time at which the curve crosses the recommended dab temp — the
+          // moment of the dab. Drives the in-orb countdown.
+          const targetTimeMs = predictTimeToTemp(targetDisplay, peak, targetDisplay);
 
           set((s) => {
             s.coolTemp = peak;
             s.coolDropRate = 0;
+            s.coolCountdownMs = targetTimeMs;
           });
 
+          // Tick the countdown smoothly so the displayed seconds advance every
+          // frame the orb morphs through, not just on the per-second sample.
           coolTimer = setInterval(() => {
             const elapsed = Date.now() - startedAtCool;
             const t = predictCoolTemp(elapsed, peak, targetDisplay);
             const drop = predictCoolDropRate(elapsed, peak, targetDisplay);
+            const remaining = Math.max(0, targetTimeMs - elapsed);
             set((s) => {
               s.coolTemp = t;
               s.coolDropRate = drop;
+              s.coolCountdownMs = remaining;
             });
-          }, COOL_SAMPLE_MS);
+          }, COOL_TICK_MS);
           return;
         }
 
@@ -491,6 +502,7 @@ export const useFlow = create<FlowState>()(
         draft.phaseIdx = heatIdx;
         draft.coolTemp = 0;
         draft.coolDropRate = 0;
+        draft.coolCountdownMs = 0;
         draft.windowState = 'waiting';
       });
       startPhaseEffects();
@@ -566,6 +578,7 @@ export const useFlow = create<FlowState>()(
           s.windowState = 'waiting';
           s.coolTemp = 0;
           s.coolDropRate = 0;
+          s.coolCountdownMs = 0;
         });
       },
 
@@ -592,6 +605,7 @@ export const useFlow = create<FlowState>()(
           draft.windowState = 'waiting';
           draft.coolTemp = 0;
           draft.coolDropRate = 0;
+          draft.coolCountdownMs = 0;
           draft.startedAt = Date.now();
         });
         startPhaseEffects();
@@ -657,6 +671,7 @@ export const useFlow = create<FlowState>()(
           s.windowState = 'waiting';
           s.coolTemp = 0;
           s.coolDropRate = 0;
+          s.coolCountdownMs = 0;
           s.startedAt = Date.now();
         });
         startPhaseEffects();
@@ -793,6 +808,7 @@ export const useOrbProps = (): OrbProps => {
   const connected = useFlow((s) => s.connected);
   const sessionMode = useFlow((s) => s.sessionMode);
   const coolTemp = useFlow((s) => s.coolTemp);
+  const coolCountdownMs = useFlow((s) => s.coolCountdownMs);
   const banger = useBanger();
   const calibration = useCalibration();
   const liveTempF = useBleStore((s) => s.liveTempF);
@@ -857,6 +873,20 @@ export const useOrbProps = (): OrbProps => {
           : inWindow
             ? 'cool-in-window'
             : 'cool';
+        // Timed mode replaces the (synthetic) live readout with a countdown to
+        // the recommended dab temp — the temp number isn't a real measurement,
+        // so the timer is the truthful surface.
+        if (sessionMode === 'timed') {
+          return {
+            state: orbState,
+            size: 240,
+            temp: t,
+            countdownMs: coolCountdownMs,
+            label: orbState === 'cool' ? 'TIMER' : undefined,
+            low,
+            high,
+          };
+        }
         return {
           state: orbState,
           size: 240,
@@ -923,6 +953,7 @@ export const useOrbProps = (): OrbProps => {
     connected,
     sessionMode,
     coolTemp,
+    coolCountdownMs,
     banger,
     calibration,
     liveTempF,

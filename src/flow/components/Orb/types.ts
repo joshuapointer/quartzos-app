@@ -32,6 +32,12 @@ export type OrbProps = {
   /** Hide the temp readout (dab phase). */
   noReading?: boolean;
   /**
+   * When set, the body renders a countdown ("0:25" → "0:00") instead of the
+   * temperature readout. Used by timed-mode cool phase to count down to the
+   * estimated dab temperature without showing a synthetic temp number.
+   */
+  countdownMs?: number;
+  /**
    * When true, the body breathe animation runs at half rate (4s per half cycle
    * vs 2s) for a calmer "idle" feel. Default false.
    */
@@ -53,6 +59,7 @@ export interface TempDialProps {
   state: OrbState;
   label: string;
   temp?: number;
+  countdownMs?: number;
   noReading: boolean;
   inWindow: boolean;
   fastDrop: boolean;

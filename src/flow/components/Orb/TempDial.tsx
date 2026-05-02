@@ -23,11 +23,19 @@ import { styles } from './styles';
 import type { TempDialProps } from './types';
 import { isCool } from './utils';
 
+function formatCountdown(ms: number): string {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 function TempDialInner({
   size,
   state,
   label,
   temp,
+  countdownMs,
   noReading,
   inWindow,
   fastDrop,
@@ -160,7 +168,18 @@ function TempDialInner({
     transform: [{ rotate: `${sessionArcRotation.value * 360}deg` }],
   }));
 
+  // Timer countdown takes precedence over the temp readout when set — used by
+  // timed mode where the displayed temp is a curve estimate, not a measurement,
+  // so the truthful surface is "time until dab".
+  const showTimer =
+    typeof countdownMs === 'number' &&
+    !noReading &&
+    (state === 'cool' ||
+      state === 'cool-fast-drop' ||
+      state === 'cool-in-window');
+
   const showTemp =
+    !showTimer &&
     !noReading &&
     typeof temp === 'number' &&
     (state === 'cool' ||
@@ -181,9 +200,14 @@ function TempDialInner({
   // product; don't fade it.
   const bodyOpacity = 1;
 
-  // Numeric scaling — match prototype rule (3+ digits → 0.42, else 0.50).
-  const tempStr = showTemp ? `${Math.round(temp ?? 0)}` : '';
-  const numScale = tempStr.length >= 3 ? 0.42 : 0.5;
+  // Numeric scaling — match prototype rule (3+ chars → 0.42, else 0.50).
+  // Countdown "0:25" is 4 chars and falls into the 3+ branch automatically.
+  const readoutStr = showTimer
+    ? formatCountdown(countdownMs ?? 0)
+    : showTemp
+      ? `${Math.round(temp ?? 0)}`
+      : '';
+  const numScale = readoutStr.length >= 3 ? 0.42 : 0.5;
 
   const reactUid = useId();
   const uid = useMemo(
@@ -367,14 +391,14 @@ function TempDialInner({
         <Text
           style={[
             styles.eyebrow,
-            { color: eyebrowColor, marginBottom: showTemp ? 10 : 0 },
+            { color: eyebrowColor, marginBottom: showTemp || showTimer ? 10 : 0 },
           ]}
           numberOfLines={1}
         >
           {label}
         </Text>
 
-        {showTemp ? (
+        {showTemp || showTimer ? (
           <View style={styles.tempRow}>
             <Text
               style={[
@@ -388,16 +412,18 @@ function TempDialInner({
                 },
               ]}
             >
-              {tempStr}
+              {readoutStr}
             </Text>
-            <Text
-              style={[
-                styles.degSymbol,
-                { fontSize: Math.round(size * 0.07) },
-              ]}
-            >
-              °
-            </Text>
+            {showTemp ? (
+              <Text
+                style={[
+                  styles.degSymbol,
+                  { fontSize: Math.round(size * 0.07) },
+                ]}
+              >
+                °
+              </Text>
+            ) : null}
           </View>
         ) : null}
       </View>
