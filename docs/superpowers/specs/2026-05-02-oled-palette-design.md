@@ -188,28 +188,71 @@ Existing pulse animation infrastructure stays; just the colors change.
 
 | File | Line(s) | Change |
 |---|---|---|
-| `QWordmark.tsx` | 66, 69, 114 | Line 66: `'#ffb68b'` → `colors.emberBright` (which is now `#ffffff`). Line 69 contains `state === 'dunk' ? '#95ccff' : '#ffb68b'` → `state === 'dunk' ? colors.quartzBright : colors.emberBright`. Line 114: `'#f6ded2'` → `colors.bone100` |
-| `TempDial.tsx` | 34 | Replace `'#f6ded2'` with `colors.bone100` |
-| `SessionWalkthrough/styles.ts` | 293 | Replace `'#f6ded2'` with `colors.bone100` |
-| `SessionWalkthrough/index.tsx` | 282 | Replace `'#5aaa7a'` with `colors.success` (or new `successDim` token) |
-| `SessionWalkthrough/StepIcons.tsx` | 53 | Replace `"#f6ded2"` with `colors.bone100` |
+| `design/components/QWordmark.tsx` | 64, 66, 67, 69, 114 | Line 64: `'#95ccff'` → `colors.quartzBright`. Line 66: `'#ffb68b'` → `colors.emberBright` (now white). Line 67: `'#a78b7c'` → `colors.outline`. Line 69: `state === 'dunk' ? '#95ccff' : '#ffb68b'` → `state === 'dunk' ? colors.quartzBright : colors.emberBright`. Line 114: `'#f6ded2'` → `colors.bone100` |
+| `design/components/TempDial.tsx` | 34, 36, 316, 328 | Line 34: `text: '#f6ded2'` → `text: colors.bone100`. Line 36: `text: '#cde5ff'` → `text: colors.tertiaryFixed`. Line 316: `colors={['rgba(255,240,220,0.07)', 'rgba(255,240,220,0)']}` → `colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}`. Line 328: `'rgba(255,240,220,0.08)'` → `'rgba(255,255,255,0.08)'` |
+| `design/components/SessionWalkthrough/styles.ts` | 293 | `color: '#f6ded2'` → `color: colors.bone100` (add `colors` import if absent) |
+| `design/components/SessionWalkthrough/index.tsx` | 282 | `[colors.success, '#5aaa7a']` → `[colors.success, '#5aaa7a']` (keep — `#5aaa7a` is a darker green that works on OLED). NOTE: this is documented as an intentional non-token literal; if a future audit insists, add a `successDim: '#5aaa7a'` token. |
+| `design/components/SessionWalkthrough/StepIcons.tsx` | 53, 59, 60 | Line 53: `stopColor="#f6ded2"` → `stopColor={colors.bone100}`. Line 59: `stopColor="#f6ded2"` → `stopColor={colors.bone100}`. Line 60: `stopColor="#ffb68b"` → `stopColor={colors.emberBright}` |
+| `design/components/SessionWalkthrough/TorchTimer.tsx` | 104 | `stopColor="#ffb68b"` → `stopColor={colors.emberBright}` |
+| `flow/stages/ConcChooser.tsx` | 76, 78, 79 | `ORB_PALETTE` rewrites: `All` row already uses tokens (auto-rebinds). `Hash`: `['#d49a5a', '#7a3e1c', '#2a1408']` → `['#d4d4d4', '#666666', '#0a0a0a']` (cool monochrome, no warm-brown). `Hydrocarbon`: `['#ffb68b', '#ff7a00', '#3d1a00']` → `['#ffffff', '#cccccc', '#222222']` (white intensity ramp, matches new ember). `Solventless`/`Distillate` (gold/yellow) and `Novel` (magenta) remain — they are category-illustrative colors, not brand-orange. |
+| `flow/data/display.ts` | 65, 66 | `color: atTemp ? '#7EC8A0' : '#ffb68b'` → `color: atTemp ? THEME.success : THEME.ember.bright`. `glowColor: atTemp ? 'rgba(126,200,160,0.45)' : 'rgba(255,182,139,0.4)'` → `glowColor: atTemp ? 'rgba(126,200,160,0.45)' : 'rgba(255,255,255,0.4)'` |
+| `flow/components/PresetRow.tsx` | 62, 63, 64 | Replace the `quartz` gradient stops `'#ffb68b'`/`'#ff7a00'`/`'#5c2800'` with `THEME.ember.bright`/`THEME.ember.base`/`THEME.ember.deep` (which after the THEME rebind below resolve to `#ffffff`/`#e6e6e6`/`#222222`) |
+| `flow/stages/SessionStage.tsx` | 496 | `'rgba(255, 240, 220, 0.45)'` → `'rgba(255, 255, 255, 0.45)'` |
 
-These five spots are the only places the rebind doesn't reach automatically. Once they're switched to tokens, the OLED palette flows through.
+These spots are the only places the token rebind doesn't reach automatically.
 
 ### 4.5 Shadow on heat-active components
 
 `shadow.orb` is defined in `tokens.ts` with `shadowColor: '#ff7a00'`. Change that single literal to `'#ffffff'`. Any component consuming `shadow.orb` (e.g. `flow/components/Orb`) inherits the white halo automatically.
 
+### 4.6 Parallel palette: `src/flow/theme.ts`
+
+The flow subsystem (`src/flow/`) has its own palette `THEME` that mirrors the design tokens. **Same rebind strategy:** keep all key names (`navy`, `bone`, `ember`, `quartz`, `danger`, `warn`, `success`), change values.
+
+| Path | Old | New |
+|---|---|---|
+| `THEME.navy[0]` | `#080503` | `#000000` |
+| `THEME.navy[1]` | `#0e0905` | `#000000` |
+| `THEME.navy[2]` | `#251912` | `#0a0a0a` |
+| `THEME.navy[3]` | `#291d16` | `#111111` |
+| `THEME.navy[4]` | `#40322a` | `#1f1f1f` |
+| `THEME.navy[5]` | `#45362e` | `#262626` |
+| `THEME.bone[100]` | `#f6ded2` | `#ffffff` |
+| `THEME.bone[90]` | `#ecceb9` | `#d4d4d4` |
+| `THEME.bone[70]` | `#e0c0af` | `#a0a0a0` |
+| `THEME.bone[50]` | `#a78b7c` | `#666666` |
+| `THEME.bone[35]` | `#7a5c4b` | `#444444` |
+| `THEME.bone[20]` | `#584235` | `#222222` |
+| `THEME.bone.warm04` | `rgba(246,222,210,0.04)` | `rgba(255,255,255,0.04)` |
+| `THEME.bone.warm08` | `rgba(246,222,210,0.08)` | `rgba(255,255,255,0.08)` |
+| `THEME.bone.warm10` | `rgba(246,222,210,0.10)` | `rgba(255,255,255,0.10)` |
+| `THEME.bone.warm18` | `rgba(246,222,210,0.18)` | `rgba(255,255,255,0.18)` |
+| `THEME.ember.bright` | `#ffb68b` | `#ffffff` |
+| `THEME.ember.base` | `#ff7a00` | `#e6e6e6` |
+| `THEME.ember.deep` | `#5c2800` | `#222222` |
+| `THEME.ember.glow` | `rgba(255,122,0,0.45)` | `rgba(255,255,255,0.45)` |
+| `THEME.quartz.*` | (4 unchanged) | (unchanged) |
+| `THEME.danger.base` | `#ffb4ab` | `#ff5252` |
+| `THEME.danger.deep` | `#c44444` | `#c44444` (unchanged) |
+| `THEME.warn` | `#ffa45c` | `#ffd60a` |
+| `THEME.success` | `#7ec8a0` | `#7ec8a0` (unchanged) |
+
+There are also two `TYPE` entries with hardcoded `'#a78b7c'` (lines 74, 82). Replace both with `THEME.bone[50]`.
+
+The header comment at the top of `flow/theme.ts` ("Aligned to /design.md (apr 2026) — Quartzie warm obsidian palette") needs updating to reflect the new direction.
+
 ---
 
 ## 5. Acceptance Criteria
 
-- No occurrence of any of the retired hex values in `src/` (verified via `grep -rn` across `*.ts`/`*.tsx`):
-  - Orange/ember: `#ff7a00`, `#ffb68b`, `#ffdbc8`, `#e89240`, `#5c2800`, `#522300`, `#321200`, `#a04e00`, `#753400`, `#b86838`, `#2a1a10`
+- No occurrence of any of the retired hex values in `src/` (verified via `grep -rn` across `*.ts`/`*.tsx`, ignoring the `tokens.ts`/`themes.ts`/`flow/theme.ts` definition files themselves):
+  - Orange/ember: `#ff7a00`, `#ffb68b`, `#ffa45c`, `#ffdbc8`, `#e89240`, `#5c2800`, `#522300`, `#321200`, `#a04e00`, `#753400`, `#b86838`, `#2a1a10`, `#3d1a00`
   - Warm-brown surfaces: `#0e0905`, `#080503`, `#1c110a`, `#1f130c`, `#251912`, `#291d16`, `#35271f`, `#40322a`, `#45362e`
   - Bone/warm-type: `#a78b7c`, `#584235`, `#7a5c4b`, `#e0c0af`, `#ecceb9`, `#f6ded2`
+  - Warm-bone RGBAs: `rgba(246, 222, 210,` (any opacity), `rgba(255, 240, 220,` (any opacity), `rgba(255, 122, 0,` (any opacity), `rgba(255, 182, 139,` (any opacity)
+  - Hash/warm-amber category orb (Hash row): `#d49a5a`, `#7a3e1c`, `#2a1408`
   - Soft error/lens: `#ffb4ab`, `#ffdad6`, `#690005`, `#93000a`, `#1a2740`, `#3a1a08`, `#3e2212`
-  - Off-token: `#5aaa7a`
+- The `#5aaa7a` literal in `SessionWalkthrough/index.tsx:282` is **permitted** — it's a darker green for the success-state CTA gradient and reads correctly on OLED black.
 - All `colors.background` / `colors.voidObsidian` / `colors.surface1` / `colors.bgDeep` resolve to `#000000`.
 - `colors.emberBright` / `colors.firedAmber` resolve to `#ffffff`.
 - `colors.warning` resolves to `#ffd60a`; `colors.error` to `#ff5252`.
@@ -253,12 +296,13 @@ These five spots are the only places the rebind doesn't reach automatically. Onc
 
 To be expanded in the implementation plan via the writing-plans skill. High-level phases:
 
-1. Rewrite `tokens.ts` (single source of truth).
-2. Rewrite `themes.ts` to match.
-3. Rewrite `QBackground.tsx`.
-4. Rewrite `SurfaceCard.tsx` (preserve API, add `glow` prop).
-5. Update `TempDial.tsx` `STATE_LOOK` for new heat-by-glow semantics.
-6. Patch the five hardcoded-hex files (`QWordmark`, `TempDial` line 34, `SessionWalkthrough/styles.ts` line 293, `SessionWalkthrough/index.tsx` line 282, `StepIcons.tsx` line 53).
-7. Manual screen-by-screen audit on iOS simulator; capture before/after screenshots.
-8. Grep verification for retired hex literals; zero occurrences in `src/`.
-9. Commit on a feature branch; PR with screenshot diffs.
+1. Rewrite `src/design/tokens.ts` (primary palette source).
+2. Rewrite `src/design/themes.ts` to match.
+3. Rewrite `src/flow/theme.ts` (parallel palette source).
+4. Rewrite `src/design/components/QBackground.tsx`.
+5. Rewrite `src/design/components/SurfaceCard.tsx` (preserve API, add `glow` prop).
+6. Update `src/design/components/TempDial.tsx` `PALETTE` for new heat-by-glow semantics + patch hardcoded hex.
+7. Patch the remaining hardcoded-hex files: `QWordmark`, `SessionWalkthrough/{styles,index,StepIcons,TorchTimer}`, `flow/stages/ConcChooser`, `flow/data/display`, `flow/components/PresetRow`, `flow/stages/SessionStage`.
+8. Manual screen-by-screen audit on iOS simulator; capture before/after screenshots.
+9. Grep verification for retired hex literals; zero occurrences in `src/` (excluding the three palette definition files).
+10. Commit on a feature branch; PR with screenshot diffs.
