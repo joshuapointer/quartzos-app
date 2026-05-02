@@ -18,8 +18,8 @@ export interface ThemeColors {
 // design.md — warm obsidian (apr 2026)
 export const themes: Record<ThemeName, ThemeColors> = {
   obsidian: {
-    bgDeep:           '#1c110a',
-    surface1:         '#160c06',
+    bgDeep:           '#0e0905',
+    surface1:         '#080503',
     surface3:         '#291d16',
     surface6:         '#45362e',  // matches tokens.surface6 / surfaceBright
     surfaceBright:    '#45362e',

@@ -217,7 +217,7 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
         ) : (
           // Fallback warm tint
           <LinearGradient
-            colors={['#291d16', '#160c06']}
+            colors={[THEME.navy[3], THEME.navy[0]]}
             start={{ x: 0.2, y: 0 }}
             end={{ x: 0.8, y: 1 }}
             style={StyleSheet.absoluteFill}

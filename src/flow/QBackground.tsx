@@ -34,6 +34,7 @@ import Animated, {
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 import { useReducedMotion } from './components/useReducedMotion';
+import { THEME } from './theme';
 
 interface Props {
   children?: React.ReactNode;
@@ -89,8 +90,8 @@ function QBackground({ children, mode = 'ember' }: Props) {
             ry="50%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0" stopColor="#291d16" stopOpacity="0.35" />
-            <Stop offset="1" stopColor="#291d16" stopOpacity="0" />
+            <Stop offset="0" stopColor={THEME.navy[3]} stopOpacity="0.35" />
+            <Stop offset="1" stopColor={THEME.navy[3]} stopOpacity="0" />
           </RadialGradient>
 
           <RadialGradient
@@ -101,8 +102,8 @@ function QBackground({ children, mode = 'ember' }: Props) {
             ry="62%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0" stopColor="#1c110a" stopOpacity="0.40" />
-            <Stop offset="1" stopColor="#1c110a" stopOpacity="0" />
+            <Stop offset="0" stopColor={THEME.navy[1]} stopOpacity="0.40" />
+            <Stop offset="1" stopColor={THEME.navy[1]} stopOpacity="0" />
           </RadialGradient>
 
           <RadialGradient
@@ -113,8 +114,8 @@ function QBackground({ children, mode = 'ember' }: Props) {
             ry="52%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0" stopColor="#5c2800" stopOpacity="0.18" />
-            <Stop offset="1" stopColor="#5c2800" stopOpacity="0" />
+            <Stop offset="0" stopColor={THEME.ember.deep} stopOpacity="0.18" />
+            <Stop offset="1" stopColor={THEME.ember.deep} stopOpacity="0" />
           </RadialGradient>
 
           <RadialGradient
@@ -125,12 +126,12 @@ function QBackground({ children, mode = 'ember' }: Props) {
             ry="55%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0" stopColor="#ff7a00" stopOpacity="0.22" />
-            <Stop offset="1" stopColor="#ff7a00" stopOpacity="0" />
+            <Stop offset="0" stopColor={THEME.ember.base} stopOpacity="0.22" />
+            <Stop offset="1" stopColor={THEME.ember.base} stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        <Rect x="0" y="0" width="100" height="100" fill="#160c06" />
+        <Rect x="0" y="0" width="100" height="100" fill={THEME.navy[0]} />
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-top)" />
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-bottom)" />
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-ember-deep)" />
@@ -162,8 +163,8 @@ function QBackground({ children, mode = 'ember' }: Props) {
               ry="55%"
               gradientUnits="userSpaceOnUse"
             >
-              <Stop offset="0" stopColor="#00a8ff" stopOpacity="0.22" />
-              <Stop offset="1" stopColor="#00a8ff" stopOpacity="0" />
+              <Stop offset="0" stopColor={THEME.quartz.base} stopOpacity="0.22" />
+              <Stop offset="1" stopColor={THEME.quartz.base} stopOpacity="0" />
             </RadialGradient>
           </Defs>
           <Rect x="0" y="0" width="100" height="100" fill="url(#rg-quartz-bright)" />

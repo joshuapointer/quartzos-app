@@ -11,8 +11,8 @@ import { Easing } from 'react-native-reanimated';
 export const THEME = {
   // "navy" key kept for back-compat — values are warm obsidian surface ramp.
   navy: {
-    0: '#160c06',  // surface-container-lowest (the void)
-    1: '#1c110a',  // background
+    0: '#080503',  // surface-container-lowest (the void)
+    1: '#0e0905',  // background
     2: '#251912',  // surface-container-low
     3: '#291d16',  // surface-container
     4: '#40322a',  // surface-container-highest

@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
-    color: '#1c110a',
+    color: THEME.navy[1],
   },
   bottomPillLabelReadout: {
     color: THEME.ember.bright,
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   bottomPillGlyph: {
     fontFamily: 'GeistMono_500Medium',
     fontSize: 12,
-    color: '#1c110a',
+    color: THEME.navy[1],
   },
   bottomPillGlyphReadout: {
     color: THEME.ember.bright,

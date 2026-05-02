@@ -102,7 +102,7 @@ function ChooserCardInner({
   // Determine background style.
   const backgroundEl = active ? (
     <LinearGradient
-      colors={['#291d16', '#160c06']}
+      colors={[THEME.navy[3], THEME.navy[0]]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={StyleSheet.absoluteFill}

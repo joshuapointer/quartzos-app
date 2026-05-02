@@ -6,8 +6,6 @@ export type { ChromeButtonVariant } from './components/ChromeButton';
 export { CrystalToggle } from './components/CrystalToggle';
 export { SkeuSlider } from './components/SkeuSlider';
 export { FloatingHeader } from './components/FloatingHeader';
-export { BevelFrame } from './components/BevelFrame';
-export { GlossOverlay } from './components/GlossOverlay';
 export { ThemeProvider, useTheme, useThemeColors } from './ThemeContext';
 export type { ThemeName, ThemeColors } from './themes';
 export { DataStrip } from './components/DataStrip';

@@ -10,13 +10,13 @@ export { SCREEN_W, SCREEN_H };
 // ─────────────────────────────────────────────────────────────────────────────
 export const colors = {
   // ── Core backgrounds (warm espresso / obsidian) ──
-  background:              '#1c110a',
-  surface:                 '#1c110a',
-  surfaceDim:              '#1c110a',
+  background:              '#0e0905',
+  surface:                 '#0e0905',
+  surfaceDim:              '#0e0905',
   // surfaceBright defined below as the brightest container
 
   // ── Surface container ramp ──
-  surfaceContainerLowest:  '#160c06',
+  surfaceContainerLowest:  '#080503',
   surfaceContainerLow:     '#251912',
   surfaceContainer:        '#291d16',
   surfaceContainerHigh:    '#35271f',
@@ -24,8 +24,8 @@ export const colors = {
   surfaceVariant:          '#40322a',
 
   // ── Numeric ramp (legacy — many components reference surface1..surface6) ──
-  bgDeep:        '#1c110a',  // ↔ background
-  surface1:      '#160c06',  // ↔ surfaceContainerLowest
+  bgDeep:        '#0e0905',  // ↔ background
+  surface1:      '#080503',  // ↔ surfaceContainerLowest
   surface2:      '#251912',  // ↔ surfaceContainerLow
   surface3:      '#291d16',  // ↔ surfaceContainer
   surface4:      '#35271f',  // ↔ surfaceContainerHigh
@@ -130,7 +130,7 @@ export const colors = {
   emerald:   '#7EC8A0',
   sapphire:  '#00a8ff',
   citrine:   '#C4AC54',
-  idleDeep:      '#160c06',
+  idleDeep:      '#080503',
   textPrimary:   '#f6ded2',
   textSecondary: '#e0c0af',
   textDim:       '#7a5c4b',
@@ -141,8 +141,8 @@ export const colors = {
   activeDark:    '#ff7a00',
 
   // ── Semantic aliases (camelCase versions of design.md tokens) ──
-  voidObsidian:  '#160c06',  // surface-container-lowest = the void
-  surfaceDeep:   '#160c06',
+  voidObsidian:  '#080503',  // surface-container-lowest = the void
+  surfaceDeep:   '#080503',
   surfaceMid:    '#291d16',
   surfaceRaised: '#35271f',
   surfaceMuted:  '#40322a',
@@ -158,14 +158,14 @@ export const colors = {
 
 export const gradients = {
   // top → bottom vignette: deep low surface fades into the void
-  background:  ['#251912', '#1c110a', '#160c06'] as const,
+  background:  ['#251912', '#0e0905', '#080503'] as const,
   ember:       ['#ffb68b', '#ff7a00', '#5c2800'] as const,
   quartz:      ['#95ccff', '#00a8ff', '#004a75'] as const,
   heatCore:    ['rgba(255,122,0,0)', 'rgba(255,122,0,0.25)', 'rgba(255,182,139,0.5)'] as const,
   // Card surface gradients — use via SurfaceCard component
-  cardActive:   ['#2a1a10', '#160c06'] as const,  // active preset, highlighted rows
-  cardInactive: ['#1c110a', '#160c06'] as const,  // non-active items in a list
-  cardNeutral:  ['#1f130c', '#160c06'] as const,  // config sections, history cards
+  cardActive:   ['#2a1a10', '#080503'] as const,  // active preset, highlighted rows
+  cardInactive: ['#0e0905', '#080503'] as const,  // non-active items in a list
+  cardNeutral:  ['#1f130c', '#080503'] as const,  // config sections, history cards
   // legacy aliases
   amethyst:    ['#95ccff', '#00a8ff', '#004a75'] as const,
   primary:     ['#ffb68b', '#ff7a00', '#5c2800'] as const,
@@ -198,7 +198,7 @@ export const radius = {
 
 // Shadow color tints toward warm-obsidian (the void) instead of pure black —
 // a brand-tinted shadow keeps every elevated surface inside the warm world.
-const SHADOW_COLOR = '#160c06';
+const SHADOW_COLOR = '#080503';
 
 export const shadow = {
   color: SHADOW_COLOR,
