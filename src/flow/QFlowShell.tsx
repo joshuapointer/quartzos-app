@@ -15,7 +15,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet, View, Switch, Text } from 'react-native';
 import Animated, {
-  Easing,
   FadeIn,
   useAnimatedStyle,
   withTiming,
@@ -29,6 +28,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { useFlow, useOrbProps } from './store';
 import { useSettingsStore } from '../state/settingsStore';
 import { THEME } from './theme';
+import { motion, reanimatedEasing } from '@/design/tokens';
 
 import BuildStage from './stages/BuildStage';
 import ChooseStage from './stages/ChooseStage';
@@ -40,7 +40,7 @@ import { SessionStage } from './stages/SessionStage';
 // Cross-fade + slight rise on stageKey change. Reanimated keeps the previous
 // child mounted briefly while it fades out via re-keying the View.
 
-const STAGE_EASE = Easing.bezier(0.22, 1, 0.36, 1);
+const STAGE_EASE = reanimatedEasing.easeOut;
 
 type StageSwitchProps = {
   stageKey: string;
@@ -51,7 +51,7 @@ function StageSwitch({ stageKey, children }: StageSwitchProps) {
   return (
     <Animated.View
       key={stageKey}
-      entering={FadeIn.duration(480).easing(STAGE_EASE)}
+      entering={FadeIn.duration(motion.duration.modal).easing(STAGE_EASE)}
       style={styles.stageInner}
     >
       {children}

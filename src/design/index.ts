@@ -1,4 +1,5 @@
 export * from './tokens';
+export { usePressScale } from './hooks/usePressScale';
 export { QBackground } from './components/QBackground';
 export { GlassCard } from './components/GlassCard';
 export { ChromeButton } from './components/ChromeButton';

@@ -6,9 +6,11 @@
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { META } from '../../data/dabReference';
 import { colors, fonts, radius, spacing } from '../tokens';
+import { usePressScale } from '../hooks/usePressScale';
 
 interface Props {
   readonly level: string;
@@ -62,8 +64,16 @@ function SinglePill({ letter }: SinglePillProps) {
   const description = META.confidence_levels[letter] ?? '';
   const { bg, fg } = letterTint(letter);
 
-  const handleIn = useCallback(() => setTipVisible(true), []);
-  const handleOut = useCallback(() => setTipVisible(false), []);
+  const { animatedStyle, onPressIn: scaleIn, onPressOut: scaleOut } = usePressScale();
+
+  const handleIn = useCallback(() => {
+    setTipVisible(true);
+    scaleIn();
+  }, [scaleIn]);
+  const handleOut = useCallback(() => {
+    setTipVisible(false);
+    scaleOut();
+  }, [scaleOut]);
 
   return (
     <View style={styles.pillWrap}>
@@ -74,7 +84,9 @@ function SinglePill({ letter }: SinglePillProps) {
         accessibilityLabel={`Confidence ${letter}: ${description}`}
         style={[styles.pill, { backgroundColor: bg, borderColor: fg }]}
       >
-        <Text style={[styles.letter, { color: fg }]}>{letter}</Text>
+        <Animated.View style={[styles.pillInner, animatedStyle]}>
+          <Text style={[styles.letter, { color: fg }]}>{letter}</Text>
+        </Animated.View>
       </Pressable>
       {tipVisible && description ? (
         <View style={styles.tooltip} pointerEvents="none">
@@ -121,6 +133,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
     paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillInner: {
     alignItems: 'center',
     justifyContent: 'center',
   },

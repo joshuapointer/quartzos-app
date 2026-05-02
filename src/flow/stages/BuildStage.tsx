@@ -7,7 +7,6 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  Easing,
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +15,7 @@ import Animated, {
 
 import { useConcentrate, useFlow } from '../store';
 import { MOTION, SCREEN, SPACE, THEME, TYPE } from '../theme';
+import { motion, reanimatedEasing } from '@/design/tokens';
 import { PrimaryButton } from '../components/PrimaryButton';
 
 import BangerChooser from './BangerChooser';
@@ -83,7 +83,7 @@ function StageBody({ step }: { step: number }) {
   return (
     <Animated.View
       key={step}
-      entering={FadeIn.duration(480).easing(Easing.bezier(0.22, 1, 0.36, 1))}
+      entering={FadeIn.duration(motion.duration.modal).easing(reanimatedEasing.easeOut)}
       style={styles.bodyWrap}
     >
       {child}

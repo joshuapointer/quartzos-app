@@ -16,6 +16,7 @@ import Animated, {
 
 import type { Concentrate } from '../../data/concentrates';
 import { colors, fonts, radius, spacing } from '../tokens';
+import { usePressScale } from '../hooks/usePressScale';
 
 interface Props {
   readonly concentrate: Concentrate;
@@ -25,6 +26,7 @@ interface Props {
 
 export function BlockedConcentrateExplainer({ concentrate, onClose, visible }: Props) {
   const progress = useSharedValue(0);
+  const { animatedStyle: ctaAnimatedStyle, onPressIn: ctaPressIn, onPressOut: ctaPressOut } = usePressScale();
 
   useEffect(() => {
     progress.value = withTiming(visible ? 1 : 0, {
@@ -67,11 +69,15 @@ export function BlockedConcentrateExplainer({ concentrate, onClose, visible }: P
 
         <Pressable
           onPress={onClose}
+          onPressIn={ctaPressIn}
+          onPressOut={ctaPressOut}
           style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
           accessibilityRole="button"
           accessibilityLabel="Got it"
         >
-          <Text style={styles.ctaText}>Got it</Text>
+          <Animated.View style={ctaAnimatedStyle}>
+            <Text style={styles.ctaText}>Got it</Text>
+          </Animated.View>
         </Pressable>
       </Animated.View>
     </Animated.View>

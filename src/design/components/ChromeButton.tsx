@@ -54,7 +54,7 @@ export function ChromeButton({
   }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.96, animation.pressSpring);
+    scale.value = withSpring(0.97, animation.pressSpring);
   }, [scale]);
 
   const handlePressOut = useCallback(() => {

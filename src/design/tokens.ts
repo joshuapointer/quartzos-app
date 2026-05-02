@@ -1,4 +1,5 @@
 import { Dimensions } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -293,8 +294,17 @@ export const fonts = {
 // ─────────────────────────────────────────────────────────────────────────────
 // design.md motion tokens — durations and easings.
 // ─────────────────────────────────────────────────────────────────────────────
+// Easing curves follow Emil Kowalski's principle: UI animations belong under
+// 300ms and exits should be snappier than enters. The bezier tuples here are
+// bridged to Reanimated via `reanimatedEasing` below — use that at callsites.
 export const motion = {
   duration: {
+    // UI-class ramp (Emil: UI animations under 300ms)
+    tap:        160,  // button press feedback
+    tooltip:    180,  // small popovers
+    popover:    220,  // dropdowns, list-row enters
+    modal:      240,  // modals, sheets, stage transitions
+    // Legacy keys preserved for backward-compat (migrate in US-002)
     instant:    150,
     quick:      200,
     base:       400,
@@ -303,10 +313,27 @@ export const motion = {
     deliberate: 800,
     slow:       900,
   },
+  // Asymmetric exits — snappier than enters (Emil: "exits should be snappy")
+  exit: {
+    tap:        100,
+    tooltip:    140,
+    popover:    160,
+    modal:      180,
+  },
   easing: {
-    swoop:    [0.22, 1, 0.36, 1] as const,  // cubic-bezier(0.22, 1, 0.36, 1)
+    easeOut:   [0.22, 1, 0.36, 1] as const,    // strong ease-out for enters/exits
+    easeInOut: [0.77, 0, 0.175, 1] as const,   // strong ease-in-out for on-screen movement
+    drawer:    [0.32, 0.72, 0, 1] as const,    // Ionic/iOS drawer / sheet curve
+    swoop:     [0.22, 1, 0.36, 1] as const,    // backward-compat alias for easeOut
   },
 } as const;
+
+// Reanimated bridge — use these at callsites instead of inlining Easing.bezier(...).
+export const reanimatedEasing = {
+  easeOut:   Easing.bezier(...motion.easing.easeOut),
+  easeInOut: Easing.bezier(...motion.easing.easeInOut),
+  drawer:    Easing.bezier(...motion.easing.drawer),
+};
 
 export const animation = {
   shimmerDurationMs: 4200,
@@ -314,5 +341,6 @@ export const animation = {
   pressSpring:  { damping: 14, stiffness: 220, mass: 0.6 },
   toggleSpring: { damping: 15, stiffness: 260, mass: 0.5 },
   thumbSpring:  { damping: 18, stiffness: 200, mass: 0.7 },
+  toastSpring:  { damping: 22, stiffness: 200, mass: 0.9 },
   orbitDurationMs: 30000,
 };

@@ -79,7 +79,7 @@ function SheetTabButton({
   return (
     <AnimatedPressable
       onPress={onPress}
-      onPressIn={() => { pressScale.value = withSpring(0.96, animation.pressSpring); }}
+      onPressIn={() => { pressScale.value = withSpring(0.97, animation.pressSpring); }}
       onPressOut={() => { pressScale.value = withSpring(1, animation.pressSpring); }}
       style={[styles.tabItem, scaleStyle]}
       accessibilityRole="tab"

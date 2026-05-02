@@ -124,17 +124,30 @@ elevation:
 
 motion:
   duration:
-    instant: "150ms"
-    quick:   "200ms"
-    base:    "400ms"
-    smooth:  "600ms"
-    enter:   "480ms"
+    # UI-class ramp (Emil: UI animations under 300ms)
+    tap:        "160ms"   # button press feedback
+    tooltip:    "180ms"   # small popovers
+    popover:    "220ms"   # dropdowns, list-row enters
+    modal:      "240ms"   # modals, sheets, stage transitions
+    # Legacy keys preserved for backward-compat (migrate in US-002)
+    instant:    "150ms"
+    quick:      "200ms"
+    base:       "400ms"
+    smooth:     "600ms"
+    enter:      "480ms"
     deliberate: "800ms"
-    slow:    "900ms"
+    slow:       "900ms"
+  exit:
+    # Asymmetric — exits run faster than enters (Emil: "exits should be snappy")
+    tap:        "100ms"
+    tooltip:    "140ms"
+    popover:    "160ms"
+    modal:      "180ms"
   easing:
-    swoop:   "cubic-bezier(0.22, 1, 0.36, 1)"
-    standard: "ease"
-    in-out:  "ease-in-out"
+    easeOut:   "cubic-bezier(0.22, 1, 0.36, 1)"   # strong ease-out for enters/exits
+    easeInOut: "cubic-bezier(0.77, 0, 0.175, 1)"  # strong ease-in-out for on-screen movement
+    drawer:    "cubic-bezier(0.32, 0.72, 0, 1)"   # Ionic/iOS drawer / sheet curve
+    swoop:     "alias for easeOut — preserved for backward-compat"
 
 components:
   q-action:

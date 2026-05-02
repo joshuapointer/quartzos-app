@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,16 +10,15 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  Easing,
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 
-const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
-import { useEffect } from 'react';
+import { motion, reanimatedEasing } from '@/design/tokens';
 
+const STAGGER_EASING = reanimatedEasing.easeOut;
 import {
   type Banger,
   type CalibResult,
@@ -216,7 +215,7 @@ export default function ReviewStep() {
       contentContainerStyle={styles.scrollContent}
     >
       <Animated.View
-        entering={FadeInUp.delay(120).duration(380).easing(STAGGER_EASING)}
+        entering={FadeInUp.delay(120).duration(motion.duration.popover).easing(STAGGER_EASING)}
       >
         <CalibrationCard
           banger={banger}
@@ -227,7 +226,7 @@ export default function ReviewStep() {
       </Animated.View>
 
       <Animated.View
-        entering={FadeInUp.delay(200).duration(380).easing(STAGGER_EASING)}
+        entering={FadeInUp.delay(200).duration(motion.duration.popover).easing(STAGGER_EASING)}
       >
         <ColdStartCard
           banger={banger}

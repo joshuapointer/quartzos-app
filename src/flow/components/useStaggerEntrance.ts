@@ -9,16 +9,16 @@
 
 import { useEffect } from 'react';
 import {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
+import { reanimatedEasing } from '@/design/tokens';
 
 const STAGGER_MS = 60;
 const ENTER_DUR_MS = 600;
-const EASE_OUT_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
+const EASE_OUT_EXPO = reanimatedEasing.easeOut;
 
 export function useStaggerEntrance(idx: number) {
   const opacity = useSharedValue(0);

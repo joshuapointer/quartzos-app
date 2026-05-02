@@ -26,7 +26,6 @@
 import React, { memo, useEffect } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -35,6 +34,7 @@ import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 import { useReducedMotion } from './components/useReducedMotion';
 import { THEME } from './theme';
+import { reanimatedEasing } from '@/design/tokens';
 
 interface Props {
   children?: React.ReactNode;
@@ -62,7 +62,7 @@ function QBackground({ children, mode = 'ember' }: Props) {
     }
     blend.value = withTiming(target, {
       duration: 380,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      easing: reanimatedEasing.easeOut,
     });
   }, [mode, blend, reduced]);
 

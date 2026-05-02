@@ -11,9 +11,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import ReAnimated, { FadeInDown } from 'react-native-reanimated';
 
 import { QBackground, ChromeButton, FloatingHeader, toast } from '../../src/design';
-import { colors, spacing, radius, fonts } from '../../src/design/tokens';
+import { colors, spacing, radius, fonts, motion, reanimatedEasing } from '../../src/design/tokens';
+import { useReducedMotion } from '../../src/flow/components/useReducedMotion';
 import { formatTemp } from '../../src/utils/temperature';
 import { bleManager } from '../../src/ble/BleManager';
 import { useBleStore } from '../../src/state/bleStore';
@@ -180,8 +182,12 @@ function EmptyState({ onCrystallize }: EmptyStateProps) {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+const STAGGER_MS = 40;
+const CAP = 7;
+
 export default function PresetsScreen() {
   const connectionState = useBleStore((s) => s.connectionState);
+  const reduced = useReducedMotion();
   const [presets, setPresets] = useState<Preset[]>([]);
   // Shared cross-screen source of truth lives in `useSettingsStore`
   // (active preset is conceptually a settings derivative; persisted
@@ -266,14 +272,21 @@ export default function PresetsScreen() {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              renderItem={({ item }) => (
-                <PresetRow
-                  preset={item}
-                  isActive={item.id === activePresetId}
-                  onApply={() => handleApply(item)}
-                  onDelete={() => handleDelete(item)}
-                  onEdit={() => router.push(`/(connected)/presets/${item.id}` as never)}
-                />
+              renderItem={({ item, index }) => (
+                <ReAnimated.View
+                  entering={FadeInDown
+                    .duration(motion.duration.popover)
+                    .delay(reduced ? 0 : Math.min(index, CAP) * STAGGER_MS)
+                    .easing(reanimatedEasing.easeOut)}
+                >
+                  <PresetRow
+                    preset={item}
+                    isActive={item.id === activePresetId}
+                    onApply={() => handleApply(item)}
+                    onDelete={() => handleDelete(item)}
+                    onEdit={() => router.push(`/(connected)/presets/${item.id}` as never)}
+                  />
+                </ReAnimated.View>
               )}
             />
           </>

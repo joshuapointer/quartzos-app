@@ -6,7 +6,7 @@
  * values now resolve to the warm-espresso/ember/quartz tokens.
  */
 
-import { Easing } from 'react-native-reanimated';
+import { reanimatedEasing } from '@/design/tokens';
 
 export const THEME = {
   // "navy" key kept for back-compat — values are warm obsidian surface ramp.
@@ -157,5 +157,5 @@ export const SCREEN = {
 export const MOTION = {
   STAGGER_MS:        60,
   STAGGER_ENTER_DUR_MS: 600,
-  STAGGER_EASE:      Easing.bezier(0.22, 1, 0.36, 1),
+  STAGGER_EASE:      reanimatedEasing.easeOut,
 } as const;

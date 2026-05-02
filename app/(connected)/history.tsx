@@ -12,9 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop } from 'react-native-svg';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { QBackground, ChromeButton, FloatingHeader } from '../../src/design';
-import { colors, spacing, fonts } from '../../src/design/tokens';
+import { colors, spacing, fonts, motion, reanimatedEasing } from '../../src/design/tokens';
+import { useReducedMotion } from '../../src/flow/components/useReducedMotion';
 import * as sessionsDb from '../../src/db/sessions';
 import type { SessionRecord } from '../../src/db/sessions';
 import * as presetsDb from '../../src/db/presets';
@@ -155,9 +157,13 @@ function EmptyState() {
   );
 }
 
+const STAGGER_MS = 40;
+const CAP = 7;
+
 export default function HistoryScreen() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [presets, setPresets] = useState<Preset[]>([]);
+  const reduced = useReducedMotion();
 
   const load = useCallback(async () => {
     const [allSessions, allPresets] = await Promise.all([
@@ -245,14 +251,21 @@ export default function HistoryScreen() {
           ItemSeparatorComponent={() => <View style={styles.divider} />}
           ListEmptyComponent={<EmptyState />}
           renderItem={({ item, index }) => (
-            <JournalRow
-              session={item}
-              isActive={index === 0 && item.endedAt === null}
-              presetName={
-                (item.presetId && presetNameById.get(item.presetId)) || 'Session'
-              }
-              onPress={() => router.push(`/(connected)/history/${item.id}`)}
-            />
+            <Animated.View
+              entering={FadeInDown
+                .duration(motion.duration.popover)
+                .delay(reduced ? 0 : Math.min(index, CAP) * STAGGER_MS)
+                .easing(reanimatedEasing.easeOut)}
+            >
+              <JournalRow
+                session={item}
+                isActive={index === 0 && item.endedAt === null}
+                presetName={
+                  (item.presetId && presetNameById.get(item.presetId)) || 'Session'
+                }
+                onPress={() => router.push(`/(connected)/history/${item.id}`)}
+              />
+            </Animated.View>
           )}
         />
       </SafeAreaView>

@@ -5,13 +5,13 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  Easing,
   cancelAnimation,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
 
-import { colors, fonts, radius, spacing } from '../tokens';
+import { useReducedMotion } from '../../flow/components/useReducedMotion';
+import { animation, colors, fonts, motion, radius, reanimatedEasing, spacing } from '../tokens';
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -99,14 +99,15 @@ export function ToastHost() {
   const current = useToastStore((s) => s.current);
   const dismiss = useToastStore((s) => s.dismiss);
 
+  const reduced = useReducedMotion();
   const translateY = useSharedValue(-120);
   const opacity = useSharedValue(0);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (current) {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 200, mass: 0.9 });
-      opacity.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) });
+      translateY.value = reduced ? 0 : withSpring(0, animation.toastSpring);
+      opacity.value = withTiming(1, { duration: motion.duration.popover, easing: reanimatedEasing.easeOut });
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       if (current.durationMs > 0) {
         const id = current.id;
@@ -118,8 +119,8 @@ export function ToastHost() {
         }, current.durationMs);
       }
     } else {
-      translateY.value = withTiming(-120, { duration: 220, easing: Easing.in(Easing.quad) });
-      opacity.value = withTiming(0, { duration: 180, easing: Easing.in(Easing.quad) });
+      translateY.value = reduced ? -120 : withTiming(-120, { duration: motion.exit.popover, easing: reanimatedEasing.easeOut });
+      opacity.value = withTiming(0, { duration: motion.exit.popover, easing: reanimatedEasing.easeOut });
     }
     return () => {
       if (dismissTimer.current) {
@@ -127,7 +128,7 @@ export function ToastHost() {
         dismissTimer.current = null;
       }
     };
-  }, [current, dismiss, translateY, opacity]);
+  }, [current, dismiss, translateY, opacity, reduced]);
 
   useEffect(() => () => {
     cancelAnimation(translateY);

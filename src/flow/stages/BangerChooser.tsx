@@ -32,6 +32,7 @@ import { BANGER_IMAGES } from '../bangerImages';
 import { useStaggerEntrance } from '../components/useStaggerEntrance';
 import { useFlow } from '../store';
 import { SCREEN, SPACE, THEME, TYPE } from '../theme';
+import { usePressScale } from '../../design';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_GAP = 12;
@@ -115,25 +116,30 @@ type GeomChipProps = {
 
 function GeomChip({ item, active, onPress }: GeomChipProps) {
   const iconColor = active ? THEME.ember.bright : THEME.bone[70];
+  const { animatedStyle, onPressIn, onPressOut } = usePressScale();
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       style={[styles.geomCard, active && styles.geomCardActive]}
       accessibilityRole="button"
       accessibilityLabel={`Filter: ${item.label}`}
       accessibilityState={{ selected: active }}
     >
-      <View style={styles.geomIconWrap}>
-        <GeomIcon geom={item.key} color={iconColor} size={30} />
-      </View>
-      <Text style={[styles.geomLabel, active && styles.geomLabelActive]}>
-        {item.label}
-      </Text>
-      <View style={[styles.geomTag, active && styles.geomTagActive]}>
-        <Text style={[styles.geomTagCount, active && styles.geomTagCountActive]}>
-          {item.count}
+      <Animated.View style={[styles.geomInner, animatedStyle]}>
+        <View style={styles.geomIconWrap}>
+          <GeomIcon geom={item.key} color={iconColor} size={30} />
+        </View>
+        <Text style={[styles.geomLabel, active && styles.geomLabelActive]}>
+          {item.label}
         </Text>
-      </View>
+        <View style={[styles.geomTag, active && styles.geomTagActive]}>
+          <Text style={[styles.geomTagCount, active && styles.geomTagCountActive]}>
+            {item.count}
+          </Text>
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -172,6 +178,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
   }));
 
   function handlePressIn() {
+    // Stiffer than pressSpring — full-width carousel card needs heavier resistance.
     scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
@@ -389,6 +396,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 0 },
     elevation: 4,
+  },
+  geomInner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   geomIconWrap: {
     height: 36,

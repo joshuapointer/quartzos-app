@@ -22,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -38,8 +39,11 @@ import Svg, {
 import { CONCENTRATES, type Concentrate, type ConcentrateCat } from '../data';
 import { CONCENTRATE_IMAGES } from '../concentrateImages';
 import { useStaggerEntrance } from '../components/useStaggerEntrance';
+import { useReducedMotion } from '../components/useReducedMotion';
 import { useFlow } from '../store';
 import { SCREEN, SPACE, THEME, TYPE } from '../theme';
+import { usePressScale } from '../../design';
+import { motion, reanimatedEasing } from '../../design/tokens';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const GRID_GAP = 10;
@@ -108,28 +112,33 @@ type FilterChipProps = {
 };
 
 function FilterChip({ item, active, onPress }: FilterChipProps) {
+  const { animatedStyle, onPressIn, onPressOut } = usePressScale();
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       style={[styles.catCard, active && styles.catCardActive]}
       accessibilityRole="button"
       accessibilityLabel={`Filter: ${item.label}`}
       accessibilityState={{ selected: active }}
     >
-      <View style={[styles.catOrbRing, active && styles.catOrbRingActive]}>
-        <CategoryOrb cat={item.key} size={40} />
-      </View>
-      <Text
-        style={[styles.catLabel, active && styles.catLabelActive]}
-        numberOfLines={1}
-      >
-        {item.label}
-      </Text>
-      <View style={[styles.catCountPill, active && styles.catCountPillActive]}>
-        <Text style={[styles.catCountText, active && styles.catCountTextActive]}>
-          {item.count}
+      <Animated.View style={[styles.catInner, animatedStyle]}>
+        <View style={[styles.catOrbRing, active && styles.catOrbRingActive]}>
+          <CategoryOrb cat={item.key} size={40} />
+        </View>
+        <Text
+          style={[styles.catLabel, active && styles.catLabelActive]}
+          numberOfLines={1}
+        >
+          {item.label}
         </Text>
-      </View>
+        <View style={[styles.catCountPill, active && styles.catCountPillActive]}>
+          <Text style={[styles.catCountText, active && styles.catCountTextActive]}>
+            {item.count}
+          </Text>
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -170,7 +179,8 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
 
   function handlePressIn() {
     if (disabled) return;
-    scale.value = withSpring(0.96, { damping: 20, stiffness: 300 });
+    // Stiffer than pressSpring — two-column grid tile needs heavier resistance.
+    scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
     if (disabled) return;
@@ -270,9 +280,13 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
 
 // ─── ConcChooser ──────────────────────────────────────────────────────────────
 
+const TILE_STAGGER_MS = 30;
+const CAP = 7;
+
 export default function ConcChooser() {
   const concId = useFlow((s) => s.concId);
   const setConcId = useFlow((s) => s.setConcId);
+  const reduced = useReducedMotion();
 
   const [filter, setFilter] = useState<FilterKey>('All');
 
@@ -324,18 +338,26 @@ export default function ConcChooser() {
         keyExtractor={(_, idx) => String(idx)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.grid}
-        renderItem={({ item: row }) => (
+        renderItem={({ item: row, index: rowIndex }) => (
           <View style={styles.gridRow}>
-            {row.map((c) => {
+            {row.map((c, colIndex) => {
               const isBlocked = !!c.blocked;
+              const tileIndex = rowIndex * 2 + colIndex;
               return (
-                <ConcTile
+                <Animated.View
                   key={c.id}
-                  conc={c}
-                  active={!isBlocked && concId === c.id}
-                  disabled={isBlocked}
-                  onPress={() => setConcId(c.id)}
-                />
+                  entering={FadeInDown
+                    .duration(motion.duration.popover)
+                    .delay(reduced ? 0 : Math.min(tileIndex, CAP) * TILE_STAGGER_MS)
+                    .easing(reanimatedEasing.easeOut)}
+                >
+                  <ConcTile
+                    conc={c}
+                    active={!isBlocked && concId === c.id}
+                    disabled={isBlocked}
+                    onPress={() => setConcId(c.id)}
+                  />
+                </Animated.View>
               );
             })}
             {/* Fill empty cell when odd count */}
@@ -386,6 +408,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.30,
     shadowOffset: { width: 0, height: 0 },
     elevation: 4,
+  },
+  catInner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   catOrbRing: {
     width: 46,

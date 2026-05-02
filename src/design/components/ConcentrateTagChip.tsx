@@ -3,12 +3,15 @@
  * with category-specific tint. Unknown tags fall back to a neutral surface.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { colors, fonts, radius, spacing } from '../tokens';
+import { usePressScale } from '../hooks/usePressScale';
 
 interface Props {
   readonly tag: string;
+  readonly onPress?: () => void;
 }
 
 interface ChipStyle {
@@ -46,8 +49,20 @@ function formatLabel(tag: string): string {
     .join(' ');
 }
 
-export function ConcentrateTagChip({ tag }: Props) {
+export function ConcentrateTagChip({ tag, onPress }: Props) {
   const { bg, fg, border } = tagStyle(tag);
+  const { animatedStyle, onPressIn, onPressOut } = usePressScale();
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
+        <Animated.View style={[styles.chip, { backgroundColor: bg, borderColor: border }, animatedStyle]}>
+          <Text style={[styles.label, { color: fg }]}>{formatLabel(tag)}</Text>
+        </Animated.View>
+      </Pressable>
+    );
+  }
+
   return (
     <View style={[styles.chip, { backgroundColor: bg, borderColor: border }]}>
       <Text style={[styles.label, { color: fg }]}>{formatLabel(tag)}</Text>

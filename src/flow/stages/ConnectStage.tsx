@@ -2,7 +2,6 @@ import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -13,10 +12,11 @@ import Animated, {
 
 import { useFlow } from '../store';
 import { SCREEN, THEME } from '../theme';
+import { reanimatedEasing } from '@/design/tokens';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useStaggerEntrance } from '../components/useStaggerEntrance';
 
-const EASE_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
+const EASE_EXPO = reanimatedEasing.easeOut;
 
 function PulseDot() {
   const opacity = useSharedValue(0.4);

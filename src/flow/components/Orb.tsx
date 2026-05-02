@@ -34,6 +34,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { THEME, TYPE } from '../theme';
+import { reanimatedEasing } from '@/design/tokens';
 import { useReducedMotion } from './useReducedMotion';
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -113,8 +114,8 @@ const DEFAULT_LABEL: Record<OrbState, string> = {
   complete: 'COMPLETE',
 };
 
-const MORPH = { duration: 700, easing: Easing.bezier(0.22, 1, 0.36, 1) };
-const FADE = { duration: 380, easing: Easing.bezier(0.22, 1, 0.36, 1) };
+const MORPH = { duration: 700, easing: reanimatedEasing.easeOut };
+const FADE = { duration: 380, easing: reanimatedEasing.easeOut };
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -792,7 +793,7 @@ function OrbInner(props: OrbProps) {
     if (prev !== 'cool-in-window' && state === 'cool-in-window') {
       climaxScale.value = withSequence(
         withTiming(1.12, { duration: 450, easing: Easing.out(Easing.exp) }),
-        withTiming(1.0, { duration: 600, easing: Easing.bezier(0.22, 1, 0.36, 1) }),
+        withTiming(1.0, { duration: 600, easing: reanimatedEasing.easeOut }),
       );
       coronaScale.value = 1.0;
       coronaOpacity.value = 0.55;
@@ -810,13 +811,15 @@ function OrbInner(props: OrbProps) {
   }));
 
   // Crossfade when state changes — keeps label/treatment swap soft.
+  // Reduced: skip the dip; opacity stays at 1 so the state label snaps in instantly.
   const fade = useSharedValue(1);
   useEffect(() => {
+    if (reduced) return;
     fade.value = withSequence(
       withTiming(0.55, { duration: FADE.duration / 2, easing: FADE.easing }),
       withTiming(1, { duration: FADE.duration / 2, easing: FADE.easing }),
     );
-  }, [state, fade]);
+  }, [state, fade, reduced]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
