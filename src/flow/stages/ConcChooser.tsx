@@ -73,12 +73,12 @@ const FILTERS: { key: FilterKey; label: string; count: number }[] = [
 // Orb palette per category — [highlight, mid, deep] for radial gradient.
 // Hues chosen to reflect the concentrate's visual identity rather than just brand colours.
 const ORB_PALETTE: Record<FilterKey, [string, string, string]> = {
-  All: [THEME.ember.bright, THEME.ember.deep, THEME.navy[1]], // warm ember — overall mix
-  Solventless: ['#f6e090', '#c0a040', '#3a2a08'], // pale gold
-  Hash: ['#d49a5a', '#7a3e1c', '#2a1408'], // amber-brown
-  Hydrocarbon: ['#ffb68b', '#ff7a00', '#3d1a00'], // ember
-  Distillate: ['#ffe26a', '#c89020', '#3a2406'], // saturated gold
-  Novel: ['#e09cf5', '#9a3ec8', '#2a0d36'], // magenta
+  All: [THEME.ember.bright, THEME.ember.deep, THEME.navy[1]], // white intensity — overall mix
+  Solventless: ['#f6e090', '#c0a040', '#3a2a08'], // pale gold (yellow, not orange — kept)
+  Hash: ['#d4d4d4', '#666666', '#0a0a0a'], // cool monochrome (was amber-brown)
+  Hydrocarbon: ['#ffffff', '#cccccc', '#222222'], // white intensity (was ember)
+  Distillate: ['#ffe26a', '#c89020', '#3a2406'], // saturated gold (yellow, not orange — kept)
+  Novel: ['#e09cf5', '#9a3ec8', '#2a0d36'], // magenta (kept)
 };
 
 // ─── Category orb (SVG with radial gradient + specular) ───────────────────────
