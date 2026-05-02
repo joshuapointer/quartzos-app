@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, radius, colors } from '../tokens';
 
 export type SurfaceCardVariant = 'active' | 'inactive' | 'neutral';
+export type SurfaceCardGlow = 'hot' | 'cool' | 'none';
 
 interface Props {
   children: React.ReactNode;
@@ -18,12 +19,30 @@ interface Props {
   contentStyle?: StyleProp<ViewStyle>;
   /** Elevation shadow — defaults true */
   elevated?: boolean;
+  /** Optional neon outer glow. Overrides variant border + adds shadow. */
+  glow?: SurfaceCardGlow;
 }
 
 const GRADIENT_MAP: Record<SurfaceCardVariant, readonly [string, string]> = {
   active:   gradients.cardActive,
   inactive: gradients.cardInactive,
   neutral:  gradients.cardNeutral,
+};
+
+const VARIANT_BORDER: Record<SurfaceCardVariant, string> = {
+  active:   'rgba(255,255,255,0.20)',
+  inactive: 'rgba(255,255,255,0.06)',
+  neutral:  'rgba(255,255,255,0.08)',
+};
+
+const GLOW_BORDER: Record<Exclude<SurfaceCardGlow, 'none'>, string> = {
+  hot:  'rgba(255,255,255,0.55)',
+  cool: '#00a8ff',
+};
+
+const GLOW_SHADOW: Record<Exclude<SurfaceCardGlow, 'none'>, string> = {
+  hot:  '#ffffff',
+  cool: '#00a8ff',
 };
 
 export function SurfaceCard({
@@ -33,15 +52,31 @@ export function SurfaceCard({
   style,
   contentStyle,
   elevated = true,
+  glow = 'none',
 }: Props) {
+  const borderColor = glow !== 'none' ? GLOW_BORDER[glow] : VARIANT_BORDER[variant];
+  const glowShadow = glow !== 'none'
+    ? {
+        shadowColor: GLOW_SHADOW[glow],
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.35,
+        shadowRadius: 14,
+        elevation: 10,
+      }
+    : null;
+
   return (
-    <View style={[elevated && styles.shadow, style]}>
+    <View style={[elevated && styles.shadow, glowShadow, style]}>
       <LinearGradient
         colors={GRADIENT_MAP[variant]}
         style={[styles.card, { borderRadius }]}
       >
         <View
-          style={[StyleSheet.absoluteFillObject, styles.border, { borderRadius }]}
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.border,
+            { borderRadius, borderColor },
+          ]}
           pointerEvents="none"
         />
         <View style={[styles.content, contentStyle]}>{children}</View>
@@ -62,8 +97,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   border: {
-    borderWidth: 0.5,
-    borderColor: colors.glassBorder,
+    borderWidth: 1,
   },
   content: {
     // padding set by consumer
