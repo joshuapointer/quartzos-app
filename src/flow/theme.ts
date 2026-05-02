@@ -6,6 +6,8 @@
  * values now resolve to the warm-espresso/ember/quartz tokens.
  */
 
+import { Easing } from 'react-native';
+
 export const THEME = {
   // "navy" key kept for back-compat — values are warm obsidian surface ramp.
   navy: {
@@ -23,6 +25,10 @@ export const THEME = {
     50:  '#a78b7c',  // outline
     35:  '#7a5c4b',
     20:  '#584235',  // outline-variant
+    warm04: 'rgba(246, 222, 210, 0.04)',
+    warm08: 'rgba(246, 222, 210, 0.08)',
+    warm10: 'rgba(246, 222, 210, 0.10)',
+    warm18: 'rgba(246, 222, 210, 0.18)',
   },
   ember: {
     bright: '#ffb68b',                    // primary
@@ -36,7 +42,10 @@ export const THEME = {
     deep:   '#004a75',                    // on-tertiary-fixed-variant
     glow:   'rgba(0, 168, 255, 0.30)',    // tertiary-container at 30% alpha
   },
-  danger:  '#ffb4ab',
+  danger: {
+    base:  '#ffb4ab',
+    deep:  '#c44444',
+  },
   // Distinct from ember.bright (#ffb68b) — a warmer, more saturated amber
   // so a "+N°" warning reads differently than an active ember accent.
   warn:    '#ffa45c',
@@ -88,6 +97,7 @@ export const RADIUS = {
   disc:     9999,
 } as const;
 
+// SPACE is the canonical spacing scale for the linear flow (src/flow). The design.md 'spacing' ramp in src/design/tokens.ts is reserved for the second design system. Do not cross-import.
 // Flow spacing scale. Existing keys (xs..xxxl) preserved at their original
 // pixel values to avoid layout regressions in the linear flow. design.md
 // spacing tokens (unit, elementGap, containerPadding, plus the canonical
@@ -126,4 +136,26 @@ export const DUR = {
 /** Cubic-bezier for expo-style ease-out — matches CSS cubic-bezier(.22,1,.36,1) */
 export const EASE_OUT_EXPO = {
   curve: [0.22, 1, 0.36, 1] as const,
+} as const;
+
+/**
+ * SCREEN replaces inline magic numbers for layout geometry.
+ * Note: the src/design/tokens.ts ramp belongs to the second design system —
+ * do not import from there into src/flow.
+ */
+export const SCREEN = {
+  HPAD:         22,
+  BOTTOM:       80,
+  PILL_RADIUS:  9999,
+  CARD_RADIUS:  24,
+  CARD_RADIUS_SM: 16,
+  BADGE_RADIUS: 12,
+  CARD_MAX:     320,
+} as const;
+
+/** Stagger-entrance motion constants for the linear flow. */
+export const MOTION = {
+  STAGGER_MS:        60,
+  STAGGER_ENTER_DUR_MS: 600,
+  STAGGER_EASE:      Easing.bezier(0.22, 1, 0.36, 1),
 } as const;

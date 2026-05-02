@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import {
   Pressable,
@@ -12,12 +11,12 @@ import Animated, {
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import { useConcentrate, useFlow } from '../store';
-import { THEME, TYPE } from '../theme';
+import { MOTION, SCREEN, SPACE, THEME, TYPE } from '../theme';
+import { PrimaryButton } from '../components/PrimaryButton';
 
 import BangerChooser from './BangerChooser';
 import ConcChooser from './ConcChooser';
@@ -26,10 +25,10 @@ import WallChooser from './WallChooser';
 
 const STEP_LABELS = ['BANGER', 'CONCENTRATE', 'WALL', 'REVIEW'] as const;
 const STEP_TITLES = [
-  'Pick your vessel.',
-  'What are you dabbing?',
-  'Wall thickness?',
-  'Calibration locked.',
+  'Select your banger.',
+  'Choose your concentrate.',
+  'Banger wall thickness.',
+  'Setup confirmed.',
 ] as const;
 
 // ─── Progress pill ────────────────────────────────────────────────────────────
@@ -45,7 +44,7 @@ function ProgressPill({ index, step }: ProgressPillProps) {
   useEffect(() => {
     progress.value = withTiming(index <= step ? 1 : 0, {
       duration: 400,
-      easing: Easing.inOut(Easing.ease),
+      easing: MOTION.STAGGER_EASE,
     });
   }, [index, step, progress]);
 
@@ -110,11 +109,6 @@ export default function BuildStage() {
     return true;
   })();
 
-  const continueScale = useSharedValue(1);
-  const continueAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: continueScale.value }],
-  }));
-
   function handleBack() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     builderBack();
@@ -124,15 +118,8 @@ export default function BuildStage() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     builderNext();
   }
-  function handleContinuePressIn() {
-    if (!ready) return;
-    continueScale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
-  }
-  function handleContinuePressOut() {
-    continueScale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
-  }
 
-  const continueLabel = step < 3 ? 'CONTINUE' : 'START SESH';
+  const continueLabel = step < 3 ? 'CONTINUE' : 'BEGIN SESSION';
 
   return (
     <View style={styles.container}>
@@ -146,16 +133,12 @@ export default function BuildStage() {
       {/* Eyebrow + title — centered */}
       <View style={styles.headerBlock}>
         <Text style={styles.eyebrow}>
-          STEP {step + 1}/4 · {STEP_LABELS[step]}
+          {STEP_LABELS[step]}
         </Text>
         <Text style={styles.title}>{STEP_TITLES[step]}</Text>
       </View>
 
       <StageBody step={step} />
-
-      {!ready && step < 3 && (
-        <Text style={styles.notReadyHint}>Make a selection to continue</Text>
-      )}
 
       {/* Three equal-flex cells keep the continue pill optically centered
           regardless of whether Back is present. */}
@@ -174,28 +157,11 @@ export default function BuildStage() {
           )}
         </View>
 
-        <Animated.View style={[styles.continueWrap, continueAnimStyle]}>
-          <Pressable
-            onPress={handleNext}
-            onPressIn={handleContinuePressIn}
-            onPressOut={handleContinuePressOut}
-            disabled={!ready}
-            style={[styles.continuePressable, !ready && styles.continuePressableDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel={continueLabel}
-            accessibilityState={{ disabled: !ready }}
-          >
-            <LinearGradient
-              colors={['#ff8a14', '#ff7a00']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={[StyleSheet.absoluteFill, styles.continueBg]}
-            />
-            {/* Hairline highlight near top edge */}
-            <View style={styles.pillHighlight} />
-            <Text style={styles.continueText}>{continueLabel}</Text>
-          </Pressable>
-        </Animated.View>
+        <PrimaryButton
+          label={continueLabel}
+          onPress={handleNext}
+          disabled={!ready}
+        />
 
         <View style={styles.bottomCellRight} />
       </View>
@@ -209,7 +175,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 4,
-    paddingHorizontal: 22,
+    paddingHorizontal: SCREEN.HPAD,
     paddingBottom: 28,
   },
   // ── Progress strip ──
@@ -217,7 +183,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: SPACE.lg,
   },
   progressPill: {
     width: 48,
@@ -230,9 +196,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   progressPillFuture: {
-    backgroundColor: 'rgba(246, 222, 210, 0.10)',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(246, 222, 210, 0.30)',
+    backgroundColor: THEME.bone.warm08,
   },
   progressPillCurrent: {
     elevation: 3,
@@ -260,14 +224,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
-  // ── Not-ready hint ──
-  notReadyHint: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 10.5,
-    color: THEME.bone[35],
-    textAlign: 'center',
-    marginBottom: 6,
-  },
   // ── Bottom row — flex row with three cells: back / continue / spacer ──
   bottomRow: {
     flexDirection: 'row',
@@ -285,53 +241,14 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 100,
+    paddingHorizontal: SPACE.lg,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: 'transparent',
   },
   backText: {
     fontFamily: 'Geist_500Medium',
     fontSize: 12,
-    color: THEME.bone[50],
+    color: THEME.bone[70],
     letterSpacing: 0.04 * 12,
-  },
-  continueWrap: {
-    alignItems: 'center',
-  },
-  continuePressable: {
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 9999,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#ff7a00',
-    shadowRadius: 28,
-    shadowOpacity: 0.55,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 12,
-  },
-  continuePressableDisabled: {
-    opacity: 0.45,
-  },
-  continueBg: {
-    borderRadius: 9999,
-  },
-  // Hairline highlight near top edge of pill
-  pillHighlight: {
-    position: 'absolute',
-    top: 8,
-    left: 18,
-    right: 18,
-    height: 1,
-    backgroundColor: 'rgba(255, 240, 220, 0.45)',
-    borderRadius: 1,
-  },
-  continueText: {
-    fontFamily: 'GeistMono_500Medium',
-    fontSize: 12,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
-    color: '#1c110a',
   },
 });

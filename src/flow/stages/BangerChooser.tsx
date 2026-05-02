@@ -21,8 +21,6 @@ import {
   type ViewToken,
 } from 'react-native';
 import Animated, {
-  Easing,
-  FadeIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -31,36 +29,27 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BANGERS, type Banger, type BangerGeometry } from '../data';
 import { BANGER_IMAGES } from '../bangerImages';
+import { useStaggerEntrance } from '../components/useStaggerEntrance';
 import { useFlow } from '../store';
-import { THEME, TYPE } from '../theme';
+import { SCREEN, SPACE, THEME, TYPE } from '../theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const SIDE_PAD = 22;
 const CARD_GAP = 12;
 // Carousel card width: nearly full width with small peek of the next card.
 // Banger images are square (512×512) — keep card 1:1 so the full image is
 // visible with no crop and centered in its frame.
 const CARD_PEEK = 32;
-const CARD_W = SCREEN_W - SIDE_PAD * 2 - CARD_PEEK;
+const CARD_W = SCREEN_W - SCREEN.HPAD * 2 - CARD_PEEK;
 const CARD_H = CARD_W;
-
-const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 // ─── Geometry filter types ─────────────────────────────────────────────────────
 
 type GeomFilter = BangerGeometry;
 
-const GEOM_SUBTYPE: Record<GeomFilter, string> = {
-  bucket: 'CUP-SHAPE',
-  slurper: 'VORTEX',
-  insert: 'DROP-IN',
-  enail: 'E-NAIL',
-};
-
-const GEOM_FILTERS: { key: GeomFilter; label: string; sub: string; count: number }[] = [
-  { key: 'bucket', label: 'Bucket', sub: GEOM_SUBTYPE.bucket, count: BANGERS.filter(b => b.geometry === 'bucket').length },
-  { key: 'slurper', label: 'Slurper', sub: GEOM_SUBTYPE.slurper, count: BANGERS.filter(b => b.geometry === 'slurper').length },
-  { key: 'insert', label: 'Insert', sub: GEOM_SUBTYPE.insert, count: BANGERS.filter(b => b.geometry === 'insert').length },
+const GEOM_FILTERS: { key: GeomFilter; label: string; count: number }[] = [
+  { key: 'bucket', label: 'Bucket', count: BANGERS.filter(b => b.geometry === 'bucket').length },
+  { key: 'slurper', label: 'Slurper', count: BANGERS.filter(b => b.geometry === 'slurper').length },
+  { key: 'insert', label: 'Insert', count: BANGERS.filter(b => b.geometry === 'insert').length },
 ];
 
 function passesGeomFilter(b: Banger, f: GeomFilter): boolean {
@@ -141,9 +130,6 @@ function GeomChip({ item, active, onPress }: GeomChipProps) {
         {item.label}
       </Text>
       <View style={[styles.geomTag, active && styles.geomTagActive]}>
-        <Text style={[styles.geomTagText, active && styles.geomTagTextActive]}>
-          {item.sub}
-        </Text>
         <Text style={[styles.geomTagCount, active && styles.geomTagCountActive]}>
           {item.count}
         </Text>
@@ -198,7 +184,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
 
   const ringColor = active
     ? 'rgba(255, 122, 0, 0.85)'
-    : 'rgba(180, 200, 230, 0.10)';
+    : THEME.bone.warm10;
 
   return (
     <Animated.View style={[styles.cardWrap, animStyle, active && styles.cardShadow]}>
@@ -228,7 +214,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
 
         {/* Tight scrim only over the bottom label zone — keeps banger silhouette legible. */}
         <LinearGradient
-          colors={['transparent', active ? 'rgba(12,6,0,0.92)' : 'rgba(6,10,20,0.92)']}
+          colors={['transparent', 'rgba(12, 6, 0, 0.92)']}
           start={{ x: 0.5, y: 0.78 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -254,7 +240,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
         <View style={styles.cardBottom}>
           <Text style={styles.cardTitle} numberOfLines={1}>{banger.name}</Text>
           <Text style={styles.cardMetaLine} numberOfLines={1}>
-            {banger.geometry.toUpperCase()} · {banger.category.toUpperCase()} · {banger.heat_time} HEAT
+            {banger.geometry.toUpperCase()} · {banger.heat_time} HEAT
           </Text>
         </View>
       </Pressable>
@@ -313,6 +299,7 @@ export default function BangerChooser() {
 
   function handleCardPress(b: Banger) {
     userInteractedRef.current = true;
+    setTimeout(() => { userInteractedRef.current = false; }, 300);
     void Haptics.selectionAsync();
     setBangerId(b.id);
   }
@@ -321,10 +308,11 @@ export default function BangerChooser() {
     userInteractedRef.current = true;
   }
 
+  const containerStyle = useStaggerEntrance(0);
+
   return (
     <Animated.View
-      style={styles.container}
-      entering={FadeIn.duration(380).easing(STAGGER_EASING)}
+      style={[styles.container, containerStyle]}
     >
       {/* Geometry selector — three equal cards, full row */}
       <View style={styles.geomRow}>
@@ -370,14 +358,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     // Bleed horizontally so carousel extends to edges
-    marginHorizontal: -SIDE_PAD,
+    marginHorizontal: -SCREEN.HPAD,
   },
 
   // ── Geometry selector row (3 equal cards) ──
   geomRow: {
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: SIDE_PAD,
+    gap: SPACE.lg,
+    paddingHorizontal: SCREEN.HPAD,
     paddingBottom: 16,
   },
   geomCard: {
@@ -387,8 +375,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
-    backgroundColor: 'rgba(180, 200, 230, 0.03)',
+    borderColor: THEME.bone.warm10,
+    backgroundColor: 'rgba(246, 222, 210, 0.03)',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 6,
@@ -409,7 +397,7 @@ const styles = StyleSheet.create({
   },
   geomLabel: {
     fontFamily: 'Geist_500Medium',
-    fontSize: 14,
+    fontSize: 15,
     letterSpacing: -0.2,
     color: THEME.bone[90],
   },
@@ -422,24 +410,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 3,
     paddingHorizontal: 7,
-    borderRadius: 100,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: 'rgba(0, 0, 0, 0.32)',
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.08)',
+    borderColor: THEME.bone.warm08,
   },
   geomTagActive: {
     backgroundColor: 'rgba(0, 0, 0, 0.42)',
     borderColor: 'rgba(255, 174, 90, 0.22)',
-  },
-  geomTagText: {
-    ...(TYPE.mono as object),
-    fontSize: 8,
-    letterSpacing: 0.16 * 8,
-    color: THEME.bone[35],
-    textTransform: 'uppercase',
-  } as const,
-  geomTagTextActive: {
-    color: THEME.bone[70],
   },
   geomTagCount: {
     ...(TYPE.mono as object),
@@ -454,9 +432,9 @@ const styles = StyleSheet.create({
   // ── Carousel ──
   carousel: {
     gap: CARD_GAP,
-    paddingHorizontal: SIDE_PAD,
+    paddingHorizontal: SCREEN.HPAD,
     paddingBottom: 16,
-    paddingRight: SIDE_PAD + CARD_PEEK + CARD_GAP,
+    paddingRight: SCREEN.HPAD + CARD_PEEK + CARD_GAP,
   },
   cardWrap: {
     width: CARD_W,
@@ -485,24 +463,24 @@ const styles = StyleSheet.create({
     width: CARD_H * 1.6,
     height: CARD_H * 1.6,
     marginLeft: -CARD_H * 0.8,
-    borderRadius: 9999,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: 'rgba(255, 122, 0, 0.10)',
   },
   ring: {
     borderRadius: 20,
-    borderWidth: 1.25,
+    borderWidth: 1,
   },
   // Top row holds tag + (optional) check; flex row pushes them to opposite edges.
   cardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 14,
-    paddingHorizontal: 14,
+    paddingTop: SPACE.lg,
+    paddingHorizontal: SPACE.lg,
   },
   cardTag: {
     backgroundColor: 'rgba(20, 14, 4, 0.68)',
-    borderRadius: 100,
+    borderRadius: SCREEN.PILL_RADIUS,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 174, 90, 0.30)',
     paddingVertical: 4,

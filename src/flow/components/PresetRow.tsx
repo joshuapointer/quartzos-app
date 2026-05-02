@@ -36,7 +36,7 @@ import {
   computeCalibration,
   type SavedPreset,
 } from '../data';
-import { THEME } from '../theme';
+import { SCREEN, THEME } from '../theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -260,13 +260,13 @@ export default PresetRow;
 
 const styles = StyleSheet.create({
   pressable: {
-    borderRadius: 999,
+    borderRadius: SCREEN.PILL_RADIUS,
     overflow: 'hidden',
     width: '100%',
   },
   blurContainer: {
     padding: 18,
-    borderRadius: 999,
+    borderRadius: SCREEN.PILL_RADIUS,
   },
   innerBorder: {
     position: 'absolute',
@@ -274,9 +274,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 999,
+    borderRadius: SCREEN.PILL_RADIUS,
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
+    borderColor: THEME.bone.warm10,
   },
   contentRow: {
     flexDirection: 'row',
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
   builtinTag: {
     paddingVertical: 2,
     paddingHorizontal: 5,
-    borderRadius: 4,
-    backgroundColor: 'rgba(180, 200, 230, 0.06)',
+    borderRadius: SCREEN.BADGE_RADIUS,
+    backgroundColor: THEME.bone.warm08,
     flexShrink: 0,
   },
   builtinText: {

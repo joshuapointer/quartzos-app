@@ -18,7 +18,7 @@ import Svg, {
 import PresetRow from '../components/PresetRow';
 import { SAVED_PRESETS } from '../data';
 import { useFlow } from '../store';
-import { THEME } from '../theme';
+import { SCREEN, THEME } from '../theme';
 import { useStaggerEntrance } from '../components/useStaggerEntrance';
 
 function NewSeshCircle() {
@@ -94,7 +94,7 @@ function NewSeshCard({ onPress }: { onPress: () => void }) {
         onPressOut={handlePressOut}
         style={cardSt.pressable}
         accessibilityRole="button"
-        accessibilityLabel="Build a new sesh"
+        accessibilityLabel="Build a new session"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <BlurView intensity={22} tint="dark" style={cardSt.blur}>
@@ -102,8 +102,8 @@ function NewSeshCard({ onPress }: { onPress: () => void }) {
           <View style={cardSt.innerBorder} />
           <View style={cardSt.content}>
             <NewSeshCircle />
-            <Text style={cardSt.name}>New sesh</Text>
-            <Text style={cardSt.sub}>Build a custom temp profile.</Text>
+            <Text style={cardSt.name}>New session</Text>
+            <Text style={cardSt.sub}>Configure your setup.</Text>
           </View>
         </BlurView>
       </Pressable>
@@ -117,7 +117,7 @@ const cardSt = StyleSheet.create({
     overflow: 'hidden',
     alignSelf: 'center',
     width: '100%',
-    maxWidth: 320,
+    maxWidth: SCREEN.CARD_MAX,
     shadowColor: '#000',
     shadowRadius: 24,
     shadowOpacity: 0.4,
@@ -176,7 +176,7 @@ const cardSt = StyleSheet.create({
 function SavedPill() {
   return (
     <View style={pillSt.pill}>
-      <Text style={pillSt.label}>SAVED</Text>
+      <Text style={pillSt.label}>PRESETS</Text>
     </View>
   );
 }
@@ -186,7 +186,7 @@ const pillSt = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 9999,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: 'rgba(246,222,210,0.04)',
     borderWidth: 0.5,
     borderColor: 'rgba(246,222,210,0.18)',
@@ -223,7 +223,7 @@ function EmptyPresetsHint() {
   return (
     <View style={emptySt.wrapper}>
       <Text style={emptySt.text}>
-        Saved presets appear here after your first sesh.
+        Saved presets appear here after your first session.
       </Text>
     </View>
   );
@@ -258,7 +258,7 @@ export default function ChooseStage() {
 
       <Animated.View style={s0}>
         <View style={st.header}>
-          <Text style={st.headline}>Start a sesh.</Text>
+          <Text style={st.headline}>Start a session.</Text>
         </View>
       </Animated.View>
 
@@ -296,7 +296,7 @@ const st = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     paddingTop: 4,
-    paddingHorizontal: 22,
+    paddingHorizontal: SCREEN.HPAD,
   },
   header: {
     marginBottom: 20,
@@ -317,6 +317,6 @@ const st = StyleSheet.create({
   },
   listContent: {
     gap: 8,
-    paddingBottom: 130,
+    paddingBottom: SCREEN.BOTTOM,
   },
 });

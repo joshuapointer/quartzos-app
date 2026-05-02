@@ -12,7 +12,7 @@
  */
 
 import React, { memo, useEffect, useId, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -34,6 +34,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { THEME, TYPE } from '../theme';
+import { useReducedMotion } from './useReducedMotion';
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -58,8 +59,6 @@ export type OrbProps = {
   label?: string;
   /** Live °F for cool / dunk / clean states. */
   temp?: number;
-  /** Dab window center °F. */
-  target?: number;
   /** Dab window low °F. */
   low?: number;
   /** Dab window high °F. */
@@ -70,8 +69,11 @@ export type OrbProps = {
   heatTotalSeconds?: number;
   /** Hide the temp readout (dab phase). */
   noReading?: boolean;
-  /** Degrees-per-second drop rate (cool phase). */
-  dropRate?: number;
+  /**
+   * When true, the body breathe animation runs at half rate (4s per half cycle
+   * vs 2s) for a calmer "idle" feel. Default false.
+   */
+  idleBreathe?: boolean;
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -88,24 +90,26 @@ const DEFAULT_SIZE: Record<OrbState, number> = {
   // largest stage of the cool phase. Slightly under heat (290) so the visual
   // hierarchy still reads "after the burn" rather than "second torch".
   'cool-in-window': 280,
-  dab: 240,
+  // The dab is the moment of the product — same stage as the in-window state.
+  // Don't shrink at the moment of payoff.
+  dab: 280,
   dunk: 240,
   clean: 170,
   complete: 150,
 };
 
 const DEFAULT_LABEL: Record<OrbState, string> = {
-  idle: 'DEVICE NOT FOUND',
+  idle: 'DAB RITE OFFLINE',
   searching: 'SCANNING',
   standby: 'STANDBY',
   heat: 'TORCH',
   'heat-reheat': 'REHEAT',
   cool: 'LIVE · IR',
   'cool-fast-drop': 'COOLING FAST',
-  'cool-in-window': 'IN WINDOW · LIFT TO DAB',
+  'cool-in-window': 'IN WINDOW',
   dab: 'DABBING',
   dunk: 'DUNK READY',
-  clean: 'CLEAN UP',
+  clean: 'CLEAN',
   complete: 'COMPLETE',
 };
 
@@ -175,8 +179,8 @@ function TorchRingInner({
 
   const gradId = useMemo(() => `torch-${reheat ? 'r' : 'n'}-${size}`, [reheat, size]);
 
-  const ringHi = reheat ? THEME.danger : THEME.ember.bright;
-  const ringLo = reheat ? '#c44' : THEME.ember.deep;
+  const ringHi = reheat ? THEME.danger.base : THEME.ember.bright;
+  const ringLo = reheat ? THEME.danger.deep : THEME.ember.deep;
 
   return (
     <View style={[styles.box, { width: size, height: size }]}>
@@ -242,13 +246,17 @@ function TorchRingInner({
         <Text
           style={[
             styles.bigNumber,
-            { fontSize: Math.round(size * 0.34), color: THEME.bone[100] },
+            {
+              fontSize: Math.round(size * 0.34),
+              letterSpacing: -Math.round(size * 0.34) * 0.07,
+              color: THEME.bone[100],
+            },
           ]}
         >
           {secondsLeft}
         </Text>
         <Text style={[styles.monoCaption, { marginTop: 12 }]}>
-          {`SECONDS · ${Math.round(heatTotalSeconds)}s TOTAL`}
+          {`${Math.round(heatTotalSeconds)}s HEAT`}
         </Text>
       </View>
     </View>
@@ -267,6 +275,8 @@ interface TempDialProps {
   noReading: boolean;
   inWindow: boolean;
   fastDrop: boolean;
+  idleBreathe: boolean;
+  reduced: boolean;
 }
 
 function TempDialInner({
@@ -277,6 +287,8 @@ function TempDialInner({
   noReading,
   inWindow,
   fastDrop,
+  idleBreathe,
+  reduced,
 }: TempDialProps) {
   const cx = size / 2;
   const cy = size / 2;
@@ -287,21 +299,32 @@ function TempDialInner({
   const causticCcw = useSharedValue(0);
   const breathe = useSharedValue(0);
   const searchPulse = useSharedValue(0);
+  // Session arc — slow quartz hairline that completes one rotation every 90s,
+  // rendered only during cool/dab/dunk/clean phases. (Bold #6.)
+  const sessionArcRotation = useSharedValue(0);
 
   // Caustics + breathe only run when the orb is in a live state. Idle, standby,
   // searching, and complete are static moments — leaving worklets repeating
   // forever during build choosers (orb suppressed at scale 0.5) was wasted UI
-  // thread work.
+  // thread work. ConnectStage opts the idle state into the breathe via
+  // `idleBreathe` so the lone "AWAITING SIGNAL" orb feels alive.
   const isLive =
     state === 'cool' ||
     state === 'cool-fast-drop' ||
     state === 'cool-in-window' ||
     state === 'dab' ||
     state === 'dunk' ||
-    state === 'clean';
+    state === 'clean' ||
+    (idleBreathe && state === 'idle');
+
+  // Breathe pacing:
+  //   - idleBreathe (idle stage): calm 4s half-cycle.
+  //   - dab: 2x rate (2s half-cycle) — feels "occupied" without dimming the body.
+  //   - default live: 4s half-cycle.
+  const breatheHalfMs = state === 'dab' ? 2000 : 4000;
 
   useEffect(() => {
-    if (!isLive) {
+    if (reduced || !isLive) {
       cancelAnimation(causticCw);
       cancelAnimation(causticCcw);
       cancelAnimation(breathe);
@@ -319,8 +342,8 @@ function TempDialInner({
     );
     breathe.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: breatheHalfMs, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: breatheHalfMs, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
       false,
@@ -330,10 +353,10 @@ function TempDialInner({
       cancelAnimation(causticCcw);
       cancelAnimation(breathe);
     };
-  }, [isLive, breathe, causticCcw, causticCw]);
+  }, [isLive, breathe, causticCcw, causticCw, reduced, breatheHalfMs]);
 
   useEffect(() => {
-    if (state === 'searching') {
+    if (!reduced && state === 'searching') {
       searchPulse.value = withRepeat(
         withSequence(
           withTiming(1, { duration: 700, easing: Easing.inOut(Easing.ease) }),
@@ -349,7 +372,33 @@ function TempDialInner({
     return () => {
       cancelAnimation(searchPulse);
     };
-  }, [state, searchPulse]);
+  }, [state, searchPulse, reduced]);
+
+  // Session arc — only spins during cool/dab/dunk/clean. One full rotation per
+  // 90s, hairline quartz. Skipped when reduced motion is on (still renders
+  // statically below for visual continuity).
+  const showSessionArc =
+    state === 'cool' ||
+    state === 'cool-fast-drop' ||
+    state === 'cool-in-window' ||
+    state === 'dab' ||
+    state === 'dunk' ||
+    state === 'clean';
+
+  useEffect(() => {
+    if (reduced || !showSessionArc) {
+      cancelAnimation(sessionArcRotation);
+      return;
+    }
+    sessionArcRotation.value = withRepeat(
+      withTiming(1, { duration: 90000, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(sessionArcRotation);
+    };
+  }, [showSessionArc, reduced, sessionArcRotation]);
 
   const causticCwStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${causticCw.value * 360}deg` }],
@@ -363,7 +412,9 @@ function TempDialInner({
   const searchPulseStyle = useAnimatedStyle(() => ({
     opacity: interpolate(searchPulse.value, [0, 1], [0, 0.6]),
   }));
-
+  const sessionArcStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${sessionArcRotation.value * 360}deg` }],
+  }));
   const showTemp =
     !noReading &&
     typeof temp === 'number' &&
@@ -380,8 +431,10 @@ function TempDialInner({
       ? THEME.ember.bright
       : THEME.bone[50];
 
-  // Dim the body during the dab state.
-  const bodyOpacity = state === 'dab' ? 0.5 : 1;
+  // Body stays at full opacity during the dab — "occupied" is conveyed via the
+  // 2x-rate breathe (above) rather than dimming. The dab is the moment of the
+  // product; don't fade it.
+  const bodyOpacity = 1;
 
   // Numeric scaling — match prototype rule (3+ digits → 0.42, else 0.50).
   const tempStr = showTemp ? `${Math.round(temp ?? 0)}` : '';
@@ -401,17 +454,39 @@ function TempDialInner({
         breatheStyle,
       ]}
     >
-      {/* Far halo — softly tinted by state. We use shadow rather than blur
-          to keep iOS GPU happy; visually similar at this scale. */}
-      <View
-        pointerEvents="none"
-        style={[
-          styles.haloAbs,
-          {
-            shadowColor: isCool(state) ? THEME.ember.bright : THEME.quartz.glow,
-          },
-        ]}
-      />
+      {/* Far halo — softly tinted by state. iOS uses shadow; Android can't
+          render shadowColor on a non-elevated View, so we render a tinted
+          backing circle scaled 1.4x to simulate the bloom. Cool/standby glows
+          quartz; active/heat glows ember. */}
+      {Platform.OS === 'android' ? (
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no"
+          style={[
+            styles.haloAndroid,
+            {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              backgroundColor: isCool(state)
+                ? THEME.quartz.glow
+                : 'rgba(255, 122, 0, 0.18)',
+              transform: [{ scale: 1.4 }],
+            },
+          ]}
+        />
+      ) : (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.haloAbs,
+            {
+              shadowColor: isCool(state) ? THEME.quartz.glow : THEME.ember.bright,
+            },
+          ]}
+        />
+      )}
 
       {/* Search pulse ring — only animates while searching. */}
       {state === 'searching' && (
@@ -523,7 +598,7 @@ function TempDialInner({
             cy={cy}
             r={r - 6}
             fill="none"
-            stroke={THEME.danger}
+            stroke={THEME.danger.base}
             strokeWidth={1.25}
             opacity={0.55}
           />
@@ -533,6 +608,8 @@ function TempDialInner({
       {/* Caustic layer 1 — clockwise. */}
       <Animated.View
         pointerEvents="none"
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no"
         style={[styles.causticAbs, causticCwStyle]}
       >
         <Svg width={size * 1.4} height={size * 1.4} viewBox="0 0 400 400">
@@ -558,6 +635,8 @@ function TempDialInner({
       {/* Caustic layer 2 — counter-clockwise, slower. */}
       <Animated.View
         pointerEvents="none"
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no"
         style={[styles.causticAbs, causticCcwStyle]}
       >
         <Svg width={size * 1.4} height={size * 1.4} viewBox="0 0 400 400">
@@ -580,6 +659,32 @@ function TempDialInner({
         </Svg>
       </Animated.View>
 
+      {/* Session arc — Bold #6. Hairline quartz arc at the orb's outer edge,
+          completing one revolution every 90s during cool/dab/dunk/clean. */}
+      {showSessionArc && (
+        <Animated.View
+          pointerEvents="none"
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no"
+          style={[styles.sessionArcAbs, sessionArcStyle]}
+        >
+          <Svg width={size} height={size} pointerEvents="none">
+            <Circle
+              cx={cx}
+              cy={cy}
+              r={r - 2}
+              fill="none"
+              stroke={THEME.quartz.bright}
+              strokeOpacity={0.55}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              // Short arc segment — ~14% of the circumference, gap covers rest.
+              strokeDasharray={`${2 * Math.PI * (r - 2) * 0.14} ${2 * Math.PI * (r - 2)}`}
+            />
+          </Svg>
+        </Animated.View>
+      )}
+
       {/* Centered text stack. */}
       <View pointerEvents="none" style={styles.centerStack}>
         <Text
@@ -599,13 +704,23 @@ function TempDialInner({
                 styles.bigNumber,
                 {
                   fontSize: Math.round(size * numScale),
+                  // Tracking proportional to the rendered size so the readout
+                  // never visually loosens or tightens between size morphs.
+                  letterSpacing: -Math.round(size * numScale) * 0.07,
                   color: THEME.bone[100],
                 },
               ]}
             >
               {tempStr}
             </Text>
-            <Text style={styles.degSymbol}>°</Text>
+            <Text
+              style={[
+                styles.degSymbol,
+                { fontSize: Math.round(size * 0.07) },
+              ]}
+            >
+              °
+            </Text>
           </View>
         ) : null}
       </View>
@@ -641,15 +756,15 @@ function OrbInner(props: OrbProps) {
     size: sizeOverride,
     label: labelOverride,
     temp,
-    target: _target,
     low,
     high,
     heatProgress = 0,
     heatTotalSeconds = 30,
     noReading = false,
-    dropRate: _dropRate,
+    idleBreathe = false,
   } = props;
 
+  const reduced = useReducedMotion();
   const targetSize = sizeOverride ?? DEFAULT_SIZE[state];
   const label = labelOverride ?? DEFAULT_LABEL[state];
 
@@ -661,24 +776,37 @@ function OrbInner(props: OrbProps) {
     sizeShared.value = withTiming(targetSize, MORPH);
   }, [targetSize, sizeShared]);
 
-  // One-shot peak pulse on entry to cool-in-window. The dab window is the
-  // single moment the product exists to mark — multiply onto the size scale
-  // for a quick swell that reads as "the moment landed".
-  const peakPulse = useSharedValue(1);
+  // In-Window Climax — Bold #3. The dab window is the moment the product
+  // exists to mark, so the swell needs to be perceptible. 450ms out-exp to
+  // 1.12, then a 600ms spring-decay back to 1.0 (vs the original 220ms@1.06,
+  // which was too brief to register). Reduced-motion: skip the swell entirely.
+  const climaxScale = useSharedValue(1);
+  // Outer corona ring — fires once on cool-in-window entry, fades over 1200ms.
+  const coronaScale = useSharedValue(1);
+  const coronaOpacity = useSharedValue(0);
   const prevStateRef = React.useRef<OrbState>(state);
   useEffect(() => {
     const prev = prevStateRef.current;
     prevStateRef.current = state;
+    if (reduced) return;
     if (prev !== 'cool-in-window' && state === 'cool-in-window') {
-      peakPulse.value = withSequence(
-        withTiming(1.06, { duration: 220, easing: Easing.out(Easing.exp) }),
-        withTiming(1.0, { duration: 480, easing: Easing.bezier(0.22, 1, 0.36, 1) }),
+      climaxScale.value = withSequence(
+        withTiming(1.12, { duration: 450, easing: Easing.out(Easing.exp) }),
+        withTiming(1.0, { duration: 600, easing: Easing.bezier(0.22, 1, 0.36, 1) }),
       );
+      coronaScale.value = 1.0;
+      coronaOpacity.value = 0.55;
+      coronaScale.value = withTiming(1.5, { duration: 1200, easing: Easing.out(Easing.exp) });
+      coronaOpacity.value = withTiming(0, { duration: 1200, easing: Easing.out(Easing.exp) });
     }
-  }, [state, peakPulse]);
+  }, [state, climaxScale, coronaScale, coronaOpacity, reduced]);
 
   const morphStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: (sizeShared.value / BASE) * peakPulse.value }],
+    transform: [{ scale: (sizeShared.value / BASE) * climaxScale.value }],
+  }));
+  const coronaStyle = useAnimatedStyle(() => ({
+    opacity: coronaOpacity.value,
+    transform: [{ scale: coronaScale.value }],
   }));
 
   // Crossfade when state changes — keeps label/treatment swap soft.
@@ -718,6 +846,26 @@ function OrbInner(props: OrbProps) {
       accessibilityLabel={a11yLabel}
       accessibilityElementsHidden={false}
     >
+      {/* Outer corona ring — Bold #3. Fires once on cool-in-window entry,
+          expanding from orb edge to ~1.5x and fading over 1200ms. Quartz hue
+          for explicit cool/warm contrast against the warm orb body. */}
+      {!reduced && (
+        <Animated.View
+          pointerEvents="none"
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no"
+          style={[
+            styles.coronaAbs,
+            {
+              width: BASE,
+              height: BASE,
+              borderRadius: BASE / 2,
+              borderColor: THEME.quartz.bright,
+            },
+            coronaStyle,
+          ]}
+        />
+      )}
       <Animated.View style={[styles.outer, fadeStyle]}>
         {isHeat(state) ? (
           <TorchRing
@@ -736,6 +884,8 @@ function OrbInner(props: OrbProps) {
             noReading={noReading || state === 'dab'}
             inWindow={inWindow}
             fastDrop={fastDrop}
+            idleBreathe={idleBreathe}
+            reduced={reduced}
           />
         )}
       </Animated.View>
@@ -775,6 +925,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sessionArcAbs: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coronaAbs: {
+    position: 'absolute',
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
+  },
   haloAbs: {
     position: 'absolute',
     left: -40,
@@ -785,6 +945,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 60,
     shadowOpacity: 0.6,
+  },
+  // Android can't render shadowColor on a non-elevated View, so we render a
+  // tinted, scaled circle behind the orb body to approximate the iOS bloom.
+  haloAndroid: {
+    position: 'absolute',
+    opacity: 0.7,
   },
   searchPulse: {
     position: 'absolute',
@@ -800,7 +966,8 @@ const styles = StyleSheet.create({
   },
   bigNumber: {
     fontFamily: TYPE.display.fontFamily,
-    letterSpacing: -0.07 * 16,
+    // letterSpacing is set inline at the call site, proportional to fontSize
+    // (-fontSize * 0.07) so spacing scales with the orb's size morph.
     lineHeight: undefined,
     includeFontPadding: false,
   },
@@ -817,7 +984,8 @@ const styles = StyleSheet.create({
   degSymbol: {
     fontFamily: TYPE.display.fontFamily,
     color: THEME.bone[100],
-    fontSize: 22,
+    // fontSize is set inline (Math.round(size * 0.07)) so the degree mark
+    // tracks the orb's current size rather than locking to 22pt.
     marginLeft: 4,
     marginTop: 8,
     opacity: 0.7,

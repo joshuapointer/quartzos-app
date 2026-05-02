@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -13,7 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useFlow } from '../store';
-import { THEME } from '../theme';
+import { SCREEN, THEME } from '../theme';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { useStaggerEntrance } from '../components/useStaggerEntrance';
 
 const EASE_EXPO = Easing.bezier(0.22, 1, 0.36, 1);
@@ -24,8 +24,8 @@ function PulseDot() {
   useEffect(() => {
     opacity.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 700, easing: EASE_EXPO }),
-        withTiming(0.4, { duration: 700, easing: EASE_EXPO }),
+        withTiming(1, { duration: 1100, easing: EASE_EXPO }),
+        withTiming(0.4, { duration: 1100, easing: EASE_EXPO }),
       ),
       -1,
       false,
@@ -40,21 +40,14 @@ const dotStyle = StyleSheet.create({
   dot: {
     width: 5,
     height: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(28, 17, 10, 0.55)',
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(246, 222, 210, 0.50)',
   },
 });
 
-function ConnectButton({
-  searching,
-  onPress,
-}: {
-  searching: boolean;
-  onPress: () => void;
-}) {
+function GhostButton({ onPress }: { onPress: () => void }) {
   const scale = useSharedValue(1);
   const translateY = useSharedValue(0);
-  const locked = useRef(false);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
@@ -70,6 +63,34 @@ function ConnectButton({
     translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
   }
 
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Searching for Dab Rite"
+        accessibilityState={{ busy: true, disabled: true }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={btnStyles.ghost}
+      >
+        <PulseDot />
+        <Text style={btnStyles.ghostText}>SCANNING</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function ConnectButton({
+  searching,
+  onPress,
+}: {
+  searching: boolean;
+  onPress: () => void;
+}) {
+  const locked = useRef(false);
+
   function handlePress() {
     if (locked.current) return;
     locked.current = true;
@@ -79,98 +100,23 @@ function ConnectButton({
   }
 
   if (searching) {
-    return (
-      <Animated.View style={animStyle}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Searching for Dab Rite"
-          accessibilityState={{ busy: true, disabled: true }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          style={btnStyles.ghost}
-        >
-          <PulseDot />
-          <Text style={btnStyles.ghostText}>SEARCHING…</Text>
-        </Pressable>
-      </Animated.View>
-    );
+    return <GhostButton onPress={handlePress} />;
   }
 
   return (
-    <Animated.View style={[btnStyles.shadowWrapper, animStyle]}>
-      <LinearGradient
-        colors={['#ff8a14', '#ff7a00']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={btnStyles.gradient}
-      >
-        <View style={btnStyles.highlight} />
-        <Pressable
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          style={btnStyles.pressable}
-          accessibilityRole="button"
-          accessibilityLabel="Connect Dab Rite"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={btnStyles.text}>CONNECT DAB RITE</Text>
-          <Text style={btnStyles.arrow}>→</Text>
-        </Pressable>
-      </LinearGradient>
-    </Animated.View>
+    <PrimaryButton
+      label="CONNECT"
+      onPress={handlePress}
+      accessibilityLabel="Connect Dab Rite"
+    />
   );
 }
 
 const btnStyles = StyleSheet.create({
-  shadowWrapper: {
-    borderRadius: 9999,
-    shadowColor: '#ff7a00',
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 32,
-    shadowOpacity: 0.55,
-    elevation: 10,
-  },
-  gradient: {
-    borderRadius: 9999,
-    overflow: 'hidden',
-  },
-  highlight: {
-    position: 'absolute',
-    top: 0,
-    left: 18,
-    right: 18,
-    height: 1,
-    backgroundColor: 'rgba(255, 240, 220, 0.45)',
-    zIndex: 1,
-  },
-  pressable: {
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  text: {
-    fontFamily: 'GeistMono_500Medium',
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: '#1c110a',
-    textTransform: 'uppercase',
-  },
-  arrow: {
-    fontFamily: 'GeistMono_500Medium',
-    fontSize: 13,
-    color: '#1c110a',
-    opacity: 0.85,
-  },
   ghost: {
     paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 9999,
+    paddingHorizontal: SCREEN.HPAD,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: 'rgba(246, 222, 210, 0.04)',
     borderWidth: 0.5,
     borderColor: 'rgba(246, 222, 210, 0.18)',
@@ -221,20 +167,22 @@ export default function ConnectStage() {
   const s2 = useStaggerEntrance(2);
 
   const footerText = timedOut
-    ? 'CHECK THE DAB RITE IS POWERED ON'
+    ? 'DAB RITE NOT RESPONDING'
     : searching
-      ? 'SCANNING FOR DEVICE'
-      : 'POWER ON THE DAB RITE TO PAIR';
+      ? 'SCANNING FOR DAB RITE'
+      : 'POWER ON TO PAIR';
 
   return (
     <View style={st.container}>
 
       <Animated.View style={[st.headlineWrapper, s0]}>
-        <Text style={st.headline}>
-          {timedOut
-            ? "We couldn't\nfind your Dab Rite."
-            : 'Connect your\nDab Rite to begin.'}
-        </Text>
+        {timedOut ? (
+          <Text style={st.headline}>
+            {'Find your\nDab Rite.'}
+          </Text>
+        ) : (
+          <Text style={st.awaitingSignal}>AWAITING SIGNAL</Text>
+        )}
       </Animated.View>
 
       <View style={st.spacer} />
@@ -258,22 +206,30 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: 32,
-    paddingHorizontal: 28,
-    paddingBottom: 80,
+    paddingHorizontal: SCREEN.HPAD,
+    paddingBottom: 0,
   },
   headlineWrapper: {
     marginBottom: 8,
   },
   headline: {
     fontFamily: 'Geist_300Light',
-    fontSize: 38,
+    fontSize: 32,
     letterSpacing: -1.52,
-    color: THEME.bone[100],
+    color: THEME.bone[70],
     lineHeight: 42,
     textAlign: 'center',
     textShadowColor: 'rgba(246, 222, 210, 0.18)',
     textShadowRadius: 16,
     textShadowOffset: { width: 0, height: 0 },
+  },
+  awaitingSignal: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: THEME.bone[35],
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   spacer: {
     flex: 1,
@@ -281,7 +237,7 @@ const st = StyleSheet.create({
   },
   footer: {
     fontFamily: 'GeistMono_400Regular',
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 1.7,
     color: THEME.bone[35],
     marginTop: 28,

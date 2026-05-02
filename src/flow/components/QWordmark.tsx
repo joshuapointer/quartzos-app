@@ -4,8 +4,9 @@
  * Header bar: sphere glyph + "Quartzie" wordmark (left) + connection-state pill (right).
  * When `onDisconnect` is provided, renders a Disconnect button instead of the status pill.
  *
- * Accessibility: the connection dot uses accessibilityLiveRegion="polite" so screen
- * readers announce connected/disconnected changes without interrupting the user.
+ * Accessibility: the dot is silent (accessibilityLiveRegion="none") to avoid
+ * over-firing announcements on every render. Parents should announce
+ * intentional connect/disconnect transitions via AccessibilityInfo.announceForAccessibility.
  *
  * Tokens: src/flow/theme.ts
  */
@@ -26,7 +27,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { THEME } from '../theme';
+import { SCREEN, SPACE, THEME } from '../theme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ function AnimatedDot({ connected, size = 6 }: DotProps) {
         },
         animStyle,
       ]}
-      accessibilityLiveRegion="polite"
+      accessibilityLiveRegion="none"
       accessibilityLabel={connected ? 'Connected' : 'Disconnected'}
     />
   );
@@ -140,8 +141,8 @@ export default function QWordmark({ connected, onDisconnect }: QWordmarkProps) {
         </Pressable>
       ) : (
         <View style={styles.statusPill}>
-          <AnimatedDot connected={connected} size={6} />
-          <Text style={styles.statusText}>
+          {connected ? <AnimatedDot connected={connected} size={6} /> : null}
+          <Text style={[styles.statusText, !connected && styles.statusTextOffline]}>
             {connected ? 'CONNECTED' : 'OFFLINE'}
           </Text>
         </View>
@@ -157,8 +158,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
-    paddingHorizontal: 22,
+    paddingTop: SPACE.sm,
+    paddingHorizontal: SCREEN.HPAD,
     paddingBottom: 0,
   },
   wordmarkRow: {
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   wordmarkText: {
-    fontFamily: 'Geist_700Bold',
+    fontFamily: 'Geist_300Light',
     fontSize: 19,
     color: THEME.bone[100],
     letterSpacing: -0.475,
@@ -196,15 +197,18 @@ const styles = StyleSheet.create({
     color: THEME.bone[50],
     textTransform: 'uppercase' as const,
   },
+  statusTextOffline: {
+    color: THEME.bone[35],
+  },
   disconnectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 100,
+    borderRadius: SCREEN.PILL_RADIUS,
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
+    borderColor: 'rgba(255, 122, 0, 0.18)',
   },
   disconnectText: {
     fontFamily: 'GeistMono_400Regular',

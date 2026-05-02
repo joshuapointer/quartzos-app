@@ -9,8 +9,6 @@ import {
   Geist_400Regular,
   Geist_500Medium,
   Geist_600SemiBold,
-  Geist_700Bold,
-  Geist_800ExtraBold,
 } from '@expo-google-fonts/geist';
 import {
   GeistMono_400Regular,
@@ -23,8 +21,6 @@ export function useFlowFonts(): { ready: boolean } {
     Geist_400Regular,
     Geist_500Medium,
     Geist_600SemiBold,
-    Geist_700Bold,
-    Geist_800ExtraBold,
     GeistMono_400Regular,
     GeistMono_500Medium,
   });

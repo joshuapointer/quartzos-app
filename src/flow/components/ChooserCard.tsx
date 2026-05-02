@@ -20,7 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { THEME, TYPE } from '../theme';
+import { SCREEN, SPACE, THEME, TYPE } from '../theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,8 +113,8 @@ function ChooserCardInner({
         StyleSheet.absoluteFill,
         {
           backgroundColor: disabled
-            ? 'rgba(80,30,30,0.10)'
-            : 'rgba(180, 200, 230, 0.04)',
+            ? 'rgba(80,30,30,0.18)'
+            : THEME.bone.warm04,
         },
       ]}
     />
@@ -124,7 +124,7 @@ function ChooserCardInner({
     ? 'rgba(227, 128, 31, 0.6)'
     : disabled
       ? 'rgba(132, 76, 71, 0.4)'
-      : 'rgba(180, 200, 230, 0.08)';
+      : THEME.bone.warm08;
 
   return (
     <Animated.View
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   pressable: {
     borderRadius: 14,
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: SPACE.lg,
     overflow: 'hidden',
     minHeight: 56,
     justifyContent: 'center',

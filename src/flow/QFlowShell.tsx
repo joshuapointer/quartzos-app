@@ -12,7 +12,7 @@
  * snappy-but-smooth expo ease-out feel across stage changes.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet, View, Switch, Text } from 'react-native';
 import Animated, {
   Easing,
@@ -67,6 +67,17 @@ export default function QFlowShell() {
   const disconnect = useFlow((s) => s.disconnect);
   const orbProps = useOrbProps();
 
+  // Bold #3 — In-Window Climax. When the orb enters cool-in-window, briefly
+  // swap QBackground's bloom from ember to quartz to flood the room with cool
+  // contrast at the moment of payoff. Returns to ember after 2s.
+  const [bgMode, setBgMode] = useState<'ember' | 'quartz'>('ember');
+  useEffect(() => {
+    if (orbProps.state !== 'cool-in-window') return;
+    setBgMode('quartz');
+    const t = setTimeout(() => setBgMode('ember'), 2000);
+    return () => clearTimeout(t);
+  }, [orbProps.state]);
+
   const mockBleEnabled = useSettingsStore((s) => s.mockBleEnabled);
   const setMockBleEnabled = useSettingsStore((s) => s.setMockBleEnabled);
 
@@ -79,8 +90,8 @@ export default function QFlowShell() {
   const handleDisconnect = useCallback(() => {
     if (stage === 'session') {
       Alert.alert(
-        'End the sesh?',
-        'Disconnecting now will stop tracking and discard the rest of this session.',
+        'End session?',
+        'This will stop tracking and lose the current session.',
         [
           { text: 'Stay connected', style: 'cancel' },
           { text: 'Disconnect', style: 'destructive', onPress: disconnect },
@@ -109,7 +120,7 @@ export default function QFlowShell() {
 
   return (
     <ErrorBoundary>
-      <QBackground>
+      <QBackground mode={bgMode}>
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <QWordmark
             connected={connected}

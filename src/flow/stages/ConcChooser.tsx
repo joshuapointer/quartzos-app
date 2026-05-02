@@ -22,8 +22,6 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  Easing,
-  FadeIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -39,22 +37,20 @@ import Svg, {
 
 import { CONCENTRATES, type Concentrate, type ConcentrateCat } from '../data';
 import { CONCENTRATE_IMAGES } from '../concentrateImages';
+import { useStaggerEntrance } from '../components/useStaggerEntrance';
 import { useFlow } from '../store';
-import { THEME, TYPE } from '../theme';
+import { SCREEN, SPACE, THEME, TYPE } from '../theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const SIDE_PAD = 22;
 const GRID_GAP = 10;
 // Two columns; each col = (screen - 2*side - 1 gap) / 2
-const TILE_W = (SCREEN_W - SIDE_PAD * 2 - GRID_GAP) / 2;
+const TILE_W = (SCREEN_W - SCREEN.HPAD * 2 - GRID_GAP) / 2;
 const TILE_H = TILE_W * 0.84; // slightly wider than tall
 
 // Category card sizing — fixed width so 4ish cards fit with the next peeking
 const CAT_CARD_W = 82;
 const CAT_CARD_H = 112;
 const CAT_GAP = 10;
-
-const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 // ─── Filter types ──────────────────────────────────────────────────────────────
 
@@ -74,7 +70,7 @@ const FILTERS: { key: FilterKey; label: string; count: number }[] = [
 // Orb palette per category — [highlight, mid, deep] for radial gradient.
 // Hues chosen to reflect the concentrate's visual identity rather than just brand colours.
 const ORB_PALETTE: Record<FilterKey, [string, string, string]> = {
-  All: ['#a994ee', '#5a3ea8', '#1a1230'], // violet — overall mix
+  All: [THEME.ember.bright, THEME.ember.deep, THEME.navy[1]], // warm ember — overall mix
   Solventless: ['#f6e090', '#c0a040', '#3a2a08'], // pale gold
   Hash: ['#d49a5a', '#7a3e1c', '#2a1408'], // amber-brown
   Hydrocarbon: ['#ffb68b', '#ff7a00', '#3d1a00'], // ember
@@ -192,12 +188,12 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
     ? 'rgba(227, 128, 31, 0.75)'
     : disabled
       ? 'rgba(132, 76, 71, 0.35)'
-      : 'rgba(180, 200, 230, 0.09)';
+      : THEME.bone.warm10;
 
   // Gradient palette — warm glows for selected, cooler neutrals otherwise
   const gradColors: [string, string] = active
     ? ['rgba(18,10,1,0.20)', 'rgba(10,6,0,0.82)']
-    : ['rgba(10,6,0,0.30)', 'rgba(8,12,24,0.88)'];
+    : ['rgba(10,6,0,0.30)', 'rgba(12, 6, 0, 0.88)'];
 
   return (
     <Animated.View style={[styles.tileWrap, animStyle, active && styles.tileShadow, disabled && styles.tileDisabled]}>
@@ -211,13 +207,12 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
         accessibilityLabel={conc.name}
         accessibilityState={{ disabled, selected: active }}
       >
-        {/* Full-card image — contain shows the complete photo */}
+        {/* Full-card image — cover fills the tile without letterboxing */}
         {image ? (
           <Image
             source={image}
-            style={[StyleSheet.absoluteFill, { transform: [{ translateX: -250 }, { translateY: -150 }] }]}
-            resizeMode="center"
-
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
           />
         ) : (
           // Fallback warm tint
@@ -231,7 +226,7 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
 
         {/* Thin scrim only over the bottom label zone */}
         <LinearGradient
-          colors={['transparent', active ? 'rgba(12,6,0,0.95)' : 'rgba(6,10,20,0.95)']}
+          colors={['transparent', 'rgba(12, 6, 0, 0.95)']}
           start={{ x: 0.5, y: 0.62 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -259,12 +254,14 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
           <Text style={[styles.tileName, disabled && styles.tileDim]} numberOfLines={1}>
             {conc.name}
           </Text>
-          <View style={styles.tileMeta}>
-            <Text style={[styles.tileCat, disabled && styles.tileDim]}>BASE</Text>
-            {conc.surface_optimal != null && !disabled && (
-              <Text style={styles.tileTemp}>{conc.surface_optimal}°F</Text>
-            )}
-          </View>
+          {conc.surface_optimal != null && (
+            <View style={styles.tileMeta}>
+              <Text style={[styles.tileCat, disabled && styles.tileDim]}>SURFACE</Text>
+              {!disabled && (
+                <Text style={styles.tileTemp}>{conc.surface_optimal}°F</Text>
+              )}
+            </View>
+          )}
         </View>
       </Pressable>
     </Animated.View>
@@ -299,10 +296,11 @@ export default function ConcChooser() {
     setFilter(next);
   }
 
+  const containerStyle = useStaggerEntrance(0);
+
   return (
     <Animated.View
-      style={styles.container}
-      entering={FadeIn.duration(380).easing(STAGGER_EASING)}
+      style={[styles.container, containerStyle]}
     >
       {/* Category chips */}
       <ScrollView
@@ -355,7 +353,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     minHeight: 0,
-    marginHorizontal: -SIDE_PAD,
+    marginHorizontal: -SCREEN.HPAD,
   },
   // ── Category cards row ──
   chipsRow: {
@@ -363,8 +361,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: CAT_GAP,
     paddingBottom: 16,
-    paddingHorizontal: SIDE_PAD,
-    paddingRight: SIDE_PAD + 8,
+    paddingHorizontal: SCREEN.HPAD,
+    paddingRight: SCREEN.HPAD + 8,
   },
   catCard: {
     width: CAT_CARD_W,
@@ -374,15 +372,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
-    backgroundColor: 'rgba(180, 200, 230, 0.03)',
+    borderColor: THEME.bone.warm10,
+    backgroundColor: 'rgba(246, 222, 210, 0.03)',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32
+    marginBottom: 0,
   },
   catCardActive: {
-    borderColor: 'rgba(255, 122, 0, 0.85)',
-    backgroundColor: 'rgba(255, 122, 0, 0.10)',
+    borderColor: THEME.ember.base,
+    backgroundColor: THEME.ember.base,
     shadowColor: THEME.ember.base,
     shadowRadius: 18,
     shadowOpacity: 0.30,
@@ -392,7 +390,7 @@ const styles = StyleSheet.create({
   catOrbRing: {
     width: 46,
     height: 46,
-    borderRadius: 9999,
+    borderRadius: SCREEN.PILL_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -419,10 +417,10 @@ const styles = StyleSheet.create({
     minWidth: 24,
     paddingVertical: 2,
     paddingHorizontal: 7,
-    borderRadius: 9999,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: 'rgba(0, 0, 0, 0.32)',
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.08)',
+    borderColor: THEME.bone.warm08,
     alignItems: 'center',
   },
   catCountPillActive: {
@@ -442,7 +440,7 @@ const styles = StyleSheet.create({
   // Grid
   grid: {
     gap: GRID_GAP,
-    paddingHorizontal: SIDE_PAD,
+    paddingHorizontal: SCREEN.HPAD,
     paddingBottom: 16,
   },
   gridRow: {
@@ -494,7 +492,7 @@ const styles = StyleSheet.create({
   },
   blockedBadge: {
     backgroundColor: 'rgba(60, 20, 20, 0.80)',
-    borderRadius: 100,
+    borderRadius: SCREEN.PILL_RADIUS,
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderWidth: 0.5,

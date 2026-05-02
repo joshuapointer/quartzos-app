@@ -7,18 +7,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, {
-  Easing,
-  FadeInUp,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+
+import { useStaggerEntrance } from '../components/useStaggerEntrance';
 import Svg, { Circle } from 'react-native-svg';
 
 import ChooserCard from '../components/ChooserCard';
 import { WALLS, type Wall } from '../data';
 import { useFlow } from '../store';
-import { THEME, TYPE } from '../theme';
-
-const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
+import { SCREEN, SPACE, THEME, TYPE } from '../theme';
 
 type FilterKey = 'All' | 'Thin' | 'Standard' | 'Thick';
 
@@ -93,6 +90,30 @@ function WallBadge({ wall }: { wall: Wall }) {
   return <Text style={[styles.irBadge, { color: THEME.quartz.bright }]}>−{Math.abs(wall.mod)}°F</Text>;
 }
 
+// ─── Animated wall row ────────────────────────────────────────────────────────
+
+function WallRow({ wall, idx, active, onPress }: { wall: Wall; idx: number; active: boolean; onPress: () => void }) {
+  const animStyle = useStaggerEntrance(idx);
+  const adjText = wall.mod === 0
+    ? '0°F'
+    : wall.mod > 0
+      ? `+${wall.mod}°F`
+      : `−${Math.abs(wall.mod)}°F`;
+  const sub = `${adjText} adjustment · ${wall.description}`;
+  return (
+    <Animated.View style={animStyle}>
+      <ChooserCard
+        active={active}
+        onPress={onPress}
+        title={`${wall.name} · ${wall.thickness}`}
+        sub={sub}
+        glyph={<WallGlyph wall={wall} />}
+        right={<WallBadge wall={wall} />}
+      />
+    </Animated.View>
+  );
+}
+
 // ─── WallChooser ──────────────────────────────────────────────────────────────
 
 export default function WallChooser() {
@@ -139,32 +160,18 @@ export default function WallChooser() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
       >
-        {items.map((w, idx) => {
-          const adjText = w.mod === 0
-            ? '0°F'
-            : w.mod > 0
-              ? `+${w.mod}°F`
-              : `−${Math.abs(w.mod)}°F`;
-          const sub = `${adjText} adjustment · ${w.description}`;
-          return (
-            <Animated.View
-              key={w.id}
-              entering={FadeInUp.delay(120 + idx * 55).duration(380).easing(STAGGER_EASING)}
-            >
-              <ChooserCard
-                active={wallId === w.id}
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  setWallId(w.id);
-                }}
-                title={`${w.name} · ${w.thickness}`}
-                sub={sub}
-                glyph={<WallGlyph wall={w} />}
-                right={<WallBadge wall={w} />}
-              />
-            </Animated.View>
-          );
-        })}
+        {items.map((w, idx) => (
+          <WallRow
+            key={w.id}
+            wall={w}
+            idx={idx}
+            active={wallId === w.id}
+            onPress={() => {
+              void Haptics.selectionAsync();
+              setWallId(w.id);
+            }}
+          />
+        ))}
       </ScrollView>
     </View>
   );
@@ -180,19 +187,19 @@ const styles = StyleSheet.create({
   chipsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACE.xs,
     paddingBottom: 12,
-    paddingRight: 22,
+    paddingRight: SCREEN.HPAD,
   },
   chip: {
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 100,
+    paddingHorizontal: SPACE.lg,
+    borderRadius: SCREEN.PILL_RADIUS,
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
+    borderColor: THEME.bone.warm10,
     // Match BangerChooser/ConcChooser inactive chip background so chips look
     // identical across choosers under the warm-obsidian gradient backdrop.
-    backgroundColor: 'rgba(180, 200, 230, 0.04)',
+    backgroundColor: THEME.bone.warm04,
   },
   chipActive: {
     backgroundColor: THEME.ember.base,

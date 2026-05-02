@@ -719,8 +719,6 @@ export const useOrbProps = (): OrbProps => {
   const builderStep = useFlow((s) => s.builderStep);
   const heatTimeFactor = useFlow((s) => s.heatTimeFactor);
   const heatReason = useFlow((s) => s.heatReason);
-  const heatActive = useFlow((s) => s.heatActive);
-  const coolTemp = useFlow((s) => s.coolTemp);
   const coolDropRate = useFlow((s) => s.coolDropRate);
   const searching = useFlow((s) => s.searching);
   const connected = useFlow((s) => s.connected);
@@ -774,7 +772,6 @@ export const useOrbProps = (): OrbProps => {
               ? 'MISSED · REHEAT'
               : 'REHEAT · HALF TIME'
             : 'TORCH',
-          target,
           low,
           high,
         };
@@ -793,17 +790,15 @@ export const useOrbProps = (): OrbProps => {
           state: orbState,
           size: 240,
           temp: t,
-          target,
           low,
           high,
-          dropRate: coolDropRate,
         };
       }
 
       if (phaseKey === 'dab') {
+        // DEFAULT_SIZE.dab now resolves to 280 — let the orb own its payoff size.
         return {
           state: 'dab' satisfies OrbState,
-          size: 240,
           noReading: true,
           label: 'DABBING',
         };
@@ -815,7 +810,6 @@ export const useOrbProps = (): OrbProps => {
           state: 'dunk' satisfies OrbState,
           size: 240,
           temp: t,
-          target,
           low,
           high,
         };
@@ -853,8 +847,6 @@ export const useOrbProps = (): OrbProps => {
     builderStep,
     heatTimeFactor,
     heatReason,
-    heatActive,
-    coolTemp,
     coolDropRate,
     searching,
     connected,

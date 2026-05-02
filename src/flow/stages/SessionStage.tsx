@@ -2,16 +2,12 @@ import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import {
-  DUR,
-  EASE_OUT_EXPO,
+  SCREEN,
   SPACE,
   THEME,
 } from '../theme';
@@ -21,53 +17,23 @@ import {
   useFlow,
 } from '../store';
 import { useBleStore } from '../../state/bleStore';
+import { useStaggerEntrance } from '../components/useStaggerEntrance';
+import { useReducedMotion } from '../components/useReducedMotion';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const STAGGER_MS = 60;
-const ENTER_DUR = DUR.base; // 380ms
 
 // Phase transition order for haptic firing
 const PHASE_ORDER: string[] = ['load', 'heat', 'cool', 'dab', 'dunk', 'clean'];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-type SV = ReturnType<typeof useSharedValue<number>>;
-
-function enterSv(sv: SV, delay: number) {
-  sv.value = withDelay(
-    delay,
-    withTiming(1, {
-      duration: ENTER_DUR,
-      easing: Easing.bezier(
-        EASE_OUT_EXPO.curve[0],
-        EASE_OUT_EXPO.curve[1],
-        EASE_OUT_EXPO.curve[2],
-        EASE_OUT_EXPO.curve[3],
-      ),
-    }),
-  );
-}
-
-function useStaggerStyle(sv: SV) {
-  return useAnimatedStyle(() => ({
-    opacity: sv.value,
-    transform: [{ translateY: (1 - sv.value) * 12 }],
-  }));
-}
-
-// Format mm:ss from seconds
-function formatTime(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = String(totalSeconds % 60).padStart(2, '0');
-  return `${m}:${s}`;
-}
+// Above this rate (°/s) the orb is dropping faster than the user can absorb;
+// surface a danger chip so the user can re-torch before the window closes.
+const FAST_DROP_THRESHOLD_DEG_PER_SEC = 3;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 // Downward chevron — self-describing for a falling-temp readout. Replaces an
 // earlier 4-bar snowflake that read as a cross at 12px.
-function DropGlyph({ size = 11, color = THEME.danger }: { size?: number; color?: string }) {
+function DropGlyph({ size = 11, color = THEME.danger.base }: { size?: number; color?: string }) {
   return (
     <Text
       style={{
@@ -89,8 +55,8 @@ function DropRateStrip({ dropRate }: { dropRate: number }) {
   return (
     <View style={styles.dropChipWrap}>
       <View style={[styles.dropPill, styles.dropPillFast]}>
-        <DropGlyph size={11} color={THEME.danger} />
-        <Text style={[styles.dropLabel, { color: THEME.danger }]}>
+        <DropGlyph size={11} color={THEME.danger.base} />
+        <Text style={[styles.dropLabel, { color: THEME.danger.base }]}>
           DROPPING FAST · {dropRate.toFixed(1)}°/s
         </Text>
       </View>
@@ -108,6 +74,7 @@ function BottomActionPill({
   heatActive: boolean;
   startHeating: () => void;
 }) {
+  const reduced = useReducedMotion();
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -128,11 +95,13 @@ function BottomActionPill({
   })();
 
   function handlePressIn() {
+    if (reduced) return;
     // Acknowledge the touch even when not tappable — a small dip + soft selection
     // haptic tells the user "I heard you, the temperature isn't there yet".
     scale.value = withSpring(config.tappable ? 0.97 : 0.99, { damping: 20, stiffness: 300 });
   }
   function handlePressOut() {
+    if (reduced) return;
     scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
   }
   async function handlePress() {
@@ -158,7 +127,8 @@ function BottomActionPill({
           onPressOut={handlePressOut}
           onPress={handlePress}
           style={[styles.bottomPill, !config.tappable && styles.bottomPillReadout]}
-          accessibilityRole={config.tappable ? 'button' : 'text'}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !config.tappable }}
           accessibilityLabel={config.label}
           accessibilityHint={config.tappable ? undefined : 'Auto-advances on temperature'}
         >
@@ -195,14 +165,12 @@ function BottomActionPill({
 export function SessionStage() {
   const phaseTrack = useFlow((s) => s.phaseTrack);
   const phaseIdx = useFlow((s) => s.phaseIdx);
-  const sessionSeconds = useFlow((s) => s.sessionSeconds);
   const heatTimeFactor = useFlow((s) => s.heatTimeFactor);
   const heatReason = useFlow((s) => s.heatReason);
   const heatActive = useFlow((s) => s.heatActive);
   const coolDropRate = useFlow((s) => s.coolDropRate);
   const windowState = useFlow((s) => s.windowState);
   const windowSecondsLeft = useFlow((s) => s.windowSecondsLeft);
-  const startedAt = useFlow((s) => s.startedAt);
   const startHeating = useFlow((s) => s.startHeating);
 
   const banger = useBanger();
@@ -264,10 +232,10 @@ export function SessionStage() {
   }, [cur, liveTempF, calibration]);
 
   // ── Eyebrow / phase-label header ─────────────────────────────────────────
+  // Bold #6: clock has moved out of the eyebrow into the orb's session arc.
+  // Eyebrow now only carries phase + reheat suffix.
   const reheatSuffix = isReheat && cur === 'heat' ? ' · REHEAT' : '';
-  // Only show session clock when startedAt is available (null guard)
-  const clockSuffix = startedAt != null ? ` · ${formatTime(sessionSeconds)}` : '';
-  const eyebrowText = `${cur.toUpperCase()}${reheatSuffix}${clockSuffix}`;
+  const eyebrowText = `${cur.toUpperCase()}${reheatSuffix}`;
 
   // ── Dab window countdown (count-down: time remaining in window) ───────────
   // Show a closing-now state at zero so the user isn't left without feedback
@@ -288,9 +256,9 @@ export function SessionStage() {
       if (!heatActive) return 'Strike the torch.';
       if (!isReheat) return 'Torch the banger.';
       if (heatReason === 'missed') return 'Window slipped. Reheat.';
-      return 'Underheated. Top it off.';
+      return 'Underheated. Reheat briefly.';
     }
-    if (cur === 'cool') return 'Place back on the DabRite.';
+    if (cur === 'cool') return 'Place back on the Dab Rite.';
     if (cur === 'dab') {
       if (isMissed) return 'Missed the window.';
       return 'Dab now.';
@@ -309,12 +277,12 @@ export function SessionStage() {
     }
     if (cur === 'heat') {
       if (!heatActive)
-        return 'Light your torch, we will listen for it. Or tap below to start manually.';
+        return 'Light your torch — we detect the heat. Or tap to start.';
       if (!isReheat)
-        return `${banger?.name ?? 'Banger'} · target ${banger?.heat_time ?? '—'}. Torch off when timer ends.`;
+        return `${banger?.name} · ${banger?.heat_time} target. Off on ring.`;
       if (heatReason === 'missed')
-        return 'Temp fell below the dab window before you lifted. Half-time torch this round.';
-      return "IR saw a fast drop. Banger didn't soak the heat. Half-time torch to bring it back up.";
+        return 'Temperature dropped below window. Half-time torch.';
+      return "Fast drop detected — heat didn't soak. Short reheat.";
     }
     if (cur === 'cool') {
       // No sub copy at the highest-tension moment. The orb shows the live
@@ -323,53 +291,26 @@ export function SessionStage() {
       return '';
     }
     if (cur === 'dab') {
-      if (isMissed) return 'Temp dropped before you lifted. Place back and let it reheat.';
+      if (isMissed) return 'Apply. Place back to finish.';
       // Auto-advances when the banger returns to the sensor — no Done button.
       return 'Apply the concentrate. Place back when finished.';
     }
-    if (cur === 'dunk') return 'Cool enough to dunk and pull cap.';
-    if (cur === 'clean') return 'Q-tip the inside before the puddle hardens.';
+    if (cur === 'dunk') return 'Temperature ready for swab and cap.';
+    if (cur === 'clean') return 'Swab the interior before residue sets.';
     return '';
   })();
-
-  const sv0 = useSharedValue(0);
-  const sv1 = useSharedValue(0);
-  const sv2 = useSharedValue(0);
-  const sv3 = useSharedValue(0);
-  const sv5 = useSharedValue(0);
 
   // Only surface the drop-rate chip when it's actionable (fast drop) — during
   // normal cool the orb's live temp is enough; the chip just adds noise to the
   // highest-tension moment.
-  const showCoolStrip = cur === 'cool' && coolDropRate > 3;
-  const hasCoolStrip = showCoolStrip;
+  const showCoolStrip = cur === 'cool' && coolDropRate > FAST_DROP_THRESHOLD_DEG_PER_SEC;
 
-  useEffect(() => {
-    sv0.value = 0;
-    sv1.value = 0;
-    sv2.value = 0;
-    sv3.value = 0;
-    sv5.value = 0;
-
-    enterSv(sv0, 0);
-    enterSv(sv1, STAGGER_MS);
-    enterSv(sv2, STAGGER_MS * 2);
-
-    let next = 3;
-    if (hasCoolStrip) {
-      enterSv(sv3, STAGGER_MS * next);
-      next += 1;
-    }
-    if (cur === 'dab') {
-      enterSv(sv5, STAGGER_MS * next);
-    }
-  }, [cur, heatActive]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const s0 = useStaggerStyle(sv0);
-  const s1 = useStaggerStyle(sv1);
-  const s2 = useStaggerStyle(sv2);
-  const s3 = useStaggerStyle(sv3);
-  const s5 = useStaggerStyle(sv5);
+  // Stagger entrance for stage children — canonical 60ms gap, 600ms ease.
+  const sStyle0 = useStaggerEntrance(0);
+  const sStyle1 = useStaggerEntrance(1);
+  const sStyle2 = useStaggerEntrance(2);
+  const sStyle3 = useStaggerEntrance(3);
+  const sStyle4 = useStaggerEntrance(4);
 
   // Missed window desaturates the headline to bone instead of ember tones
   const headlineColor = isMissed ? THEME.bone[50] : THEME.bone[100];
@@ -378,42 +319,37 @@ export function SessionStage() {
     <View style={styles.container}>
       {/* Phase-label header — centered mono eyebrow */}
       <Animated.View
-        style={[styles.eyebrowRow, s0]}
+        style={[styles.eyebrowRow, sStyle0]}
         accessibilityLiveRegion="polite"
         accessibilityLabel={eyebrowText}
       >
-        <Text style={styles.eyebrow}>{eyebrowText}</Text>
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {eyebrowText}
+        </Text>
       </Animated.View>
 
       {/* Headline */}
-      <Animated.View style={[styles.headlineWrap, s1]}>
+      <Animated.View style={[styles.headlineWrap, sStyle1]}>
         <Text style={[styles.headline, { color: headlineColor }]}>{headline}</Text>
       </Animated.View>
 
       {/* Sub copy — suppressed for phases (cool) that should be silent */}
       {subCopy.length > 0 && (
-        <Animated.View style={s2}>
+        <Animated.View style={sStyle2}>
           <Text style={styles.sub}>{subCopy}</Text>
-        </Animated.View>
-      )}
-
-      {/* Missed window hint — quiet, no shouting */}
-      {isMissed && cur === 'dab' && (
-        <Animated.View style={[styles.missedHint, s2]}>
-          <Text style={styles.missedHintText}>missed window</Text>
         </Animated.View>
       )}
 
       {/* Drop-rate glass chip, cool only, hidden until first reading arrives */}
       {showCoolStrip && (
-        <Animated.View style={s3}>
+        <Animated.View style={sStyle3}>
           <DropRateStrip dropRate={coolDropRate} />
         </Animated.View>
       )}
 
       {/* Dab window countdown */}
       {dabWindowText !== null && (
-        <Animated.View style={[styles.dabWindowWrap, s5]}>
+        <Animated.View style={[styles.dabWindowWrap, sStyle4]}>
           <Text style={styles.dabWindowText}>{dabWindowText}</Text>
         </Animated.View>
       )}
@@ -434,8 +370,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: SPACE.xs,
-    paddingHorizontal: 22,
-    paddingBottom: 28,
+    paddingHorizontal: SCREEN.HPAD,
+    paddingBottom: SPACE.xxl,
     flexDirection: 'column',
   },
 
@@ -463,7 +399,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     letterSpacing: -1.12,
     lineHeight: 32,
-    maxWidth: 280,
     textAlign: 'center',
   },
 
@@ -473,43 +408,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: THEME.bone[50],
     lineHeight: 19,
-    marginTop: 10,
+    marginTop: SPACE.sm,
     maxWidth: 300,
     textAlign: 'center',
     alignSelf: 'center',
   },
 
-  // ── Missed hint ──────────────────────────────────────────────────────────
-  missedHint: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  missedHintText: {
-    fontFamily: 'GeistMono_400Regular',
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: THEME.bone[35],
-  },
-
   // ── Drop-rate glass chip ─────────────────────────────────────────────────
   dropChipWrap: {
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: SPACE.lg,
   },
   dropPill: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 9999,
+    paddingHorizontal: SPACE.lg,
+    borderRadius: SCREEN.PILL_RADIUS,
     gap: 8,
     borderWidth: 0.5,
-  },
-  dropPillNormal: {
-    backgroundColor: 'rgba(246, 222, 210, 0.04)',
-    borderColor: 'rgba(246, 222, 210, 0.18)',
   },
   dropPillFast: {
     backgroundColor: 'rgba(50, 16, 10, 0.60)',
@@ -543,7 +461,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bottomPillShadow: {
-    borderRadius: 9999,
+    borderRadius: SCREEN.PILL_RADIUS,
     shadowColor: THEME.ember.base,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.55,
@@ -551,15 +469,16 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   // Readout variant — shown while the pill is a status, not an action.
-  // Tames the glow so the orb stays the loud element, but keeps the ember tint
-  // so the bottom rail still belongs to the same family.
+  // The ember halo belongs only to the tappable CTA; readouts kill the glow
+  // entirely (transparent shadow) so the orb stays the loud element above.
   bottomPillShadowReadout: {
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 4,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   bottomPill: {
-    borderRadius: 9999,
+    borderRadius: SCREEN.PILL_RADIUS,
     backgroundColor: THEME.ember.base,
     overflow: 'hidden',
   },

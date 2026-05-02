@@ -34,7 +34,8 @@ import {
   useFlow,
   useWall,
 } from '../store';
-import { THEME, TYPE } from '../theme';
+import { MOTION, SCREEN, SPACE, THEME, TYPE } from '../theme';
+import TempRangeIndicator from '../components/TempRangeIndicator';
 
 // ─── CalibrationCard ──────────────────────────────────────────────────────────
 
@@ -58,21 +59,21 @@ const CalibrationCard = React.memo(function CalibrationCard({
       <View style={styles.calibCard}>
         <View pointerEvents="none" style={styles.calibInnerBorder} />
 
-        <View style={styles.calibRow}>
-          {/* Left: label + big temperature */}
-          <View style={styles.calibLeft}>
-            <Text style={styles.calibEyebrow}>DABRITE WILL READ</Text>
-            <Text style={styles.displayValue}>{Math.round(displayed)}°</Text>
-          </View>
+        {/* Profile eyebrow — recipe line elevated into the card */}
+        <Text style={styles.profileEyebrow} numberOfLines={1}>
+          PROFILE · {banger.name.toUpperCase()} · {concentrate.name.toUpperCase()} · {wall.name.toUpperCase()}
+        </Text>
 
-          {/* Right: window range + label */}
-          <View style={styles.calibRight}>
-            <Text style={styles.windowValue}>
-              {low}–{high}°
-            </Text>
-            <Text style={styles.windowLabel}>WINDOW</Text>
-          </View>
-        </View>
+        {/* Centered target temp — 40pt ember above the range indicator */}
+        <Text style={styles.displayValue}>{Math.round(displayed)}°</Text>
+
+        {/* Instrument tape */}
+        <TempRangeIndicator
+          targetTemp={displayed}
+          lowTemp={low}
+          highTemp={high}
+          unit="F"
+        />
       </View>
     </View>
   );
@@ -87,6 +88,15 @@ type ColdStartCardProps = {
   setColdStart: (v: boolean) => void;
 };
 
+// Toggle geometry — derived once from track + thumb dimensions instead of
+// magic numbers. Padding is the gap between thumb and track edge.
+const TOGGLE_TRACK_WIDTH = 52;
+const TOGGLE_THUMB_DIAMETER = 22;
+const TOGGLE_PADDING = 2;
+const TOGGLE_THUMB_OFF_X = TOGGLE_PADDING;
+const TOGGLE_THUMB_ON_X =
+  TOGGLE_TRACK_WIDTH - TOGGLE_THUMB_DIAMETER - TOGGLE_PADDING;
+
 function ColdStartCard({
   banger,
   fit,
@@ -95,10 +105,13 @@ function ColdStartCard({
 }: ColdStartCardProps) {
   const blocked = fit === 'NOT AVAILABLE';
   const enabled = coldStart && !blocked;
-  const thumbX = useSharedValue(enabled ? 22 : 2);
+  const thumbX = useSharedValue(enabled ? TOGGLE_THUMB_ON_X : TOGGLE_THUMB_OFF_X);
 
   useEffect(() => {
-    thumbX.value = withTiming(enabled ? 22 : 2, { duration: 240 });
+    thumbX.value = withTiming(enabled ? TOGGLE_THUMB_ON_X : TOGGLE_THUMB_OFF_X, {
+      duration: 240,
+      easing: MOTION.STAGGER_EASE,
+    });
   }, [enabled, thumbX]);
 
   const thumbStyle = useAnimatedStyle(() => ({
@@ -112,7 +125,7 @@ function ColdStartCard({
         ? 'Concentrate prefers cold-start. Banger supports it.'
         : fit === 'OPTIONAL'
           ? 'Available, but hot-start is the typical workflow for this combination.'
-          : `${banger.name} is not cold-start compatible. Hot-start required.`;
+          : `${banger?.name ?? 'this banger'} is not cold-start compatible. Hot-start required.`;
 
   // Badge palette per state
   const badgeBg =
@@ -121,13 +134,13 @@ function ColdStartCard({
       : fit === 'NOT AVAILABLE'
         ? 'rgba(224, 112, 112, 0.16)'
         : fit === 'RECOMMENDED'
-          ? 'rgba(180, 200, 230, 0.10)'
+          ? THEME.bone.warm10
           : 'transparent';
   const badgeColor =
     fit === 'IDEAL'
       ? THEME.quartz.bright
       : fit === 'NOT AVAILABLE'
-        ? THEME.danger
+        ? THEME.danger.base
         : fit === 'RECOMMENDED'
           ? THEME.bone[90]
           : THEME.bone[50];
@@ -138,7 +151,9 @@ function ColdStartCard({
     setColdStart(!coldStart);
   }
 
-  const trackBg = enabled ? THEME.ember.base : THEME.bone[20];
+  // When enabled, the LinearGradient renders alone on a transparent track
+  // (avoids a visible seam between the gradient and a solid ember underlay).
+  const trackBg = enabled ? 'transparent' : THEME.bone[20];
 
   return (
     <View style={styles.coldCardWrap}>
@@ -209,9 +224,6 @@ export default function ReviewStep() {
           wall={wall}
           calibration={calibration}
         />
-        <Text style={styles.recipeLine}>
-          {banger.name} · {concentrate.name} · {wall.name}
-        </Text>
       </Animated.View>
 
       <Animated.View
@@ -249,68 +261,44 @@ const styles = StyleSheet.create({
   calibCard: {
     borderRadius: 24,
     backgroundColor: 'rgba(246,222,210,0.04)',
-    paddingVertical: 20,
-    paddingHorizontal: 22,
+    paddingVertical: SPACE.xl,
+    paddingHorizontal: SCREEN.HPAD,
     position: 'relative',
+    alignItems: 'center',
+    gap: SPACE.md,
   },
   calibInnerBorder: {
     position: 'absolute',
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 24,
     borderWidth: 0.5,
     borderColor: 'rgba(246,222,210,0.20)',
     pointerEvents: 'none',
   } as const,
-  calibRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  calibLeft: {
-    flexDirection: 'column',
-    gap: 4,
-  },
-  calibEyebrow: {
+  // Profile eyebrow inside the card — replaces the old recipeLine
+  profileEyebrow: {
     ...(TYPE.mono as object),
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: THEME.bone[50],
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: THEME.bone[90],
     textTransform: 'uppercase',
+    textAlign: 'center',
   } as const,
+  // Target temperature — 40pt ember, centered above the range indicator.
+  // Reduced from 56pt so the orb stays the visual protagonist on this screen.
   displayValue: {
     fontFamily: 'Geist_300Light',
-    fontSize: 56,
-    letterSpacing: -2.24,
-    lineHeight: 60,
+    fontSize: 40,
+    letterSpacing: -1.6,
+    lineHeight: 44,
     color: THEME.ember.base,
     textShadowColor: 'rgba(255,122,0,0.30)',
     textShadowRadius: 14,
     textShadowOffset: { width: 0, height: 0 },
-  },
-  calibRight: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  windowValue: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 13,
-    color: THEME.bone[70],
-  },
-  windowLabel: {
-    ...(TYPE.mono as object),
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: THEME.bone[50],
-    textTransform: 'uppercase',
-  } as const,
-
-  // Recipe summary line
-  recipeLine: {
-    fontFamily: 'Geist_400Regular',
-    fontSize: 13,
-    color: THEME.bone[70],
-    marginTop: 12,
+    textAlign: 'center',
   },
 
   // Cold-start card
@@ -324,10 +312,13 @@ const styles = StyleSheet.create({
   },
   coldCardBorder: {
     position: 'absolute',
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 24,
     borderWidth: 0.5,
-    borderColor: 'rgba(180, 200, 230, 0.10)',
+    borderColor: THEME.bone.warm10,
     pointerEvents: 'none',
   } as const,
   coldCardInner: {
@@ -347,7 +338,7 @@ const styles = StyleSheet.create({
   coldBadge: {
     paddingVertical: 3,
     paddingHorizontal: 8,
-    borderRadius: 4,
+    borderRadius: SCREEN.BADGE_RADIUS,
   },
   coldBadgeText: {
     ...(TYPE.mono as object),
@@ -356,9 +347,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   } as const,
   toggleTrack: {
-    width: 52,
+    width: TOGGLE_TRACK_WIDTH,
     height: 30,
-    borderRadius: 100,
+    borderRadius: SCREEN.PILL_RADIUS,
     overflow: 'hidden',
     justifyContent: 'center',
     position: 'relative',
@@ -366,9 +357,9 @@ const styles = StyleSheet.create({
   toggleThumb: {
     position: 'absolute',
     top: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: TOGGLE_THUMB_DIAMETER,
+    height: TOGGLE_THUMB_DIAMETER,
+    borderRadius: TOGGLE_THUMB_DIAMETER / 2,
     backgroundColor: THEME.bone[100],
     shadowColor: THEME.navy[0],
     shadowRadius: 4,
@@ -378,9 +369,9 @@ const styles = StyleSheet.create({
   },
   coldDescription: {
     fontFamily: 'Geist_400Regular',
-    fontSize: 12,
-    color: THEME.bone[50],
-    lineHeight: 12 * 1.5,
+    fontSize: 13,
+    color: THEME.bone[70],
+    lineHeight: 13 * 1.5,
     maxWidth: 280,
   },
 });

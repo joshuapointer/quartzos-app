@@ -1004,8 +1004,8 @@ export const CONCENTRATES: Concentrate[] = [
 export const SENSORS: Sensor[] = [
   {
     id: 'ir',
-    name: 'DabRite IR',
-    short: 'DabRite Pro · non-contact infrared',
+    name: 'Dab Rite IR',
+    short: 'Dab Rite Pro · non-contact infrared',
     method: 'ir',
     description: 'Non-contact infrared. Aim per banger geometry — bucket vs slurper read differently.',
     calibration: 'Four-term v2 metrology: T_Ideal + dT_Load + dT_Gradient + dT_emissivity.',
@@ -1063,7 +1063,7 @@ export const SAVED_PRESETS: SavedPreset[] = [
     sensor: 'ir',
     wall: 'standard',
     builtin: true,
-    desc: 'Live resin · flat top · IR. Workhorse.',
+    desc: 'Live resin · flat top · IR. Daily target.',
   },
   {
     id: 'opaque',
