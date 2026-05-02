@@ -37,10 +37,12 @@ import { THEME, TYPE } from '../theme';
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE_PAD = 22;
 const CARD_GAP = 12;
-// Carousel card width: nearly full width with small peek of the next card
-const CARD_PEEK = 18;
+// Carousel card width: nearly full width with small peek of the next card.
+// Banger images are square (512×512) — keep card 1:1 so the full image is
+// visible with no crop and centered in its frame.
+const CARD_PEEK = 32;
 const CARD_W = SCREEN_W - SIDE_PAD * 2 - CARD_PEEK;
-const CARD_H = 248;
+const CARD_H = CARD_W;
 
 const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
@@ -49,16 +51,16 @@ const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 type GeomFilter = BangerGeometry;
 
 const GEOM_SUBTYPE: Record<GeomFilter, string> = {
-  bucket:  'CUP-SHAPE',
+  bucket: 'CUP-SHAPE',
   slurper: 'VORTEX',
-  insert:  'DROP-IN',
-  enail:   'E-NAIL',
+  insert: 'DROP-IN',
+  enail: 'E-NAIL',
 };
 
 const GEOM_FILTERS: { key: GeomFilter; label: string; sub: string; count: number }[] = [
-  { key: 'bucket',  label: 'Bucket',  sub: GEOM_SUBTYPE.bucket,  count: BANGERS.filter(b => b.geometry === 'bucket').length },
+  { key: 'bucket', label: 'Bucket', sub: GEOM_SUBTYPE.bucket, count: BANGERS.filter(b => b.geometry === 'bucket').length },
   { key: 'slurper', label: 'Slurper', sub: GEOM_SUBTYPE.slurper, count: BANGERS.filter(b => b.geometry === 'slurper').length },
-  { key: 'insert',  label: 'Insert',  sub: GEOM_SUBTYPE.insert,  count: BANGERS.filter(b => b.geometry === 'insert').length },
+  { key: 'insert', label: 'Insert', sub: GEOM_SUBTYPE.insert, count: BANGERS.filter(b => b.geometry === 'insert').length },
 ];
 
 function passesGeomFilter(b: Banger, f: GeomFilter): boolean {
@@ -110,7 +112,7 @@ function InsertIcon({ color, size = 32 }: { color: string; size?: number }) {
 
 function GeomIcon({ geom, color, size }: { geom: GeomFilter; color: string; size?: number }) {
   if (geom === 'slurper') return <SlurperIcon color={color} size={size} />;
-  if (geom === 'insert')  return <InsertIcon color={color} size={size} />;
+  if (geom === 'insert') return <InsertIcon color={color} size={size} />;
   return <BucketIcon color={color} size={size} />;
 }
 
@@ -214,43 +216,39 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
           <View pointerEvents="none" style={styles.cardEmberBloom} />
         )}
 
-        {/* Banger image, centered with breathing room around it */}
+        {/* Banger image — square card matches square asset, contain shows the
+            full image centered with no crop. */}
         {image ? (
           <Image
             source={image}
-            style={styles.cardImage}
+            style={StyleSheet.absoluteFill}
             resizeMode="contain"
           />
         ) : null}
 
-        {/* Thin scrim only over the bottom label zone */}
+        {/* Tight scrim only over the bottom label zone — keeps banger silhouette legible. */}
         <LinearGradient
-          colors={['transparent', active ? 'rgba(12,6,0,0.96)' : 'rgba(6,10,20,0.96)']}
-          start={{ x: 0.5, y: 0.55 }}
+          colors={['transparent', active ? 'rgba(12,6,0,0.92)' : 'rgba(6,10,20,0.92)']}
+          start={{ x: 0.5, y: 0.78 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
 
-        {/* Ring */}
+        {/* Ring is a decorative border overlay — must stay absolute. */}
         <View
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, styles.ring, { borderColor: ringColor }]}
         />
 
-        {/* Tag top-left — geometry class */}
-        <View style={[styles.cardTag, active && styles.cardTagActive]}>
-          <Text style={[styles.cardTagText, active && styles.cardTagTextActive]}>
-            {tagLabel}
-          </Text>
-        </View>
-
-        {/* Check badge top-right */}
-        {active && (
-          <View style={styles.cardCheck}>
-            <CheckBadge />
+        <View style={styles.cardTopRow}>
+          <View style={[styles.cardTag, active && styles.cardTagActive]}>
+            <Text style={[styles.cardTagText, active && styles.cardTagTextActive]}>
+              {tagLabel}
+            </Text>
           </View>
-        )}
+          {active && <CheckBadge />}
+        </View>
 
         {/* Bottom metadata — centered */}
         <View style={styles.cardBottom}>
@@ -267,7 +265,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
 // ─── BangerChooser ────────────────────────────────────────────────────────────
 
 export default function BangerChooser() {
-  const bangerId    = useFlow((s) => s.bangerId);
+  const bangerId = useFlow((s) => s.bangerId);
   const setBangerId = useFlow((s) => s.setBangerId);
 
   // Default to the geometry of the already-selected banger if any,
@@ -478,7 +476,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 20,
     overflow: 'hidden',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
   },
   cardEmberBloom: {
     position: 'absolute',
@@ -490,21 +488,19 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: 'rgba(255, 122, 0, 0.10)',
   },
-  cardImage: {
-    position: 'absolute',
-    top: 36,
-    left: 0,
-    right: 0,
-    bottom: 80,
-  },
   ring: {
     borderRadius: 20,
     borderWidth: 1.25,
   },
+  // Top row holds tag + (optional) check; flex row pushes them to opposite edges.
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    paddingHorizontal: 14,
+  },
   cardTag: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
     backgroundColor: 'rgba(20, 14, 4, 0.68)',
     borderRadius: 100,
     borderWidth: 0.5,
@@ -525,11 +521,6 @@ const styles = StyleSheet.create({
   } as const,
   cardTagTextActive: {
     color: THEME.ember.bright,
-  },
-  cardCheck: {
-    position: 'absolute',
-    top: 12,
-    right: 14,
   },
   cardBottom: {
     paddingHorizontal: 16,

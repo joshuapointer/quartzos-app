@@ -151,28 +151,28 @@ export default function BuildStage() {
         <Text style={styles.title}>{STEP_TITLES[step]}</Text>
       </View>
 
-      {/* Body */}
       <StageBody step={step} />
 
-      {/* Not-ready hint — floats above fixed pill */}
       {!ready && step < 3 && (
         <Text style={styles.notReadyHint}>Make a selection to continue</Text>
       )}
 
-      {/* Fixed emissive amber CONTINUE pill */}
-      <View style={styles.bottomBar}>
-        {/* Back button — subtle ghost text left of center */}
-        {step > 0 && (
-          <Pressable
-            onPress={handleBack}
-            style={styles.backBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.backText}>← Back</Text>
-          </Pressable>
-        )}
+      {/* Three equal-flex cells keep the continue pill optically centered
+          regardless of whether Back is present. */}
+      <View style={styles.bottomRow}>
+        <View style={styles.bottomCellLeft}>
+          {step > 0 && (
+            <Pressable
+              onPress={handleBack}
+              style={styles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.backText}>← Back</Text>
+            </Pressable>
+          )}
+        </View>
 
         <Animated.View style={[styles.continueWrap, continueAnimStyle]}>
           <Pressable
@@ -196,6 +196,8 @@ export default function BuildStage() {
             <Text style={styles.continueText}>{continueLabel}</Text>
           </Pressable>
         </Animated.View>
+
+        <View style={styles.bottomCellRight} />
       </View>
     </View>
   );
@@ -208,7 +210,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 4,
     paddingHorizontal: 22,
-    paddingBottom: 100, // leave room for fixed bottom pill
+    paddingBottom: 28,
   },
   // ── Progress strip ──
   progressRow: {
@@ -266,19 +268,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 6,
   },
-  // ── Bottom bar with fixed pill ──
-  bottomBar: {
-    position: 'absolute',
-    bottom: 28,
-    left: 22,
-    right: 22,
-    alignItems: 'center',
+  // ── Bottom row — flex row with three cells: back / continue / spacer ──
+  bottomRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+  },
+  bottomCellLeft: {
+    flex: 1,
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
+  bottomCellRight: {
+    flex: 1,
+  },
   backBtn: {
-    position: 'absolute',
-    left: 0,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 100,

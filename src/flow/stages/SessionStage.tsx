@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: SPACE.xs,
     paddingHorizontal: 22,
-    paddingBottom: 120,
+    paddingBottom: 28,
     flexDirection: 'column',
   },
 
@@ -536,11 +536,10 @@ const styles = StyleSheet.create({
   },
 
   // ── Bottom emissive amber action pill ────────────────────────────────────
+  // Sits as the last flex child in the column; `marginTop: 'auto'` pushes it
+  // against the container's bottom padding so the content above can grow.
   bottomPillAnchor: {
-    position: 'absolute',
-    bottom: 28,
-    left: 0,
-    right: 0,
+    marginTop: 'auto',
     alignItems: 'center',
   },
   bottomPillShadow: {

@@ -13,7 +13,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View, Switch, Text } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -27,6 +27,7 @@ import QWordmark from './components/QWordmark';
 import QBackground from './QBackground';
 import ErrorBoundary from './ErrorBoundary';
 import { useFlow, useOrbProps } from './store';
+import { useSettingsStore } from '../state/settingsStore';
 
 import BuildStage from './stages/BuildStage';
 import ChooseStage from './stages/ChooseStage';
@@ -64,8 +65,10 @@ export default function QFlowShell() {
   const connected = useFlow((s) => s.connected);
   const phaseIdx = useFlow((s) => s.phaseIdx);
   const disconnect = useFlow((s) => s.disconnect);
-  const builderStep = useFlow((s) => s.builderStep);
   const orbProps = useOrbProps();
+
+  const mockBleEnabled = useSettingsStore((s) => s.mockBleEnabled);
+  const setMockBleEnabled = useSettingsStore((s) => s.setMockBleEnabled);
 
   // Re-key on session phase boundary so the body cross-fades each phase.
   const stageKey = stage === 'session' ? `session-${phaseIdx}` : stage;
@@ -88,24 +91,14 @@ export default function QFlowShell() {
     disconnect();
   }, [stage, disconnect]);
 
-  let targetOrbHeight = (orbProps.size ?? 200) + 30;
-  let targetOrbMarginTop = stage === 'connect' ? 80 : 8;
-  let targetOrbOpacity = 1;
-  let targetOrbScale = 1;
+  const targetOrbHeight = (orbProps.size ?? 200) + 30;
+  const targetOrbMarginTop = stage === 'connect' ? 80 : 8;
+  const targetOrbOpacity = 1;
+  const targetOrbScale = 1;
 
-  // Suppress the orb during all chooser steps (Banger/Concentrate/Wall) — only
-  // reveal at ReviewStep (3), so its return reads as the calibration locking in.
-  if (stage === 'build' && builderStep < 3) {
-    targetOrbHeight = 0;
-    targetOrbMarginTop = 0;
-    targetOrbOpacity = 0;
-    targetOrbScale = 0.5; // Shrink it down while fading
-  }
-
-  // Keep the orb on CompleteStage — its 150pt 'complete' state morphs in as
-  // the closing visual, so the curtain falls instead of dropping. Without
-  // this, the eye climbs from a 280pt orb during the dab window to a 24pt
-  // dot at close — a 10× hierarchy collapse.
+  // The orb is the protagonist on every screen — it stays visible across the
+  // chooser steps so the user can read the device state at a glance. Per-step
+  // size is set in `useOrbProps` (BuildStage uses a tighter 140–170 ramp).
 
   const orbCellAnimStyle = useAnimatedStyle(() => ({
     height: withTiming(targetOrbHeight, { duration: 700, easing: STAGE_EASE }),
@@ -127,6 +120,17 @@ export default function QFlowShell() {
           <Animated.View style={[styles.orbCell, orbCellAnimStyle]}>
             <Orb {...orbProps} />
           </Animated.View>
+
+          {__DEV__ && (
+            <View style={styles.devMockSwitch}>
+              <Text style={styles.devMockText}>Mock BLE</Text>
+              <Switch
+                value={mockBleEnabled}
+                onValueChange={setMockBleEnabled}
+                trackColor={{ true: '#6366f1' }}
+              />
+            </View>
+          )}
 
           {/* Stage content — cross-fades between stages and session phases. */}
           <View style={styles.stageOuter}>
@@ -163,5 +167,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  devMockSwitch: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+    zIndex: 9999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  devMockText: {
+    color: '#fff',
+    marginRight: 8,
+    fontSize: 14,
+    fontFamily: 'Geist-Medium',
   },
 });

@@ -9,6 +9,7 @@ import { validateAlarms } from '../utils/temperature';
 const storage = new MMKV();
 
 const ACTIVE_PRESET_KEY = 'app.activePresetId';
+const MOCK_BLE_KEY = 'app.mockBleEnabled';
 
 function loadPersistedTheme(): ThemeName {
   const stored = storage.getString('app.theme');
@@ -23,6 +24,10 @@ function loadPersistedActivePresetId(): string | null {
   return stored ?? null;
 }
 
+function loadPersistedMockBleEnabled(): boolean {
+  return storage.getBoolean(MOCK_BLE_KEY) ?? false;
+}
+
 interface SettingsState {
   settings: DeviceSettings;
   confirmed: boolean;
@@ -35,11 +40,13 @@ interface SettingsState {
    * (so the indicator fades to "custom").
    */
   activePresetId: string | null;
+  mockBleEnabled: boolean;
   setSettings: (s: DeviceSettings) => void;
   updateSetting: <K extends keyof DeviceSettings>(key: K, val: DeviceSettings[K]) => void;
   markConfirmed: () => void;
   setTheme: (t: ThemeName) => void;
   setActivePresetId: (id: string | null) => void;
+  setMockBleEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(immer((set) => ({
@@ -48,6 +55,7 @@ export const useSettingsStore = create<SettingsState>()(immer((set) => ({
   dirty: false,
   theme: loadPersistedTheme(),
   activePresetId: loadPersistedActivePresetId(),
+  mockBleEnabled: loadPersistedMockBleEnabled(),
   setSettings: (s) => set((st) => {
     // Defense-in-depth: clamp the (dab, dunk) pair so any path through the
     // store lands a valid alarm pair. The BLE encoder also clamps, but
@@ -80,5 +88,9 @@ export const useSettingsStore = create<SettingsState>()(immer((set) => ({
       storage.set(ACTIVE_PRESET_KEY, id);
     }
     set((st) => { st.activePresetId = id; });
+  },
+  setMockBleEnabled: (enabled) => {
+    storage.set(MOCK_BLE_KEY, enabled);
+    set((st) => { st.mockBleEnabled = enabled; });
   },
 })));

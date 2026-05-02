@@ -162,6 +162,10 @@ export class BleManager {
   private idleTempSince: number | null = null;
   private currentSessionId: string | null = null;
 
+  // Mock state
+  private mockTempInterval: ReturnType<typeof setInterval> | null = null;
+  private mockCurrentTemp = 70;
+
   private constructor() {
     this.commandQueue = new CommandQueue((frame) => this.sendFrame(frame));
     this.sm.onTransition((_, next) => {
@@ -179,6 +183,17 @@ export class BleManager {
   startScan(): void {
     if (this.sm.current !== 'IDLE') return;
     this.setState('SCANNING');
+
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      setTimeout(() => {
+        if (this.sm.current === 'SCANNING') {
+          this.rnBle.stopDeviceScan();
+          void this.connectToDevice('mock-dabrite-01');
+        }
+      }, 1000);
+      return;
+    }
+
     this.rnBle.startDeviceScan([SERVICE_UUID], null, (error, scanned) => {
       if (error) {
         this.rnBle.stopDeviceScan();
@@ -212,6 +227,28 @@ export class BleManager {
       } else {
         return;
       }
+    }
+
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      this.device = { id: deviceId, name: 'Mock DabRite' } as unknown as Device;
+      useBleStore.getState().setConnectedDevice(deviceId);
+
+      setTimeout(() => this.setState('DISCOVERING'), 200);
+      setTimeout(() => this.setState('SUBSCRIBING'), 400);
+      setTimeout(() => {
+        this.setState('READY');
+        this.reconnectAttempts = 0;
+        this.querySettingsReceived = true;
+        
+        this.mockCurrentTemp = 70;
+        this.mockTempInterval = setInterval(() => {
+          if (this.mockCurrentTemp < 600) {
+            this.mockCurrentTemp += Math.floor(Math.random() * 4) + 2;
+          }
+          this.onTempSample(this.mockCurrentTemp);
+        }, 500);
+      }, 600);
+      return;
     }
 
     try {
@@ -270,6 +307,18 @@ export class BleManager {
     this.stopQueryPoll();
     this.commandQueue.flush(new Error('disconnected'));
     this.teardownSubscriptions();
+
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      if (this.mockTempInterval) {
+        clearInterval(this.mockTempInterval);
+        this.mockTempInterval = null;
+      }
+      this.device = null;
+      useBleStore.getState().setConnectedDevice(null);
+      if (this.sm.canTransition('IDLE')) this.setState('IDLE');
+      return;
+    }
+
     const device = this.device;
     this.device = null;
     useBleStore.getState().setConnectedDevice(null);
@@ -477,6 +526,13 @@ export class BleManager {
     const device = this.device;
     if (!device) throw new Error('BLE not connected');
     
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      setTimeout(() => {
+        this.commandQueue.resolveAck();
+      }, 50);
+      return;
+    }
+
     const b64 = Buffer.from(frame).toString('base64');
     await this.rnBle.writeCharacteristicWithResponseForDevice(
       device.id,

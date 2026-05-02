@@ -3,10 +3,9 @@
  *
  * Step 2: What are you dabbing?
  * Layout:
- *   – Category filter chips (All / Solventless / Hash / Hydrocarbon / Distillate / Novel)
- *     with per-category item counts
- *   – 2-column grid of large thumbnail cards with full-bleed image, gradient overlay,
- *     title, optional temp badge; selected card gets ember ring + check badge
+ *   – Category cards (All / Solventless / Hash / Hydrocarbon / Distillate / Novel)
+ *     each with a representative gradient orb + count
+ *   – 2-column grid of thumbnail tiles; selected tile gets ember ring + check badge
  */
 
 import * as Haptics from 'expo-haptics';
@@ -29,7 +28,14 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  Path,
+  RadialGradient,
+  Stop,
+} from 'react-native-svg';
 
 import { CONCENTRATES, type Concentrate, type ConcentrateCat } from '../data';
 import { CONCENTRATE_IMAGES } from '../concentrateImages';
@@ -41,7 +47,12 @@ const SIDE_PAD = 22;
 const GRID_GAP = 10;
 // Two columns; each col = (screen - 2*side - 1 gap) / 2
 const TILE_W = (SCREEN_W - SIDE_PAD * 2 - GRID_GAP) / 2;
-const TILE_H = TILE_W * 0.88; // slightly wider than tall
+const TILE_H = TILE_W * 0.84; // slightly wider than tall
+
+// Category card sizing — fixed width so 4ish cards fit with the next peeking
+const CAT_CARD_W = 82;
+const CAT_CARD_H = 112;
+const CAT_GAP = 10;
 
 const STAGGER_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
@@ -52,15 +63,47 @@ type FilterKey = 'All' | ConcentrateCat;
 const ALL_CATS: ConcentrateCat[] = ['Solventless', 'Hash', 'Hydrocarbon', 'Distillate', 'Novel'];
 
 const FILTERS: { key: FilterKey; label: string; count: number }[] = [
-  { key: 'All',         label: 'All',         count: CONCENTRATES.length },
+  { key: 'All', label: 'All', count: CONCENTRATES.length },
   ...ALL_CATS.map(cat => ({
-    key:   cat as FilterKey,
+    key: cat as FilterKey,
     label: cat,
     count: CONCENTRATES.filter(c => c.cat === cat).length,
   })),
 ];
 
-// ─── Filter chip ───────────────────────────────────────────────────────────────
+// Orb palette per category — [highlight, mid, deep] for radial gradient.
+// Hues chosen to reflect the concentrate's visual identity rather than just brand colours.
+const ORB_PALETTE: Record<FilterKey, [string, string, string]> = {
+  All: ['#a994ee', '#5a3ea8', '#1a1230'], // violet — overall mix
+  Solventless: ['#f6e090', '#c0a040', '#3a2a08'], // pale gold
+  Hash: ['#d49a5a', '#7a3e1c', '#2a1408'], // amber-brown
+  Hydrocarbon: ['#ffb68b', '#ff7a00', '#3d1a00'], // ember
+  Distillate: ['#ffe26a', '#c89020', '#3a2406'], // saturated gold
+  Novel: ['#e09cf5', '#9a3ec8', '#2a0d36'], // magenta
+};
+
+// ─── Category orb (SVG with radial gradient + specular) ───────────────────────
+
+function CategoryOrb({ cat, size = 42 }: { cat: FilterKey; size?: number }) {
+  const [light, mid, deep] = ORB_PALETTE[cat];
+  const id = `orb-${cat}`;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 42 42">
+      <Defs>
+        <RadialGradient id={id} cx="0.36" cy="0.30" r="0.85">
+          <Stop offset="0" stopColor={light} stopOpacity="1" />
+          <Stop offset="0.55" stopColor={mid} stopOpacity="1" />
+          <Stop offset="1" stopColor={deep} stopOpacity="1" />
+        </RadialGradient>
+      </Defs>
+      <Circle cx="21" cy="21" r="20" fill={`url(#${id})`} />
+      {/* Specular highlight near top-left */}
+      <Ellipse cx="15" cy="13" rx="6" ry="3.2" fill="rgba(255,255,255,0.32)" />
+    </Svg>
+  );
+}
+
+// ─── Category card ────────────────────────────────────────────────────────────
 
 type FilterChipProps = {
   item: (typeof FILTERS)[number];
@@ -72,17 +115,25 @@ function FilterChip({ item, active, onPress }: FilterChipProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
+      style={[styles.catCard, active && styles.catCardActive]}
       accessibilityRole="button"
       accessibilityLabel={`Filter: ${item.label}`}
       accessibilityState={{ selected: active }}
     >
-      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
+      <View style={[styles.catOrbRing, active && styles.catOrbRingActive]}>
+        <CategoryOrb cat={item.key} size={40} />
+      </View>
+      <Text
+        style={[styles.catLabel, active && styles.catLabelActive]}
+        numberOfLines={1}
+      >
         {item.label}
       </Text>
-      <Text style={[styles.chipCount, active && styles.chipCountActive]}>
-        {item.count}
-      </Text>
+      <View style={[styles.catCountPill, active && styles.catCountPillActive]}>
+        <Text style={[styles.catCountText, active && styles.catCountTextActive]}>
+          {item.count}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -164,8 +215,9 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
         {image ? (
           <Image
             source={image}
-            style={StyleSheet.absoluteFill}
-            resizeMode="contain"
+            style={[StyleSheet.absoluteFill, { transform: [{ translateX: -250 }, { translateY: -150 }] }]}
+            resizeMode="center"
+
           />
         ) : (
           // Fallback warm tint
@@ -185,33 +237,30 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
           style={StyleSheet.absoluteFill}
         />
 
-        {/* Ring */}
+        {/* Ring is a decorative border overlay — must stay absolute. */}
         <View
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, styles.ring, { borderColor: ringColor }]}
         />
 
-        {/* Check badge */}
-        {active && (
-          <View style={styles.checkBadge}>
-            <CheckBadge />
-          </View>
-        )}
-
-        {/* BLOCKED badge */}
-        {disabled && (
-          <View style={styles.blockedBadge}>
-            <Text style={styles.blockedText}>BLOCKED</Text>
-          </View>
-        )}
+        <View style={styles.tileTopRow}>
+          {disabled ? (
+            <View style={styles.blockedBadge}>
+              <Text style={styles.blockedText}>BLOCKED</Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          {active && <CheckBadge />}
+        </View>
 
         {/* Bottom metadata */}
         <View style={styles.tileBottom}>
-          <Text style={[styles.tileName, disabled && styles.tileDim]} numberOfLines={2}>
+          <Text style={[styles.tileName, disabled && styles.tileDim]} numberOfLines={1}>
             {conc.name}
           </Text>
           <View style={styles.tileMeta}>
-            <Text style={[styles.tileCat, disabled && styles.tileDim]}>{conc.cat.toUpperCase()}</Text>
+            <Text style={[styles.tileCat, disabled && styles.tileDim]}>BASE</Text>
             {conc.surface_optimal != null && !disabled && (
               <Text style={styles.tileTemp}>{conc.surface_optimal}°F</Text>
             )}
@@ -225,7 +274,7 @@ function ConcTile({ conc, active, disabled, onPress }: TileProps) {
 // ─── ConcChooser ──────────────────────────────────────────────────────────────
 
 export default function ConcChooser() {
-  const concId    = useFlow((s) => s.concId);
+  const concId = useFlow((s) => s.concId);
   const setConcId = useFlow((s) => s.setConcId);
 
   const [filter, setFilter] = useState<FilterKey>('All');
@@ -308,48 +357,86 @@ const styles = StyleSheet.create({
     minHeight: 0,
     marginHorizontal: -SIDE_PAD,
   },
+  // ── Category cards row ──
   chipsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingBottom: 12,
+    alignItems: 'flex-start',
+    gap: CAT_GAP,
+    paddingBottom: 16,
     paddingHorizontal: SIDE_PAD,
     paddingRight: SIDE_PAD + 8,
   },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 100,
-    borderWidth: 0.5,
+  catCard: {
+    width: CAT_CARD_W,
+    height: CAT_CARD_H,
+    paddingTop: 12,
+    paddingBottom: 10,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: 'rgba(180, 200, 230, 0.10)',
-    backgroundColor: 'rgba(180, 200, 230, 0.04)',
+    backgroundColor: 'rgba(180, 200, 230, 0.03)',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 32
   },
-  chipActive: {
-    backgroundColor: 'rgba(227, 128, 31, 0.14)',
-    borderColor: 'rgba(227, 128, 31, 0.50)',
+  catCardActive: {
+    borderColor: 'rgba(255, 122, 0, 0.85)',
+    backgroundColor: 'rgba(255, 122, 0, 0.10)',
+    shadowColor: THEME.ember.base,
+    shadowRadius: 18,
+    shadowOpacity: 0.30,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
   },
-  chipLabel: {
-    ...(TYPE.mono as object),
-    fontSize: 10,
-    letterSpacing: 0.12 * 10,
-    color: THEME.bone[50],
-    textTransform: 'uppercase',
-  } as const,
-  chipLabelActive: {
+  catOrbRing: {
+    width: 46,
+    height: 46,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  catOrbRingActive: {
+    borderColor: 'rgba(255, 122, 0, 0.85)',
+    shadowColor: THEME.ember.base,
+    shadowRadius: 12,
+    shadowOpacity: 0.55,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  catLabel: {
+    fontFamily: 'Geist_500Medium',
+    fontSize: 12.5,
+    letterSpacing: -0.15,
     color: THEME.bone[90],
+    textAlign: 'center',
   },
-  chipCount: {
+  catLabelActive: {
+    color: THEME.bone[100],
+  },
+  catCountPill: {
+    minWidth: 24,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(0, 0, 0, 0.32)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(180, 200, 230, 0.08)',
+    alignItems: 'center',
+  },
+  catCountPillActive: {
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    borderColor: 'rgba(255, 174, 90, 0.22)',
+  },
+  catCountText: {
     ...(TYPE.mono as object),
     fontSize: 9,
     letterSpacing: 0.10 * 9,
-    color: THEME.bone[35],
-    textTransform: 'uppercase',
+    color: THEME.bone[50],
   } as const,
-  chipCountActive: {
-    color: THEME.ember.bright,
+  catCountTextActive: {
+    color: THEME.bone[100],
   },
 
   // Grid
@@ -390,21 +477,22 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     overflow: 'hidden',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
   },
   ring: {
     borderRadius: 16,
     borderWidth: 1,
   },
-  checkBadge: {
-    position: 'absolute',
-    top: 9,
-    right: 9,
+  // Top row keeps blocked-badge / check-badge in flow.
+  tileTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 9,
+    paddingHorizontal: 9,
+    minHeight: 22,
   },
   blockedBadge: {
-    position: 'absolute',
-    top: 9,
-    left: 9,
     backgroundColor: 'rgba(60, 20, 20, 0.80)',
     borderRadius: 100,
     paddingVertical: 3,
@@ -420,38 +508,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   } as const,
   tileBottom: {
-    paddingHorizontal: 10,
-    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
     paddingTop: 8,
-    gap: 3,
+    gap: 4,
   },
   tileName: {
     fontFamily: 'Geist_500Medium',
-    fontSize: 13,
+    fontSize: 15,
     color: THEME.bone[100],
-    letterSpacing: -0.2,
-    lineHeight: 13 * 1.15,
+    letterSpacing: -0.25,
+    lineHeight: 15 * 1.1,
   },
   tileMeta: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: 4,
   },
   tileCat: {
     ...(TYPE.mono as object),
-    fontSize: 8.5,
-    letterSpacing: 0.14 * 8.5,
+    fontSize: 9,
+    letterSpacing: 0.16 * 9,
     color: THEME.bone[50],
     textTransform: 'uppercase',
     flex: 1,
   } as const,
   tileTemp: {
     ...(TYPE.mono as object),
-    fontSize: 10,
-    letterSpacing: 0.10 * 10,
-    color: THEME.bone[70],
-    textTransform: 'uppercase',
+    fontSize: 11,
+    letterSpacing: 0.06 * 11,
+    color: THEME.bone[100],
     flexShrink: 0,
   } as const,
   tileDim: {
