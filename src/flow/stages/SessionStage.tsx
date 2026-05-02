@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
-    color: 'rgba(246, 222, 210, 0.50)',
+    color: 'rgba(255, 255, 255, 0.50)',
     textAlign: 'center',
   },
 
@@ -483,9 +483,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   bottomPillReadout: {
-    backgroundColor: 'rgba(255, 122, 0, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 122, 0, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.45)',
   },
   bottomPillHighlight: {
     position: 'absolute',

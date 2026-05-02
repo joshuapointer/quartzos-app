@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   rule: {
     flex: 1,
     height: RULE_HEIGHT,
-    backgroundColor: 'rgba(246, 222, 210, 0.20)',
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
   },
   endpointTick: {
     width: TICK_WIDTH,

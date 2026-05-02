@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   calibCard: {
     borderRadius: 24,
-    backgroundColor: 'rgba(246,222,210,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     paddingVertical: SPACE.xl,
     paddingHorizontal: SCREEN.HPAD,
     position: 'relative',
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 24,
     borderWidth: 0.5,
-    borderColor: 'rgba(246,222,210,0.20)',
+    borderColor: 'rgba(255,255,255,0.20)',
     pointerEvents: 'none',
   } as const,
   // Profile eyebrow inside the card — replaces the old recipeLine
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.6,
     lineHeight: 44,
     color: THEME.ember.base,
-    textShadowColor: 'rgba(255,122,0,0.30)',
+    textShadowColor: 'rgba(255,255,255,0.30)',
     textShadowRadius: 14,
     textShadowOffset: { width: 0, height: 0 },
     textAlign: 'center',

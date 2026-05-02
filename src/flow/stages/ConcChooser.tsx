@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: THEME.bone.warm10,
-    backgroundColor: 'rgba(246, 222, 210, 0.03)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 0,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   catOrbRingActive: {
-    borderColor: 'rgba(255, 122, 0, 0.85)',
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     shadowColor: THEME.ember.base,
     shadowRadius: 12,
     shadowOpacity: 0.55,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     ...(TYPE.mono as object),
     fontSize: 8,
     letterSpacing: 0.16 * 8,
-    color: '#e0c0af',
+    color: THEME.bone[70],
     textTransform: 'uppercase',
   } as const,
   tileBottom: {

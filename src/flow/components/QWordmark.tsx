@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     // iOS glow
-    shadowColor: '#ff7a00',
+    shadowColor: THEME.ember.bright,
     shadowRadius: 14,
     shadowOpacity: 0.55,
     shadowOffset: { width: 0, height: 0 },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: SCREEN.PILL_RADIUS,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 122, 0, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   disconnectText: {
     fontFamily: 'GeistMono_400Regular',

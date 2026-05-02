@@ -216,7 +216,7 @@ function TempDialInner({
               borderRadius: size / 2,
               backgroundColor: isCool(state)
                 ? THEME.quartz.glow
-                : 'rgba(255, 122, 0, 0.18)',
+                : 'rgba(255, 255, 255, 0.18)',
               transform: [{ scale: 1.4 }],
             },
           ]}

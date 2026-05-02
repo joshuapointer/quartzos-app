@@ -42,7 +42,7 @@ function SummaryCard() {
   return (
     <View style={styles.card}>
       <LinearGradient
-        colors={['transparent', 'rgba(246,222,210,0.40)', 'transparent']}
+        colors={['transparent', 'rgba(255,255,255,0.40)', 'transparent']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.cardRimGradient}
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     color: THEME.ember.base,
     textAlign: 'center',
     marginTop: 8,
-    textShadowColor: 'rgba(255,122,0,0.30)',
+    textShadowColor: 'rgba(255,255,255,0.30)',
     textShadowRadius: 14,
     textShadowOffset: { width: 0, height: 0 },
   },
@@ -312,9 +312,9 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     borderRadius: 24,
-    backgroundColor: 'rgba(246,222,210,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 0.5,
-    borderColor: 'rgba(246,222,210,0.20)',
+    borderColor: 'rgba(255,255,255,0.20)',
     paddingVertical: 20,
     paddingHorizontal: 24,
     gap: 14,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   },
   cardRowBorder: {
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(246,222,210,0.06)',
+    borderBottomColor: 'rgba(255,255,255,0.06)',
     paddingBottom: 14,
   },
   cardLabel: {

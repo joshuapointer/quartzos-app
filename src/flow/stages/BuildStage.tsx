@@ -52,7 +52,7 @@ function ProgressPill({ index, step }: ProgressPillProps) {
     const isCurrent = index === step;
     const isReached = index <= step;
     return {
-      backgroundColor: isReached ? THEME.ember.base : 'rgba(246, 222, 210, 0.10)',
+      backgroundColor: isReached ? THEME.ember.base : 'rgba(255, 255, 255, 0.10)',
       shadowOpacity: isCurrent ? 0.8 * progress.value : 0,
     };
   });
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: THEME.ember.base,
-    shadowColor: '#ff7a00',
+    shadowColor: THEME.ember.bright,
     shadowRadius: 12,
     shadowOpacity: 0,
     shadowOffset: { width: 0, height: 0 },

@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     ...(TYPE.mono as object),
     fontSize: 9,
     letterSpacing: 0.14 * 9,
-    color: '#a78b7c',
+    color: THEME.bone[50],
   } as const,
   sub: {
     fontFamily: 'Geist_400Regular',
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Geist_400Regular',
     fontStyle: 'italic',
     fontSize: 10.5,
-    color: '#e0c0af',
+    color: THEME.bone[70],
     lineHeight: 10.5 * 1.4,
     marginTop: 4,
   },

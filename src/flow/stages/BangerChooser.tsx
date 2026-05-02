@@ -190,7 +190,7 @@ function BangerCard({ banger, active, onPress }: BangerCardProps) {
   const tagLabel = `${banger.geometry.toUpperCase()}-CLASS`;
 
   const ringColor = active
-    ? 'rgba(255, 122, 0, 0.85)'
+    ? 'rgba(255, 255, 255, 0.85)'
     : THEME.bone.warm10;
 
   return (
@@ -383,14 +383,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: THEME.bone.warm10,
-    backgroundColor: 'rgba(246, 222, 210, 0.03)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 6,
   },
   geomCardActive: {
-    borderColor: 'rgba(255, 122, 0, 0.85)',
-    backgroundColor: 'rgba(255, 122, 0, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     shadowColor: THEME.ember.base,
     shadowRadius: 18,
     shadowOpacity: 0.35,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     height: CARD_H * 1.6,
     marginLeft: -CARD_H * 0.8,
     borderRadius: SCREEN.PILL_RADIUS,
-    backgroundColor: 'rgba(255, 122, 0, 0.10)',
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
   },
   ring: {
     borderRadius: 20,
@@ -499,8 +499,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   cardTagActive: {
-    backgroundColor: 'rgba(255, 122, 0, 0.16)',
-    borderColor: 'rgba(255, 122, 0, 0.55)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.55)',
   },
   cardTagText: {
     ...(TYPE.mono as object),

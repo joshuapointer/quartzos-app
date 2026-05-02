@@ -53,7 +53,7 @@ function NewSeshCircle() {
         <Circle cx={r} cy={r} r={r} fill="url(#newSeshShimmer)" />
         <Path
           d="M40 29v22M29 40h22"
-          stroke="#1c110a"
+          stroke={THEME.navy[3]}
           strokeWidth={2.5}
           strokeLinecap="round"
         />
@@ -140,7 +140,7 @@ const cardSt = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 24,
-    backgroundColor: 'rgba(246,222,210,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   innerBorder: {
     position: 'absolute',
@@ -150,7 +150,7 @@ const cardSt = StyleSheet.create({
     bottom: 0,
     borderRadius: 24,
     borderWidth: 0.5,
-    borderColor: 'rgba(246,222,210,0.20)',
+    borderColor: 'rgba(255,255,255,0.20)',
   },
   content: {
     alignItems: 'center',
@@ -187,9 +187,9 @@ const pillSt = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: SCREEN.PILL_RADIUS,
-    backgroundColor: 'rgba(246,222,210,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 0.5,
-    borderColor: 'rgba(246,222,210,0.18)',
+    borderColor: 'rgba(255,255,255,0.18)',
     marginTop: 6,
     marginBottom: 2,
   },
@@ -308,7 +308,7 @@ const st = StyleSheet.create({
     color: THEME.bone[100],
     letterSpacing: -1.52,
     textAlign: 'center',
-    textShadowColor: 'rgba(246,222,210,0.18)',
+    textShadowColor: 'rgba(255,255,255,0.18)',
     textShadowRadius: 16,
     textShadowOffset: { width: 0, height: 0 },
   },

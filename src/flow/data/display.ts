@@ -27,8 +27,8 @@ export function computeOrbProps(
 
   // Default fallback
   const defaults: OrbProps = {
-    color: '#a78b7c',
-    glowColor: 'rgba(167,139,124,0.3)',
+    color: THEME.bone[50],
+    glowColor: 'rgba(102,102,102,0.3)',
     pulseScale: 1.0,
     label: '—',
     sublabel: '',
@@ -38,8 +38,8 @@ export function computeOrbProps(
   if (stage === 'idle') {
     return {
       ...defaults,
-      color: '#7a5c4b',
-      glowColor: 'rgba(122,92,75,0.2)',
+      color: THEME.bone[35],
+      glowColor: 'rgba(68,68,68,0.2)',
       pulseScale: 0.9,
       label: 'Ready',
       sublabel: 'Select your setup',
@@ -49,8 +49,8 @@ export function computeOrbProps(
   if (stage === 'heat') {
     const tempLabel = currentTemp != null ? `${Math.round(currentTemp)}°` : '—';
     return {
-      color: '#ff7a00',
-      glowColor: 'rgba(255,122,0,0.5)',
+      color: THEME.ember.bright,
+      glowColor: 'rgba(255,255,255,0.5)',
       pulseScale: phase === 'active' ? 1.15 : 1.0,
       label: 'Heating',
       sublabel: tempLabel,
@@ -97,8 +97,8 @@ export function computeOrbProps(
 
   if (stage === 'done') {
     return {
-      color: '#7a5c4b',
-      glowColor: 'rgba(122,92,75,0.2)',
+      color: THEME.bone[35],
+      glowColor: 'rgba(68,68,68,0.2)',
       pulseScale: 0.95,
       label: 'Done',
       sublabel: 'Nice one',
