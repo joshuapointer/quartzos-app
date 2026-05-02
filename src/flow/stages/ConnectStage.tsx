@@ -135,9 +135,64 @@ const btnStyles = StyleSheet.create({
 
 const SCAN_TIMEOUT_MS = 25000;
 
+function TimerButton({ onPress }: { onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const translateY = useSharedValue(0);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  function handlePressIn() {
+    scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
+    translateY.value = withSpring(-1, { damping: 20, stiffness: 300 });
+  }
+
+  function handlePressOut() {
+    scale.value = withSpring(1.0, { damping: 20, stiffness: 300 });
+    translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+  }
+
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Use timer instead of Dab Rite"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={timerBtnStyle.btn}
+      >
+        <Text style={timerBtnStyle.label}>USE TIMER INSTEAD</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const timerBtnStyle = StyleSheet.create({
+  btn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: SCREEN.PILL_RADIUS,
+    backgroundColor: 'rgba(246, 222, 210, 0.04)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246, 222, 210, 0.18)',
+    alignItems: 'center',
+  },
+  label: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: THEME.bone[35],
+    textTransform: 'uppercase',
+  },
+});
+
 export default function ConnectStage() {
   const connect = useFlow((s) => s.connect);
   const searching = useFlow((s) => s.searching);
+  const enterTimedMode = useFlow((s) => s.enterTimedMode);
 
   // Surface a recovery state if a scan runs for too long without finding the
   // Dab Rite. Without it, a first-timer with the device powered off is
@@ -158,6 +213,11 @@ export default function ConnectStage() {
     connect();
   }
 
+  function handleTimedMode() {
+    void Haptics.selectionAsync();
+    enterTimedMode();
+  }
+
   // While timed out, present the button as ready-to-retry (not searching),
   // even though the store's searching flag is still true under the hood.
   const buttonSearching = searching && !timedOut;
@@ -165,6 +225,7 @@ export default function ConnectStage() {
   const s0 = useStaggerEntrance(0);
   const s1 = useStaggerEntrance(1);
   const s2 = useStaggerEntrance(2);
+  const s3 = useStaggerEntrance(3);
 
   const footerText = timedOut
     ? 'DAB RITE NOT RESPONDING'
@@ -193,6 +254,10 @@ export default function ConnectStage() {
 
       <Animated.View style={s2}>
         <Text style={st.footer}>{footerText}</Text>
+      </Animated.View>
+
+      <Animated.View style={[s3, st.timerWrapper]}>
+        <TimerButton onPress={handleTimedMode} />
       </Animated.View>
 
     </View>
@@ -243,5 +308,8 @@ const st = StyleSheet.create({
     marginTop: 28,
     textTransform: 'uppercase',
     textAlign: 'center',
+  },
+  timerWrapper: {
+    marginTop: 12,
   },
 });

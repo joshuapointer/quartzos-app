@@ -16,7 +16,7 @@ import { immer } from 'zustand/middleware/immer';
 
 import { bleManager } from '../ble/BleManager';
 import { useBleStore } from '../state/bleStore';
-import { useSettingsStore } from '../state/settingsStore';
+import { useSettingsStore, type SessionMode } from '../state/settingsStore';
 import { torchDetector } from '../utils/TorchDetector';
 
 import type { OrbProps, OrbState } from './components/Orb';
@@ -33,6 +33,9 @@ import {
   type Concentrate,
   type Wall,
 } from './data';
+import { predictCoolTemp, predictCoolDropRate } from './data/coolCurve';
+
+export type { SessionMode } from '../state/settingsStore';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -87,7 +90,12 @@ export type FlowState = {
   coolDropRate: number;
   startedAt: number | null;
 
+  // ── Session mode
+  sessionMode: SessionMode;
+
   // ── Actions
+  setSessionMode: (m: SessionMode) => void;
+  enterTimedMode: () => void;
   connect: () => void;
   finishConnect: () => void;
   disconnect: () => void;
@@ -170,6 +178,8 @@ function syncAlarmsToDevice(bangerId: string | null, concId: string | null, wall
   const c = concById(concId);
   const w = wallById(wallId);
   if (!b || !c) return;
+  const flow = useFlow.getState();
+  if (!flow.connected || flow.sessionMode === 'timed') return;
   const calibration = computeCalibration(b, c, w);
   const settings = useSettingsStore.getState().settings;
   bleManager.writeSettings({
@@ -208,6 +218,7 @@ const INITIAL: Pick<
   | 'coolTemp'
   | 'coolDropRate'
   | 'startedAt'
+  | 'sessionMode'
 > = {
   stage: 'connect',
   connected: false,
@@ -232,6 +243,7 @@ const INITIAL: Pick<
   coolTemp: 0,
   coolDropRate: 0,
   startedAt: null,
+  sessionMode: 'live',
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -282,7 +294,7 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'cool') {
-        // Progress timer (does NOT auto-advance from cool).
+        // Progress timer (does NOT auto-advance from cool). Runs in both modes.
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
           const elapsed = Date.now() - startedAt;
@@ -295,7 +307,34 @@ export const useFlow = create<FlowState>()(
           }
         }, COOL_TICK_MS);
 
-        // Live IR temp tracking + reheat triggers.
+        // ── Timed mode: synthetic cooling curve, no BLE. ─────────────────────
+        if (state.sessionMode === 'timed') {
+          const calibration = banger && concentrate
+            ? computeCalibration(banger, concentrate, wall)
+            : null;
+          const targetDisplay = calibration?.displayed ?? 550;
+          const targetHigh = calibration?.high ?? targetDisplay + 15;
+          const peak = targetHigh + 30;
+          const startedAtCool = Date.now();
+
+          set((s) => {
+            s.coolTemp = peak;
+            s.coolDropRate = 0;
+          });
+
+          coolTimer = setInterval(() => {
+            const elapsed = Date.now() - startedAtCool;
+            const t = predictCoolTemp(elapsed, peak, targetDisplay);
+            const drop = predictCoolDropRate(elapsed, peak, targetDisplay);
+            set((s) => {
+              s.coolTemp = t;
+              s.coolDropRate = drop;
+            });
+          }, COOL_SAMPLE_MS);
+          return;
+        }
+
+        // ── Live mode: IR temp tracking + reheat triggers. ───────────────────
         const calibration = banger && concentrate
           ? computeCalibration(banger, concentrate, wall)
           : null;
@@ -389,6 +428,8 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'dab') {
+        // Timed mode: user taps a CTA to call placeBack().
+        if (state.sessionMode === 'timed') return;
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
           const t = useBleStore.getState().liveTempF;
@@ -403,6 +444,8 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'load') {
+        // Timed mode: user taps a CTA to advance.
+        if (state.sessionMode === 'timed') return;
         // Cold-start load — wait until user begins torching (temp rises)
         phaseTimer = setInterval(() => {
           const t = useBleStore.getState().liveTempF;
@@ -455,6 +498,26 @@ export const useFlow = create<FlowState>()(
 
     return {
       ...INITIAL,
+      sessionMode: useSettingsStore.getState().lastSessionMode,
+
+      // ── Session mode ───────────────────────────────────────────────────────
+      setSessionMode: (m) => {
+        set((s) => {
+          s.sessionMode = m;
+        });
+        useSettingsStore.getState().setLastSessionMode(m);
+      },
+
+      enterTimedMode: () => {
+        clearAllTimers();
+        void torchDetector.stopListening();
+        set((s) => {
+          Object.assign(s, INITIAL);
+          s.sessionMode = 'timed';
+          s.stage = 'choose';
+        });
+        useSettingsStore.getState().setLastSessionMode('timed');
+      },
 
       // ── Connect ────────────────────────────────────────────────────────────
       connect: () => {
@@ -659,11 +722,17 @@ export const useFlow = create<FlowState>()(
         clearAllTimers();
         void torchDetector.stopListening();
         set((s) => {
-          // Preserve connected status; reset everything else to choose stage.
+          // Preserve connected status and session mode; reset everything else.
           const wasConnected = s.connected;
+          const mode = s.sessionMode;
           Object.assign(s, INITIAL);
           s.connected = wasConnected;
-          s.stage = wasConnected ? 'choose' : 'connect';
+          s.sessionMode = mode;
+          if (mode === 'timed') {
+            s.stage = 'choose';
+          } else {
+            s.stage = wasConnected ? 'choose' : 'connect';
+          }
         });
       },
     };
@@ -722,6 +791,8 @@ export const useOrbProps = (): OrbProps => {
   const coolDropRate = useFlow((s) => s.coolDropRate);
   const searching = useFlow((s) => s.searching);
   const connected = useFlow((s) => s.connected);
+  const sessionMode = useFlow((s) => s.sessionMode);
+  const coolTemp = useFlow((s) => s.coolTemp);
   const banger = useBanger();
   const calibration = useCalibration();
   const liveTempF = useBleStore((s) => s.liveTempF);
@@ -778,7 +849,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'cool') {
-        const t = liveTempF; // Always use the latest liveTempF
+        const t = sessionMode === 'timed' ? coolTemp : liveTempF;
         const inWindow = t <= high && t >= low;
         const fastDrop = coolDropRate > COOL_FAST_DROP_THRESHOLD;
         const orbState: OrbState = fastDrop
@@ -805,7 +876,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'dunk') {
-        const t = liveTempF;
+        const t = sessionMode === 'timed' ? coolTemp : liveTempF;
         return {
           state: 'dunk' satisfies OrbState,
           size: 240,
@@ -816,7 +887,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'clean') {
-        const t = liveTempF;
+        const t = sessionMode === 'timed' ? coolTemp : liveTempF;
         return {
           state: 'clean' satisfies OrbState,
           size: 170,
@@ -850,6 +921,8 @@ export const useOrbProps = (): OrbProps => {
     coolDropRate,
     searching,
     connected,
+    sessionMode,
+    coolTemp,
     banger,
     calibration,
     liveTempF,
@@ -860,11 +933,11 @@ export const useOrbProps = (): OrbProps => {
 useBleStore.subscribe((state, prevState) => {
   const flow = useFlow.getState();
   if (state.connectionState === 'READY' && prevState.connectionState !== 'READY') {
-    if (flow.stage === 'connect') {
+    if (flow.stage === 'connect' && flow.sessionMode === 'live') {
       flow.finishConnect();
     }
   } else if (state.connectionState === 'IDLE' && prevState.connectionState !== 'IDLE') {
-    if (flow.connected) {
+    if (flow.connected && flow.sessionMode === 'live') {
       flow.disconnect();
     }
   }
