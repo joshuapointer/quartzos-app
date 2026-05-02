@@ -15,21 +15,25 @@
  *     climax moment — QFlowShell flips to 'quartz' for ~2s when the orb enters
  *     'cool-in-window', then back to 'ember'.
  *
+ * Implementation note: Reanimated cannot animate react-native-svg `Stop`
+ * elements via `useAnimatedProps` (they are virtual nodes with no host
+ * instance). Instead we stack a second quartz-tinted SVG on top of the base
+ * ember SVG and crossfade the *outer* Animated.View opacity, which Reanimated
+ * targets natively.
+ *
  * pointerEvents="none" on the SVG so it never intercepts touches.
  */
 import React, { memo, useEffect } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedProps,
+  useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 import { useReducedMotion } from './components/useReducedMotion';
-
-const AnimatedStop = Animated.createAnimatedComponent(Stop);
 
 interface Props {
   children?: React.ReactNode;
@@ -46,8 +50,7 @@ function QBackground({ children, mode = 'ember' }: Props) {
   const { width, height } = useWindowDimensions();
   const reduced = useReducedMotion();
 
-  // 0 = ember, 1 = quartz. Cross-fades between the two bloom hues without
-  // tearing down the SVG (would re-trigger the gradient defs).
+  // 0 = ember (quartz layer hidden), 1 = quartz (quartz layer fully shown).
   const blend = useSharedValue(mode === 'quartz' ? 1 : 0);
 
   useEffect(() => {
@@ -62,21 +65,13 @@ function QBackground({ children, mode = 'ember' }: Props) {
     });
   }, [mode, blend, reduced]);
 
-  // Quartz tertiary-container hex (#00a8ff) ↔ ember primary-container (#ff7a00).
-  // We feed both gradients identically alpha-shaped; only the stopColor swaps.
-  const animatedBrightStopProps = useAnimatedProps(() => {
-    'worklet';
-    const t = blend.value;
-    // Linear interpolate r,g,b between #ff7a00 and #00a8ff.
-    const r = Math.round(0xff * (1 - t) + 0x00 * t);
-    const g = Math.round(0x7a * (1 - t) + 0xa8 * t);
-    const b = Math.round(0x00 * (1 - t) + 0xff * t);
-    const hex = `rgb(${r}, ${g}, ${b})`;
-    return { stopColor: hex };
-  });
+  const quartzLayerStyle = useAnimatedStyle(() => ({
+    opacity: blend.value,
+  }));
 
   return (
     <View style={styles.root}>
+      {/* Base layer — ember bright-left bloom (always rendered) */}
       <Svg
         style={StyleSheet.absoluteFill}
         width={width}
@@ -86,8 +81,6 @@ function QBackground({ children, mode = 'ember' }: Props) {
         pointerEvents="none"
       >
         <Defs>
-          {/* Base fill — near-black warm obsidian */}
-          {/* Layer 1: top-edge warm obsidian bloom at 50% -10% */}
           <RadialGradient
             id="rg-navy-top"
             cx="50%"
@@ -95,13 +88,11 @@ function QBackground({ children, mode = 'ember' }: Props) {
             rx="50%"
             ry="50%"
             gradientUnits="userSpaceOnUse"
-            gradientTransform="translate(0 0) scale(1 1)"
           >
             <Stop offset="0" stopColor="#291d16" stopOpacity="0.35" />
             <Stop offset="1" stopColor="#291d16" stopOpacity="0" />
           </RadialGradient>
 
-          {/* Layer 2: bottom-edge warm obsidian at 50% 110% */}
           <RadialGradient
             id="rg-navy-bottom"
             cx="50%"
@@ -114,7 +105,6 @@ function QBackground({ children, mode = 'ember' }: Props) {
             <Stop offset="1" stopColor="#1c110a" stopOpacity="0" />
           </RadialGradient>
 
-          {/* Layer 3: ember deep-right at 82% 72% */}
           <RadialGradient
             id="rg-ember-deep"
             cx="82%"
@@ -123,14 +113,10 @@ function QBackground({ children, mode = 'ember' }: Props) {
             ry="52%"
             gradientUnits="userSpaceOnUse"
           >
-            {/* on-primary-container ember deep at 18% */}
             <Stop offset="0" stopColor="#5c2800" stopOpacity="0.18" />
             <Stop offset="1" stopColor="#5c2800" stopOpacity="0" />
           </RadialGradient>
 
-          {/* Layer 4: ember/quartz bright-left at 22% 28%. Animated stop swaps
-              between primary-container ember (#ff7a00) and tertiary-container
-              quartz (#00a8ff) when mode toggles. */}
           <RadialGradient
             id="rg-ember-bright"
             cx="22%"
@@ -139,30 +125,50 @@ function QBackground({ children, mode = 'ember' }: Props) {
             ry="55%"
             gradientUnits="userSpaceOnUse"
           >
-            <AnimatedStop
-              offset="0"
-              stopOpacity="0.22"
-              animatedProps={animatedBrightStopProps}
-            />
-            <AnimatedStop
-              offset="1"
-              stopOpacity="0"
-              animatedProps={animatedBrightStopProps}
-            />
+            <Stop offset="0" stopColor="#ff7a00" stopOpacity="0.22" />
+            <Stop offset="1" stopColor="#ff7a00" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        {/* Base fill */}
         <Rect x="0" y="0" width="100" height="100" fill="#160c06" />
-        {/* Navy top bloom */}
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-top)" />
-        {/* Navy bottom edge */}
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-navy-bottom)" />
-        {/* Ember deep right */}
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-ember-deep)" />
-        {/* Ember/quartz bright left (mode-driven) */}
         <Rect x="0" y="0" width="100" height="100" fill="url(#rg-ember-bright)" />
       </Svg>
+
+      {/* Quartz overlay — only the bright-left bloom in quartz hue, opacity
+          driven by `blend`. Sits above the ember layer; when blend=0 it is
+          invisible, when blend=1 it fully replaces the ember bloom in that
+          region. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, quartzLayerStyle]}
+      >
+        <Svg
+          style={StyleSheet.absoluteFill}
+          width={width}
+          height={height}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          pointerEvents="none"
+        >
+          <Defs>
+            <RadialGradient
+              id="rg-quartz-bright"
+              cx="22%"
+              cy="28%"
+              rx="55%"
+              ry="55%"
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0" stopColor="#00a8ff" stopOpacity="0.22" />
+              <Stop offset="1" stopColor="#00a8ff" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100" height="100" fill="url(#rg-quartz-bright)" />
+        </Svg>
+      </Animated.View>
 
       {/* Content stacked above background */}
       <View style={styles.content}>{children}</View>
