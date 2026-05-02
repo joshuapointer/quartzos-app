@@ -101,7 +101,7 @@ export function TorchTimer({ durationSeconds, onComplete, onElapsedChange }: Tor
           </SvgGradient>
           <SvgGradient id="progressGrad" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0%" stopColor={colors.emberBright} />
-            <Stop offset="100%" stopColor="#ffb68b" />
+            <Stop offset="100%" stopColor={colors.emberBright} />
           </SvgGradient>
         </Defs>
         {/* Track */}
