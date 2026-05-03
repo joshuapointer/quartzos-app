@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg-deep" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="oklch(0.13 0.03 250)"/>
+      <stop offset="50%" stop-color="oklch(0.09 0.02 250)"/>
+      <stop offset="100%" stop-color="oklch(0.05 0.01 250)"/>
+    </radialGradient>
+    <radialGradient id="bg-prism" cx="30%" cy="20%" r="100%">
+      <stop offset="0%" stop-color="oklch(0.18 0.06 220 / 0.65)"/>
+      <stop offset="40%" stop-color="oklch(0.12 0.05 280 / 0.45)"/>
+      <stop offset="100%" stop-color="oklch(0.05 0.01 250)"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg-deep)"/>
+  <rect width="1024" height="1024" fill="url(#bg-prism)" opacity="0.7"/>
+</svg>

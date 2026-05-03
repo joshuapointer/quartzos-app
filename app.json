@@ -30,7 +30,8 @@
       "package": "com.quartzos.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#050403"
+        "backgroundImage": "./assets/adaptive-icon-background.png",
+        "backgroundColor": "#050608"
       },
       "permissions": [
         "android.permission.BLUETOOTH_CONNECT",
