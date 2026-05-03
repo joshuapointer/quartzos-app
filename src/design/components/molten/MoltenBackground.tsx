@@ -1,20 +1,41 @@
 import React, { useEffect } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
-  useAnimatedStyle,
+  useAnimatedProps,
   withRepeat,
   withSequence,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import Svg, { Defs, RadialGradient, Stop, Rect, G } from 'react-native-svg';
 import { colors } from '../../tokens';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-// Half the screen width — used for the center bloom circle radius
-const BLOOM_RADIUS = SCREEN_W / 2;
+// Drift amount: ±3% of screen dimensions
+const DRIFT_X = SCREEN_W * 0.03;
+const DRIFT_Y = SCREEN_H * 0.03;
+
+// Ellipse radii in userSpaceOnUse pixels, derived from the prototype's
+// percentage stop positions (55%, 60%, 70% of the larger screen dimension).
+const BASE = Math.max(SCREEN_W, SCREEN_H);
+const CYAN_RX    = BASE * 0.55 * 0.7; // slightly wider than tall for ellipse
+const CYAN_RY    = BASE * 0.55 * 0.5;
+const MAGENTA_RX = BASE * 0.60 * 0.7;
+const MAGENTA_RY = BASE * 0.60 * 0.5;
+const BLOOM_RX   = BASE * 0.70 * 0.6;
+const BLOOM_RY   = BASE * 0.70 * 0.5;
+
+// Gradient center points in pixels
+const CYAN_CX    = SCREEN_W * 0.28;
+const CYAN_CY    = SCREEN_H * 0.18;
+const MAGENTA_CX = SCREEN_W * 0.78;
+const MAGENTA_CY = SCREEN_H * 0.85;
+const BLOOM_CX   = SCREEN_W * 0.52;
+const BLOOM_CY   = SCREEN_H * 0.50;
+
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 type MoltenBackgroundProps = {
   children?: React.ReactNode;
@@ -23,7 +44,7 @@ type MoltenBackgroundProps = {
 };
 
 export function MoltenBackground({ children, intensity = 1 }: MoltenBackgroundProps) {
-  // Slow drift shared value: 0 → 1 → 0 over ~30 seconds, gives a "breathing" quality
+  // Slow drift shared value: 0 → 1 → 0 over ~30 seconds
   const drift = useSharedValue(0);
 
   useEffect(() => {
@@ -35,90 +56,112 @@ export function MoltenBackground({ children, intensity = 1 }: MoltenBackgroundPr
       -1,
       false,
     );
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Top-left cyan haze drifts ±20pt
-  const cyanHazeStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -20 + drift.value * 20 },
-      { translateY: -20 + drift.value * 20 },
-      { scale: 1.4 },
-    ],
-    opacity: intensity,
+  // Cyan haze drifts +DRIFT in each direction over the cycle
+  const cyanGProps = useAnimatedProps(() => ({
+    translateX: -DRIFT_X + drift.value * DRIFT_X * 2,
+    translateY: -DRIFT_Y + drift.value * DRIFT_Y * 2,
   }));
 
-  // Bottom-right magenta haze drifts in opposite direction
-  const magentaHazeStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: 20 - drift.value * 20 },
-      { translateY: 20 - drift.value * 20 },
-      { scale: 1.4 },
-    ],
-    opacity: intensity,
-  }));
-
-  // Center bloom has a gentle pulse
-  const bloomStyle = useAnimatedStyle(() => ({
-    opacity: (0.6 + drift.value * 0.4) * intensity,
+  // Magenta haze drifts in the opposite direction
+  const magentaGProps = useAnimatedProps(() => ({
+    translateX: DRIFT_X - drift.value * DRIFT_X * 2,
+    translateY: DRIFT_Y - drift.value * DRIFT_Y * 2,
   }));
 
   return (
     <View style={styles.root}>
-      {/* Base fill */}
-      <View style={[StyleSheet.absoluteFill, styles.base]} pointerEvents="none" />
-
-      {/* Center bloom — behind the hazes */}
-      <Animated.View
-        style={[styles.bloomContainer, bloomStyle]}
+      {/* Full-screen SVG background — pointer events disabled */}
+      <Svg
+        width={SCREEN_W}
+        height={SCREEN_H}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       >
-        <LinearGradient
-          colors={[
-            // surfaceContainer 30% alpha → transparent
-            'rgba(16,19,27,0.30)',
-            'rgba(16,19,27,0)',
-          ]}
-          start={{ x: 0.5, y: 0.5 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.bloomGradient}
-        />
-      </Animated.View>
+        <Defs>
+          {/* Cyan haze: oklch(0.14 0.05 220 / 0.40) */}
+          <RadialGradient
+            id="bg-cyan"
+            cx={CYAN_CX}
+            cy={CYAN_CY}
+            rx={CYAN_RX}
+            ry={CYAN_RY}
+            fx={CYAN_CX}
+            fy={CYAN_CY}
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0%"   stopColor={colors.bgHazeCyan} stopOpacity={1} />
+            <Stop offset="100%" stopColor={colors.bgHazeCyan} stopOpacity={0} />
+          </RadialGradient>
 
-      {/* Top-left cyan haze */}
-      <Animated.View
-        style={[styles.cyanHaze, cyanHazeStyle]}
-        pointerEvents="none"
-      >
-        <LinearGradient
-          colors={[
-            // prismCyan 5% alpha → transparent
-            'rgba(58,205,240,0.05)',
-            'rgba(58,205,240,0)',
-          ]}
-          start={{ x: 0.3, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+          {/* Magenta haze: oklch(0.13 0.06 320 / 0.35) */}
+          <RadialGradient
+            id="bg-magenta"
+            cx={MAGENTA_CX}
+            cy={MAGENTA_CY}
+            rx={MAGENTA_RX}
+            ry={MAGENTA_RY}
+            fx={MAGENTA_CX}
+            fy={MAGENTA_CY}
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0%"   stopColor={colors.bgHazeMagenta} stopOpacity={1} />
+            <Stop offset="100%" stopColor={colors.bgHazeMagenta} stopOpacity={0} />
+          </RadialGradient>
 
-      {/* Bottom-right magenta haze */}
-      <Animated.View
-        style={[styles.magentaHaze, magentaHazeStyle]}
-        pointerEvents="none"
-      >
-        <LinearGradient
-          colors={[
-            // prismMagenta 5% alpha → transparent
-            'rgba(227,112,211,0.05)',
-            'rgba(227,112,211,0)',
-          ]}
-          start={{ x: 0.3, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+          {/* Center bloom: oklch(0.10 0.020 270 / 0.32) */}
+          <RadialGradient
+            id="bg-bloom"
+            cx={BLOOM_CX}
+            cy={BLOOM_CY}
+            rx={BLOOM_RX}
+            ry={BLOOM_RY}
+            fx={BLOOM_CX}
+            fy={BLOOM_CY}
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0%"   stopColor={colors.bgCenterBloom} stopOpacity={1} />
+            <Stop offset="100%" stopColor={colors.bgCenterBloom} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
 
-      {/* Children layer */}
+        {/* Layer 1: Center bloom (behind hazes, no drift) */}
+        <Rect
+          x={0}
+          y={0}
+          width={SCREEN_W}
+          height={SCREEN_H}
+          fill="url(#bg-bloom)"
+          opacity={intensity}
+        />
+
+        {/* Layer 2: Cyan haze — drifts +direction */}
+        <AnimatedG animatedProps={cyanGProps}>
+          <Rect
+            x={0}
+            y={0}
+            width={SCREEN_W}
+            height={SCREEN_H}
+            fill="url(#bg-cyan)"
+            opacity={intensity}
+          />
+        </AnimatedG>
+
+        {/* Layer 3: Magenta haze — drifts −direction */}
+        <AnimatedG animatedProps={magentaGProps}>
+          <Rect
+            x={0}
+            y={0}
+            width={SCREEN_W}
+            height={SCREEN_H}
+            fill="url(#bg-magenta)"
+            opacity={intensity}
+          />
+        </AnimatedG>
+      </Svg>
+
+      {/* Children layer — above the SVG */}
       <View style={styles.children}>{children}</View>
     </View>
   );
@@ -129,49 +172,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background, // #060507
   },
-  base: {
-    backgroundColor: colors.background,
-    zIndex: 0,
-  },
-  // Center bloom: a circle whose radius equals half the screen width
-  bloomContainer: {
-    position: 'absolute',
-    width: BLOOM_RADIUS * 2,
-    height: BLOOM_RADIUS * 2,
-    borderRadius: 9999,
-    top: SCREEN_H / 2 - BLOOM_RADIUS,
-    left: SCREEN_W / 2 - BLOOM_RADIUS,
-    overflow: 'hidden',
-    zIndex: 1,
-  },
-  bloomGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  // Top-left cyan haze: ~50% width × 35% height, top -5%, left -10%
-  cyanHaze: {
-    position: 'absolute',
-    width: SCREEN_W * 0.5,
-    height: SCREEN_H * 0.35,
-    borderRadius: 9999,
-    top: SCREEN_H * -0.05,
-    left: SCREEN_W * -0.1,
-    overflow: 'hidden',
-    zIndex: 2,
-  },
-  // Bottom-right magenta haze: ~50% width × 35% height, bottom -5%, right -10%
-  magentaHaze: {
-    position: 'absolute',
-    width: SCREEN_W * 0.5,
-    height: SCREEN_H * 0.35,
-    borderRadius: 9999,
-    bottom: SCREEN_H * -0.05,
-    right: SCREEN_W * -0.1,
-    overflow: 'hidden',
-    zIndex: 2,
-  },
   children: {
     flex: 1,
     position: 'relative',
-    zIndex: 10,
   },
 });

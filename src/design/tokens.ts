@@ -172,6 +172,12 @@ export const colors = {
   activeGlow:    '#e370d3',
   activeDark:    '#10131b',
 
+  // ── Background haze tokens (body radial gradient layers) ──
+  // Source: /Downloads/quartzie-molten-refresh.html body background
+  bgHazeCyan:       'rgba(38, 71, 102, 0.40)',  /* oklch(0.14 0.05 220 / 0.40) — cyan haze at 28% 18% */
+  bgHazeMagenta:    'rgba(82, 41, 92, 0.35)',   /* oklch(0.13 0.06 320 / 0.35) — magenta haze at 78% 85% */
+  bgCenterBloom:    'rgba(20, 18, 36, 0.32)',   /* oklch(0.10 0.020 270 / 0.32) — center bloom at 52% 50% */
+
   // ── Semantic aliases (camelCase) ──
   voidObsidian:  '#060507',
   surfaceDeep:   '#060507',
