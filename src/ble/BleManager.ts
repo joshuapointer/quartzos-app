@@ -3,6 +3,7 @@ import {
   BleManager as RNBleManager,
   ConnectionPriority,
   Device,
+  State as BleState,
   type Characteristic,
   type Subscription,
 } from 'react-native-ble-plx';
@@ -161,6 +162,7 @@ export class BleManager {
   private device: Device | null = null;
   private ff01Sub: Subscription | null = null;
   private disconnectSub: Subscription | null = null;
+  private stateChangeSub: Subscription | null = null;
 
   private queryInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -171,10 +173,6 @@ export class BleManager {
 
   private idleTempSince: number | null = null;
   private currentSessionId: string | null = null;
-
-  // Mock state
-  private mockTempInterval: ReturnType<typeof setInterval> | null = null;
-  private mockCurrentTemp = 70;
 
   private constructor() {
     this.commandQueue = new CommandQueue((frame) => this.sendFrame(frame));
@@ -212,37 +210,83 @@ export class BleManager {
       this.setState('IDLE');
     }
     if (this.sm.current !== 'IDLE') return;
-    // User is initiating a fresh scan — clear the intentional flag so a
-    // subsequent disconnect during connect is treated as unexpected.
     this.intentionalDisconnect = false;
     this.setState('SCANNING');
+    void this.beginScan();
+  }
 
-    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
-      setTimeout(() => {
-        if (this.sm.current === 'SCANNING') {
-          this.rnBle.stopDeviceScan();
-          void this.connectToDevice('mock-dabrite-01');
-        }
-      }, 1000);
+  stopScan(): void {
+    this.rnBle.stopDeviceScan();
+    this.stateChangeSub?.remove();
+    this.stateChangeSub = null;
+    if (this.sm.current === 'SCANNING') this.setState('IDLE');
+  }
+
+  /**
+   * Probe the underlying central's power state. Used by app/index.tsx and
+   * permissions.tsx instead of constructing throwaway RNBleManager instances —
+   * destroying a temp manager resets the shared native singleton (see
+   * commit c78d281 and docs/BLE_AUDIT.md), which leaves the central in
+   * `Resetting` and breaks subsequent scans.
+   */
+  async probeState(): Promise<BleState> {
+    return this.rnBle.state();
+  }
+
+  /**
+   * Wait for the central to reach `PoweredOn` before calling `startDeviceScan`.
+   * iOS `CBCentralManager` is `Unknown` for a few hundred ms after construction
+   * (and `Resetting` after any teardown). Scans started in those states silently
+   * return zero peripherals — this gate restores the behavior the deleted
+   * pair.tsx had before commit fcb66d7.
+   */
+  private async beginScan(): Promise<void> {
+    let state: BleState;
+    try {
+      state = await this.rnBle.state();
+    } catch (err) {
+      console.warn('[BLE] state() probe failed before scan:', err);
+      if (this.sm.current === 'SCANNING') this.setState('ERROR');
+      return;
+    }
+    if (this.sm.current !== 'SCANNING') return; // user cancelled while we awaited
+    console.log('[BLE] startScan — central state:', state);
+
+    if (state === BleState.PoweredOn) {
+      this.runScan();
       return;
     }
 
+    // Defer until PoweredOn; emitCurrentState=true so we get an immediate
+    // callback if the state has already flipped between probe and subscribe.
+    this.stateChangeSub = this.rnBle.onStateChange((s) => {
+      console.log('[BLE] state change while waiting to scan:', s);
+      if (s !== BleState.PoweredOn) return;
+      this.stateChangeSub?.remove();
+      this.stateChangeSub = null;
+      if (this.sm.current === 'SCANNING') this.runScan();
+    }, true);
+  }
+
+  private runScan(): void {
+    console.log('[BLE] startDeviceScan — filter UUID:', SERVICE_UUID);
     this.rnBle.startDeviceScan([SERVICE_UUID], null, (error, scanned) => {
       if (error) {
+        console.warn('[BLE] scan error:', error.message ?? String(error));
         this.rnBle.stopDeviceScan();
         this.setState('ERROR');
         return;
       }
       if (!scanned) return;
-      // First match wins.
+      console.log(
+        '[BLE] device discovered:',
+        scanned.id,
+        scanned.name ?? scanned.localName ?? '<no name>',
+        'rssi:', scanned.rssi,
+      );
       this.rnBle.stopDeviceScan();
       void this.connectToDevice(scanned.id);
     });
-  }
-
-  stopScan(): void {
-    this.rnBle.stopDeviceScan();
-    if (this.sm.current === 'SCANNING') this.setState('IDLE');
   }
 
   async connectToDevice(deviceId: string): Promise<void> {
@@ -260,28 +304,6 @@ export class BleManager {
       } else {
         return;
       }
-    }
-
-    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
-      this.device = { id: deviceId, name: 'Mock DabRite' } as unknown as Device;
-      useBleStore.getState().setConnectedDevice(deviceId);
-
-      setTimeout(() => this.setState('DISCOVERING'), 200);
-      setTimeout(() => this.setState('SUBSCRIBING'), 400);
-      setTimeout(() => {
-        this.setState('READY');
-        this.reconnectAttempts = 0;
-        this.querySettingsReceived = true;
-        
-        this.mockCurrentTemp = 70;
-        this.mockTempInterval = setInterval(() => {
-          if (this.mockCurrentTemp < 600) {
-            this.mockCurrentTemp += Math.floor(Math.random() * 4) + 2;
-          }
-          this.onTempSample(this.mockCurrentTemp);
-        }, 500);
-      }, 600);
-      return;
     }
 
     try {
@@ -366,17 +388,6 @@ export class BleManager {
     this.stopQueryPoll();
     this.commandQueue.flush(new Error('disconnected'));
     this.teardownSubscriptions();
-
-    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
-      if (this.mockTempInterval) {
-        clearInterval(this.mockTempInterval);
-        this.mockTempInterval = null;
-      }
-      this.device = null;
-      useBleStore.getState().setConnectedDevice(null);
-      if (this.sm.canTransition('IDLE')) this.setState('IDLE');
-      return;
-    }
 
     const device = this.device;
     this.device = null;
@@ -606,13 +617,6 @@ export class BleManager {
   private async sendFrame(frame: Uint8Array): Promise<void> {
     const device = this.device;
     if (!device) throw new Error('BLE not connected');
-    
-    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
-      setTimeout(() => {
-        this.commandQueue.resolveAck();
-      }, 50);
-      return;
-    }
 
     const b64 = Buffer.from(frame).toString('base64');
     await this.rnBle.writeCharacteristicWithResponseForDevice(

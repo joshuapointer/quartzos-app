@@ -7,7 +7,9 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BleManager as RNBleManager } from 'react-native-ble-plx';
+import { State as BleState } from 'react-native-ble-plx';
+
+import { bleManager } from '../../src/ble/BleManager';
 
 import { ChromeButton, GlassCard, QBackground } from '../../src/design';
 import { colors, fonts, spacing } from '../../src/design/tokens';
@@ -17,16 +19,15 @@ type PermState = 'unknown' | 'granted' | 'denied' | 'blocked';
 
 async function requestBlePermission(): Promise<PermState> {
   // react-native-ble-plx handles permission prompts via its native layer the
-  // first time we interact with the manager. Creating a manager and listening
-  // for state transitions is the portable way to trigger the prompt.
+  // first time we interact with the manager. Using the singleton's probeState()
+  // avoids constructing + destroying a throwaway manager, which would reset the
+  // shared native CBCentralManager singleton and leave it in `Resetting`.
   try {
-    const mgr = new RNBleManager();
-    const state = await mgr.state();
-    // On iOS, state === 'Unauthorized' means blocked; 'PoweredOn'/'PoweredOff' implies granted.
-    // On Android, permission prompts surface during scan; we treat 'PoweredOn' as green light.
-    mgr.destroy();
-    if (state === 'Unauthorized') return 'blocked';
-    if (state === 'Unsupported') return 'denied';
+    const state = await bleManager.probeState();
+    // On iOS, state === Unauthorized means blocked; PoweredOn/PoweredOff implies granted.
+    // On Android, permission prompts surface during scan; we treat PoweredOn as green light.
+    if (state === BleState.Unauthorized) return 'blocked';
+    if (state === BleState.Unsupported) return 'denied';
     return 'granted';
   } catch {
     return 'denied';
@@ -43,11 +44,9 @@ export default function PermissionsScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const mgr = new RNBleManager();
-        const state = await mgr.state();
-        mgr.destroy();
+        const state = await bleManager.probeState();
         if (cancelled) return;
-        if (state === 'Unauthorized') setBleState('blocked');
+        if (state === BleState.Unauthorized) setBleState('blocked');
       } catch {
         /* ignore */
       }

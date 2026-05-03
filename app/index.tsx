@@ -9,7 +9,9 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { BleManager as RNBleManager } from 'react-native-ble-plx';
+import { State as BleState } from 'react-native-ble-plx';
+
+import { bleManager } from '../src/ble/BleManager';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore */
@@ -28,10 +30,8 @@ export default function Index() {
       // otherwise go to home and let the prompt fire on first scan.
       let next: Target = '/(connected)/home';
       try {
-        const mgr = new RNBleManager();
-        const state = await mgr.state();
-        mgr.destroy();
-        if (state === 'Unauthorized' || state === 'Unsupported') {
+        const state = await bleManager.probeState();
+        if (state === BleState.Unauthorized || state === BleState.Unsupported) {
           next = '/onboarding/permissions';
         }
       } catch {
