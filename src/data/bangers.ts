@@ -43,6 +43,7 @@ interface BangerBase {
   readonly heat_time_breakdown?: readonly HeatTimeStage[];
   readonly heat_method?: string;
   readonly cooldown_seconds: string;
+  readonly cooling: { readonly k_per_second: number | null; readonly thermal_class: string };
   readonly torch_pattern: TorchPattern;
   readonly torch_zones: readonly TorchZone[];
   readonly torch_distance_inches: string | null;
@@ -87,6 +88,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Center underside of bucket bottom, 1/2" away',
     heat_time_seconds: '20-40',
     cooldown_seconds: '30-45',
+    cooling: { k_per_second: 0.00482, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'bucket_bottom', time_pct: 60 },
@@ -119,6 +121,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Center underside of bucket bottom, 1/2" away',
     heat_time_seconds: '25-35',
     cooldown_seconds: '35-50',
+    cooling: { k_per_second: 0.00515, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'bucket_bottom', time_pct: 60 },
@@ -150,6 +153,7 @@ export const BANGERS: readonly Banger[] = [
       'Center of opaque bottom underside, 1/2" away (Dab Rite: switch to Opaque Quartz preset)',
     heat_time_seconds: '30-40',
     cooldown_seconds: '45-60',
+    cooling: { k_per_second: 0.0049, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'opaque_bottom', time_pct: 70 },
@@ -179,6 +183,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Outer base of bucket, 1/2" away (manufacturer-correct aim)',
     heat_time_seconds: '30-45',
     cooldown_seconds: '45-60',
+    cooling: { k_per_second: 0.00337, thermal_class: 'slow' },
     torch_pattern: 'circular_sweep_outer_only',
     torch_zones: [
       { anatomy: 'outer_side_wall', time_pct: 70 },
@@ -209,6 +214,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Lowest curve apex (= bottom center), 1/2" away',
     heat_time_seconds: '30-45',
     cooldown_seconds: '30-50',
+    cooling: { k_per_second: 0.00463, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'bottom_curve', time_pct: 70 },
@@ -238,6 +244,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Inner bucket floor around pillar, 1/2" away',
     heat_time_seconds: '25-30',
     cooldown_seconds: '45-60',
+    cooling: { k_per_second: 0.00412, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep_floor',
     torch_zones: [
       { anatomy: 'opaque_bottom', time_pct: 70 },
@@ -267,6 +274,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Outside of dome in heating position, ~1" away',
     heat_time_seconds: '15-30',
     cooldown_seconds: '10-30',
+    cooling: { k_per_second: 0.01156, thermal_class: 'fast' },
     torch_pattern: 'circular_sweep',
     torch_zones: [{ anatomy: 'swung_out_dish_bottom', time_pct: 100 }],
     torch_distance_inches: '1',
@@ -294,6 +302,7 @@ export const BANGERS: readonly Banger[] = [
       { stage: 'dish_return', duration_seconds: 15 },
     ],
     cooldown_seconds: '35-60',
+    cooling: { k_per_second: 0.0048, thermal_class: 'moderate' },
     torch_pattern: 'sequenced',
     torch_zones: [
       { anatomy: 'bottom_dish', time_pct: 50 },
@@ -326,6 +335,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Side of the tower at mid-height (slurper-class aim — NOT disc underside)',
     heat_time_seconds: '25-35',
     cooldown_seconds: '30-45',
+    cooling: { k_per_second: 0.00589, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'under_slotted_disc', time_pct: 60 },
@@ -355,6 +365,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Side of bucket wall mid-height (avoid drilled holes — radial crack risk)',
     heat_time_seconds: '25-40',
     cooldown_seconds: '45-60',
+    cooling: { k_per_second: 0.00337, thermal_class: 'slow' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'bucket_bottom', time_pct: 65 },
@@ -386,6 +397,7 @@ export const BANGERS: readonly Banger[] = [
     heat_method:
       'simultaneous (heat dish + chamber together, side-to-side AND top-to-bottom)',
     cooldown_seconds: '30-45 + dry-pull',
+    cooling: { k_per_second: 0.00589, thermal_class: 'moderate' },
     torch_pattern: 'simultaneous_sweep',
     torch_zones: [{ anatomy: 'dish_and_chamber_simultaneously', time_pct: 100 }],
     torch_distance_inches: '0.5-1',
@@ -411,6 +423,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Side of the cup wall (slurper-class — inferred, no first-party doc)',
     heat_time_seconds: '35-50',
     cooldown_seconds: '30-45',
+    cooling: { k_per_second: 0.00589, thermal_class: 'moderate' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'bottom_skirt_with_vortex_holes', time_pct: 60 },
@@ -435,6 +448,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'Host banger bottom, 1/2" away (read banger temp, not insert directly)',
     heat_time_seconds: '25-35 host (or 10-25 cold-start)',
     cooldown_seconds: '10 (Method 3) / full (Method 1)',
+    cooling: { k_per_second: 0.00675, thermal_class: 'fast' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
       { anatomy: 'host_banger_bottom', time_pct: 60 },
@@ -466,6 +480,7 @@ export const BANGERS: readonly Banger[] = [
     ir_aim_location: 'PID set point — no IR / no torch needed',
     heat_time_seconds: '30 stabilize',
     cooldown_seconds: '0 (PID maintained)',
+    cooling: { k_per_second: null, thermal_class: 'constant' },
     torch_pattern: 'none',
     torch_zones: [],
     torch_distance_inches: null,

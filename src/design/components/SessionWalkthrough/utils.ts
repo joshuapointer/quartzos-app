@@ -38,13 +38,23 @@ export function pidSetpointFor(banger: Banger, interiorF: number): number {
  * For a slurper-class banger with a `heat_time_breakdown`, return a stable
  * sum of every stage's duration. Otherwise return the parsed midpoint.
  */
-export function totalHeatSeconds(banger: Banger): number {
+export function totalHeatSeconds(banger: Banger, wallMultiplier: number = 1.0): number {
   if (banger.heat_time_breakdown && banger.heat_time_breakdown.length > 0) {
     return banger.heat_time_breakdown.reduce(
       (acc: number, stage: HeatTimeStage) => acc + stage.duration_seconds,
       0,
     );
   }
+
+  // Determine torch time dynamically from the banger's thermal mass.
+  // The time constant tau (1/k) represents the mass's heat retention curve.
+  // We apply a fraction (0.45) that aligns standard geometries with ~90-100s.
+  // The wall multiplier correctly scales this value up for thicker quartz.
+  if (banger.cooling && banger.cooling.k_per_second) {
+    const tau = 1 / banger.cooling.k_per_second;
+    return Math.round(tau * 0.45 * wallMultiplier);
+  }
+
   return parseHeatSeconds(banger.heat_time_seconds);
 }
 

@@ -23,6 +23,7 @@ export type Banger = {
   heat_time: string;
   heat_seconds: [number, number];
   cool_seconds: [number, number];
+  cooling?: { k_per_second: number | null; thermal_class: string };
   pattern: TorchPattern;
   zones: { anatomy: string; pct: number }[];
   torch_distance: string;

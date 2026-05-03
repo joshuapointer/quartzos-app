@@ -277,7 +277,7 @@ export const useFlow = create<FlowState>()(
         }
 
         const canonicalBanger = banger ? findBanger(banger.id) : undefined;
-        const baseHeatSec = canonicalBanger ? totalHeatSeconds(canonicalBanger) : 30;
+        const baseHeatSec = canonicalBanger ? totalHeatSeconds(canonicalBanger, wall?.gradient_multiplier) : 30;
         const phaseDur = baseHeatSec * 1000 * state.heatTimeFactor;
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
@@ -808,6 +808,7 @@ export const useOrbProps = (): OrbProps => {
   const sessionMode = useFlow((s) => s.sessionMode);
   const coolTemp = useFlow((s) => s.coolTemp);
   const banger = useBanger();
+  const wall = useWall();
   const calibration = useCalibration();
   const liveTempF = useBleStore((s) => s.liveTempF);
 
@@ -845,7 +846,7 @@ export const useOrbProps = (): OrbProps => {
 
       if (phaseKey === 'heat') {
         const canonicalBanger = banger ? findBanger(banger.id) : undefined;
-        const baseHeatSec = canonicalBanger ? totalHeatSeconds(canonicalBanger) : 30;
+        const baseHeatSec = canonicalBanger ? totalHeatSeconds(canonicalBanger, wall?.gradient_multiplier) : 30;
         const totalSec = baseHeatSec * heatTimeFactor;
         const isReheat = heatTimeFactor < 1;
         return {
@@ -974,6 +975,7 @@ export const useOrbProps = (): OrbProps => {
     sessionMode,
     coolTemp,
     banger,
+    wall,
     calibration,
     liveTempF,
   ]);
