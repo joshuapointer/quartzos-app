@@ -31,10 +31,7 @@ export {
   type ConcentrateCategory,
   type TerpeneProfile,
   type SolventlessConcentrate,
-  type HashConcentrate,
   type HydrocarbonConcentrate,
-  type DistillateConcentrate,
-  type NovelConcentrate,
 } from './concentrates';
 
 export {
@@ -208,10 +205,7 @@ export const BANGER_GEOMETRIES: readonly BangerGeometryOption[] = [
 
 export const CONCENTRATE_CATEGORIES: readonly EnumOption[] = [
   { id: 'solventless', label: 'Solventless' },
-  { id: 'hash', label: 'Hash' },
   { id: 'hydrocarbon', label: 'Hydrocarbon' },
-  { id: 'distillate', label: 'Distillate' },
-  { id: 'novel', label: 'Novel / 2026' },
 ] as const;
 
 export const TORCH_PATTERNS: readonly EnumOption[] = [

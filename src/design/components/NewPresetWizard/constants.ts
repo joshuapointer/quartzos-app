@@ -21,26 +21,17 @@ export const BANGER_CATEGORY_LABELS: Readonly<Record<BangerCategory, string>> = 
 
 export const CONCENTRATE_CATEGORY_ORDER: readonly ConcentrateCategory[] = [
   'solventless',
-  'hash',
   'hydrocarbon',
-  'distillate',
-  'novel',
 ];
 
 export const CONCENTRATE_CATEGORY_LABELS: Readonly<Record<ConcentrateCategory, string>> = {
   solventless: 'Solventless',
-  hash: 'Hash',
   hydrocarbon: 'Hydrocarbon',
-  distillate: 'Distillate',
-  novel: 'Novel / 2026',
 };
 
 export const CATEGORY_SWATCH_COLORS: Readonly<Record<ConcentrateCategory, readonly [string, string]>> = {
   solventless: ['#C4A860', '#886030'],
-  hash: ['#A58860', '#6E5530'],
   hydrocarbon: ['#B8782C', '#704820'],
-  distillate: ['#C8D8E8', '#8898A8'],
-  novel: ['#D8E4EC', '#A8C0D4'],
 };
 
 export const SENSOR_ORDER: readonly SensorMethod[] = ['ir', 'contact', 'enail', 'visual'];
