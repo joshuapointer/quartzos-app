@@ -12,7 +12,6 @@ import { BleManager as RNBleManager } from 'react-native-ble-plx';
 import { ChromeButton, GlassCard, QBackground } from '../../src/design';
 import { colors, fonts, spacing } from '../../src/design/tokens';
 import { requestNotificationPermissions } from '../../src/notifications/channels';
-import { StaticDialSilhouette } from '../../src/design/components/StaticDialSilhouette';
 
 type PermState = 'unknown' | 'granted' | 'denied' | 'blocked';
 
@@ -67,7 +66,7 @@ export default function PermissionsScreen() {
 
       await requestNotificationPermissions().catch(() => false);
 
-      router.replace('/onboarding/pair');
+      router.replace('/(connected)/home');
     } finally {
       setRequesting(false);
     }
@@ -84,10 +83,6 @@ export default function PermissionsScreen() {
   return (
     <View style={styles.root}>
       <QBackground />
-      {/* Dial silhouette — dim background layer matching home screen positioning */}
-      <View style={styles.dialLayer} pointerEvents="none">
-        <StaticDialSilhouette state="idle" size={280} />
-      </View>
       <View style={styles.screen}>
         <GlassCard padding={28} style={styles.card}>
           <Text style={styles.title}>Wake the Dab Rite</Text>
@@ -144,13 +139,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bgDeep,
-  },
-  dialLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    // Slight upward bias so dial center sits ~45% down, matching home layout
-    justifyContent: 'center',
-    paddingTop: '5%',
   },
   screen: {
     flex: 1,

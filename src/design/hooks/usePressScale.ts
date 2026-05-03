@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
-import { useReducedMotion } from '../../flow/components/useReducedMotion';
+import { useReducedMotion } from './useReducedMotion';
 import { animation, reanimatedEasing, motion } from '../tokens';
 
 interface UsePressScaleOptions {

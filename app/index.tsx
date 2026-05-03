@@ -1,37 +1,54 @@
 /**
  * app/index.tsx
  *
- * Phase 8 — single entrypoint for the new linear flow. Renders QFlowShell
- * directly; the shell handles every stage (connect → choose → build → session
- * → complete) with no router pushes.
- *
- * Legacy routes under app/(connected), app/onboarding, app/(modals) remain
- * registered with the file-based router but are no longer navigated to from
- * here.
+ * Single entrypoint for the molten flow. Probes BLE state once and redirects
+ * to either the connected home or onboarding/permissions, then steps out of
+ * the way — MoltenSurface owns the rest of the experience.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-
-import QFlowShell from '../src/flow/QFlowShell';
-import { useFlowFonts } from '../src/flow/useFlowFonts';
+import { BleManager as RNBleManager } from 'react-native-ble-plx';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore */
 });
 
+type Target = '/(connected)/home' | '/onboarding/permissions';
+
 export default function Index() {
-  const { ready } = useFlowFonts();
+  const [target, setTarget] = useState<Target | null>(null);
 
   useEffect(() => {
-    if (ready) {
+    let cancelled = false;
+    (async () => {
+      // Quick non-blocking probe: try to construct the BLE manager. If state
+      // is `Unauthorized` (iOS denied) or `Unsupported`, route to permissions;
+      // otherwise go to home and let the prompt fire on first scan.
+      let next: Target = '/(connected)/home';
+      try {
+        const mgr = new RNBleManager();
+        const state = await mgr.state();
+        mgr.destroy();
+        if (state === 'Unauthorized' || state === 'Unsupported') {
+          next = '/onboarding/permissions';
+        }
+      } catch {
+        // Probe failed — assume we can still surface the home and recover
+        // when the user taps to scan.
+      }
+      if (cancelled) return;
+      setTarget(next);
       SplashScreen.hideAsync().catch(() => {
         /* ignore */
       });
-    }
-  }, [ready]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (!ready) return null;
-
-  return <QFlowShell />;
+  if (target === null) return null;
+  return <Redirect href={target} />;
 }

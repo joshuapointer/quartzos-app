@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -16,10 +17,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
 
 import { colors, fonts } from '../../../../src/design/tokens';
 import { useBleStore } from '../../../../src/state/bleStore';
 import type { ConnectionState } from '../../../../src/ble/types';
+import { bleManager } from '../../../../src/ble/BleManager';
 import { BANGERS } from '../../../../src/data/bangers';
 import { CONCENTRATES } from '../../../../src/data/concentrates';
 import type { Banger } from '../../../../src/data/bangers';
@@ -129,21 +132,32 @@ function CopyStack({
   );
 }
 
-function ColdCopy() {
+function ColdCopy({ onPair }: { onPair: () => void }) {
   return (
-    <View style={styles.copyOuter}>
-      <CopyStack
-        eyebrow="Step 01"
-        headline="Power on your Dabrite."
-        sub="Hold the side button until the LED breathes — then tap to pair."
-      />
-      <View style={styles.tapHintRow}>
-        <View style={styles.tapHintPip} />
-        <Text style={styles.tapHintLabel} allowFontScaling={false}>
-          Tap to pair
-        </Text>
+    <Pressable
+      onPress={onPair}
+      hitSlop={24}
+      accessibilityRole="button"
+      accessibilityLabel="Tap to pair with Dabrite"
+      style={({ pressed }) => [
+        styles.coldPressable,
+        pressed && styles.coldPressed,
+      ]}
+    >
+      <View style={styles.copyOuter}>
+        <CopyStack
+          eyebrow="Step 01"
+          headline="Power on your Dabrite."
+          sub="Hold the side button until the LED breathes — then tap to pair."
+        />
+        <View style={styles.tapHintRow}>
+          <View style={styles.tapHintPip} />
+          <Text style={styles.tapHintLabel} allowFontScaling={false}>
+            Tap to pair
+          </Text>
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -448,6 +462,30 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
     setPhase('banger');
   }, [setPhase]);
 
+  // Cold-phase tap → kick the BLE state machine. The connectionState effect
+  // inside useMoltenPhase will advance us cold → connecting → connected → presets
+  // as the SCANNING/CONNECTING/.../READY transitions fire.
+  const handlePairTap = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+      /* ignore */
+    });
+    // bleManager guards with `if (this.sm.current !== 'IDLE') return;` so
+    // double-taps are no-ops; the user shouldn't notice.
+    bleManager.startScan();
+  }, []);
+
+  // ready → heating: mirror the demo's scheduleAuto(2400, ...). TorchDetector
+  // is the production trigger; this timer keeps the user moving in mock data.
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    const t = setTimeout(() => {
+      // Re-check phase via effect closure; setPhase is a no-op if we've
+      // already moved on, but the guard keeps intent explicit.
+      setPhase('heating');
+    }, 2400);
+    return () => clearTimeout(t);
+  }, [phase, setPhase]);
+
   // Window label: best-guess "0:24" — pulled from session length when peak was hit.
   // Without per-session window timestamps in scope, derive from default copy.
   const windowLabel = '0:24';
@@ -471,7 +509,7 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
 
         {/* Phase-driven copy / overlay content (sits at bottom half of canvas) */}
         <View style={styles.contentWell} pointerEvents="box-none">
-          {phase === 'cold' && <ColdCopy />}
+          {phase === 'cold' && <ColdCopy onPair={handlePairTap} />}
           {phase === 'connecting' && <ConnectingCopy />}
           {phase === 'connected' && (
             <ConnectedCopy batteryPct={liveBatteryPct} />
@@ -591,6 +629,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 80,
     paddingBottom: 12,
+  },
+
+  // Cold-phase pressable — generous tap surface for the pair-on-tap entry.
+  coldPressable: {
+    paddingVertical: 12,
+  },
+  coldPressed: {
+    opacity: 0.85,
   },
 
   // Copy stacks

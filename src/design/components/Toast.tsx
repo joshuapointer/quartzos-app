@@ -10,7 +10,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
 
-import { useReducedMotion } from '../../flow/components/useReducedMotion';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { animation, colors, fonts, motion, radius, reanimatedEasing, spacing } from '../tokens';
 
 // ─── Store ────────────────────────────────────────────────────────────────────

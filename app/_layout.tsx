@@ -133,12 +133,7 @@ export default function RootLayout() {
             >
               <Stack.Screen name="index" />
               <Stack.Screen name="onboarding/permissions" />
-              <Stack.Screen name="onboarding/pair" />
               <Stack.Screen name="(connected)" />
-              <Stack.Screen
-                name="(modals)/scan"
-                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-              />
               <Stack.Screen
                 name="(modals)/color-picker"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}

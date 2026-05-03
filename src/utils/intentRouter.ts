@@ -7,8 +7,10 @@ import { router } from 'expo-router';
  *
  * URL grammar:
  *   quartzos://intent/start-session?presetId=<id>
- *   quartzos://intent/open?screen=history
- *   quartzos://intent/open?screen=presets
+ *   quartzos://intent/open?screen=settings
+ *
+ * History/presets routes were removed when the app reduced to the molten
+ * surface; only start-session and the hidden settings deep-link remain.
  */
 export function handleIntentUrl(rawUrl: string): boolean {
   // Hermes' URL implementation has historically been quirky with custom
@@ -48,12 +50,8 @@ export function handleIntentUrl(rawUrl: string): boolean {
 
   if (action === 'open') {
     const screen = params.get('screen');
-    if (screen === 'history') {
-      router.push('/(connected)/history');
-      return true;
-    }
-    if (screen === 'presets') {
-      router.push('/(connected)/presets');
+    if (screen === 'settings') {
+      router.push('/(connected)/settings');
       return true;
     }
     return false;
