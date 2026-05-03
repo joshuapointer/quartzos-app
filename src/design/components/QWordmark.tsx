@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors, fonts } from '../tokens';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -56,16 +57,16 @@ export function QWordmark({ connected = true, state = 'idle' }: Props) {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  // Dot color: hidden when offline; bone35 when idle-connected; ember/quartz when active
+  // Dot color: hidden when offline; outline when idle-connected; ember/quartz when active
   const dotColor = !connected
     ? 'transparent'
     : state === 'dunk'
-    ? '#9ABDD8'  // quartzBright
+    ? colors.quartzBright
     : state === 'heating' || state === 'target'
-    ? '#E89240'  // emberBright
-    : '#6d6050'; // bone35 — static idle
+    ? colors.emberBright
+    : colors.outline;
 
-  const glowColor = state === 'dunk' ? '#9ABDD8' : '#E89240';
+  const glowColor = state === 'dunk' ? colors.quartzBright : colors.emberBright;
 
   return (
     <View style={styles.container}>
@@ -104,11 +105,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
   },
+  // Wordmark logotype — Georgia italic is an intentional brand exception (the
+  // only non-Geist surface in the app). Keep in sync with DESIGN.md (logotype).
   wordmark: {
     fontFamily: 'Georgia',
     fontStyle: 'italic',
     fontSize: 22,
-    color: '#e8dfd2',
+    color: colors.bone100,
     letterSpacing: -0.2,
   },
   statusRow: {
@@ -140,9 +143,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   statusText: {
-    fontFamily: 'SpaceGrotesk_500Medium',
+    ...fonts.labelCaps,
     fontSize: 9.5,
     letterSpacing: 2.2,
-    color: '#9e907e',
+    color: colors.boneDim,
   },
 });

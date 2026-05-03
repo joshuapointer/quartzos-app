@@ -15,20 +15,21 @@ export interface ThemeColors {
   outline: string;
 }
 
+// design.md — OLED white-hot neon edge (may 2026)
 export const themes: Record<ThemeName, ThemeColors> = {
   obsidian: {
-    bgDeep:           '#050403',
-    surface1:         '#0c0908',
-    surface3:         '#1c1714',
-    surface6:         '#3d342e',
-    surfaceBright:    '#3d342e',
-    glassFill:        'rgba(5,4,3,0.6)',
-    glassBorder:      'rgba(244,237,228,0.08)',
-    primary:          '#E89240',
-    primaryContainer: '#9ABDD8',
-    onSurface:        '#f4ede4',
-    onSurfaceVariant: '#c7b8a4',
-    outline:          '#6d6050',
+    bgDeep:           '#000000',
+    surface1:         '#000000',
+    surface3:         '#111111',
+    surface6:         '#262626',
+    surfaceBright:    '#262626',
+    glassFill:        'rgba(0,0,0,0.6)',
+    glassBorder:      'rgba(255,255,255,0.10)',
+    primary:          '#ffffff',
+    primaryContainer: '#e6e6e6',
+    onSurface:        '#ffffff',
+    onSurfaceVariant: '#a0a0a0',
+    outline:          '#666666',
   },
 };
 

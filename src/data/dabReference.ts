@@ -1,7 +1,7 @@
 /**
  * Barrel module re-exporting the four perfect-dab catalogs plus the META block
  * (units, calibration formula, data sources, confidence levels, examples) and
- * enum constants — sourced verbatim from docs/ref/perfect_dab/schema.json.
+ * enum constants — sourced verbatim from docs/perfect_dab/schema.json.
  */
 
 export {

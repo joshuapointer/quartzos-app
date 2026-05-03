@@ -1,153 +1,219 @@
 import { Dimensions } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 export { SCREEN_W, SCREEN_H };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// design.md — Quartzie · OLED White-Hot Neon Edge (may 2026)
+// Single source of truth. All consumer aliases below resolve to these values.
+// Heat is encoded by white intensity / glow strength; cool by quartz cyan.
+// ─────────────────────────────────────────────────────────────────────────────
 export const colors = {
-  // ── Obsidian surfaces (warm dark brown-blacks) ─────────────────────────────
-  bgDeep:       '#050403',
-  surface1:     '#0c0908',
-  surface2:     '#14100e',
-  surface3:     '#1c1714',
-  surface4:     '#2a2320',
-  surface5:     '#352c27',
-  surface6:     '#3d342e',
-  surfaceBright:'#3d342e',
+  // ── Core backgrounds (OLED — pure black) ──
+  background:              '#000000',
+  surface:                 '#000000',
+  surfaceDim:              '#000000',
 
-  // ── Bone whites (warm neutral type) ────────────────────────────────────────
-  bone100: '#f4ede4',
-  bone90:  '#e8dfd2',
-  bone70:  '#c7b8a4',
-  bone50:  '#9e907e',
-  bone35:  '#6d6050',
-  bone20:  '#413830',
+  // ── Surface container ramp (graphite scale) ──
+  surfaceContainerLowest:  '#000000',
+  surfaceContainerLow:     '#0a0a0a',
+  surfaceContainer:        '#111111',
+  surfaceContainerHigh:    '#181818',
+  surfaceContainerHighest: '#1f1f1f',
+  surfaceVariant:          '#1f1f1f',
 
-  // ── Ember (warm amber / heat states) ───────────────────────────────────────
-  emberBright:  '#E89240',  // at-target ring
-  ember:        '#C97326',  // heating
-  emberDeep:    '#8A4E16',  // deep heat
-  emberMid:     '#9B6030',  // heating ring (dim)
-  emberCool:    '#AD7040',  // cooling ring
+  // ── Numeric ramp (legacy aliases) ──
+  bgDeep:        '#000000',
+  surface1:      '#000000',
+  surface2:      '#0a0a0a',
+  surface3:      '#111111',
+  surface4:      '#181818',
+  surface5:      '#1f1f1f',
+  surface6:      '#262626',
+  surfaceBright: '#262626',
 
-  // ── Quartz (cool blue / dunk states) ────────────────────────────────────────
-  quartzBright: '#9ABDD8',  // dunk ready
-  quartz:       '#7BA8C4',
-  quartzDeep:   '#5C8CAE',
-  quartzDim:    '#4A7490',  // idle ring
+  // ── Typography on dark surfaces (white grayscale ramp) ──
+  onBackground:      '#ffffff',
+  onSurface:         '#ffffff',
+  onSurfaceVariant:  '#a0a0a0',
 
-  // ── Brass (custom preset accent) ────────────────────────────────────────────
+  // ── Bone (warm-neutral typography ramp — now neutral grayscale) ──
+  bone100: '#ffffff',
+  bone90:  '#d4d4d4',
+  bone70:  '#a0a0a0',
+  bone50:  '#666666',
+  bone35:  '#444444',
+  bone20:  '#222222',
+
+  // ── Primary (white-hot — heat is intensity, not hue) ──
+  primary:                '#ffffff',
+  onPrimary:              '#000000',
+  primaryContainer:       '#e6e6e6',
+  onPrimaryContainer:     '#000000',
+  primaryFixed:           '#ffffff',
+  primaryFixedDim:        '#ffffff',
+  onPrimaryFixed:         '#000000',
+  onPrimaryFixedVariant:  '#222222',
+
+  // ── Secondary (muted cool grey-blue, unchanged) ──
+  secondary:                '#c1c6d5',
+  onSecondary:              '#2b313c',
+  secondaryContainer:       '#414753',
+  onSecondaryContainer:     '#b0b5c3',
+  secondaryFixed:           '#dde2f1',
+  secondaryFixedDim:        '#c1c6d5',
+  onSecondaryFixed:         '#161c26',
+  onSecondaryFixedVariant:  '#414753',
+
+  // ── Tertiary (Quartz / cool blue, unchanged) ──
+  tertiary:                '#95ccff',
+  onTertiary:              '#003352',
+  tertiaryContainer:       '#00a8ff',
+  onTertiaryContainer:     '#003a5c',
+  tertiaryFixed:           '#cde5ff',
+  tertiaryFixedDim:        '#95ccff',
+  onTertiaryFixed:         '#001d32',
+  onTertiaryFixedVariant:  '#004a75',
+
+  // ── Outlines & error ──
+  outline:           '#666666',
+  outlineVariant:    '#222222',
+  error:             '#ff5252',
+  onError:           '#000000',
+  errorContainer:    '#330000',
+  onErrorContainer:  '#ffd6d6',
+
+  // ── Ember semantic ramp (heat states — now white intensity ramp) ──
+  emberBright:  '#ffffff',
+  ember:        '#e6e6e6',
+  emberDeep:    '#1a1a1a',
+  emberMid:     '#888888',
+  emberCool:    '#5fa8d4',
+
+  // ── Quartz semantic ramp (unchanged) ──
+  quartzBright: '#95ccff',
+  quartz:       '#00a8ff',
+  quartzDeep:   '#004a75',
+  quartzDim:    '#3884b8',
+
+  // ── Brass (custom preset accent — non-orange olive-gold, retained) ──
   brass: '#C4AC54',
 
-  // ── Inner lens colors (used by TempDial) ────────────────────────────────────
-  lensIdle:    '#28283C',
-  lensHeating: '#3D1E0A',
-  lensTarget:  '#5E2E0C',
-  lensCooling: '#3E2212',
-  lensDunk:    '#2A3C52',
+  // ── amberGold rebound to white (was BangerAnatomy active fill) ──
+  amberGold: '#ffffff',
 
-  // ── Semantic ─────────────────────────────────────────────────────────────────
-  error:   '#E07070',
-  warning: '#E89240',
+  // ── Inner lens colors (TempDial) ──
+  lensIdle:    '#0a0a0a',
+  lensHeating: '#1a1a1a',
+  lensTarget:  '#2a2a2a',
+  lensCooling: '#0a1218',
+  lensDunk:    '#0c2640',
+
+  // ── Semantic ──
+  warning: '#ffd60a',
   success: '#7EC8A0',
 
-  // ── Backward-compat aliases (referenced by components not being redesigned) ──
-  primary:           '#E89240',
-  primaryContainer:  '#9ABDD8',
-  primaryFixedDim:   '#c7b8a4',
-  primaryFixedHigh:  '#f4ede4',
-  inversePrimary:    '#8A4E16',
-  secondary:         '#9ABDD8',
-  secondaryContainer:'#2A3C52',
-  onSurface:         '#f4ede4',
-  onSurfaceVariant:  '#c7b8a4',
-  outline:           '#6d6050',
-  outlineVariant:    '#413830',
-  glassFill:         'rgba(5,4,3,0.6)',
-  glassBorder:       'rgba(244,237,228,0.08)',
-  heatIdle:          '#4A7490',
-  heatAmber:         '#E89240',
-  heatGlow:          '#E89240',
-  heatCyan:          '#9ABDD8',
-  heatCooling:       '#AD7040',
-  ruby:      '#E07070',
-  amethyst:  '#9ABDD8',
+  // ── Backward-compat aliases (rebound to OLED palette) ──
+  inversePrimary:    '#000000',
+  glassFill:         'rgba(0,0,0,0.6)',
+  glassBorder:       'rgba(255,255,255,0.10)',
+  heatIdle:          '#95ccff',
+  heatAmber:         '#e6e6e6',
+  heatGlow:          '#ffffff',
+  heatCyan:          '#00a8ff',
+  heatCooling:       '#5fa8d4',
+  ruby:      '#ff5252',
+  amethyst:  '#95ccff',
   emerald:   '#7EC8A0',
-  sapphire:  '#7BA8C4',
+  sapphire:  '#00a8ff',
   citrine:   '#C4AC54',
-  idleDeep:      '#050403',
-  textPrimary:   '#f4ede4',
-  textSecondary: '#c7b8a4',
-  textDim:       '#6d6050',
-  crystalEdge:   'rgba(244,237,228,0.08)',
-  glassDeep:     'rgba(5,4,3,0.6)',
-  activeAmber:   '#E89240',
-  activeGlow:    '#E89240',
-  activeDark:    '#E89240',
+  idleDeep:      '#000000',
+  textPrimary:   '#ffffff',
+  textSecondary: '#a0a0a0',
+  textDim:       '#444444',
+  crystalEdge:   'rgba(255,255,255,0.10)',
+  glassDeep:     'rgba(0,0,0,0.6)',
+  activeAmber:   '#ffffff',
+  activeGlow:    '#ffffff',
+  activeDark:    '#1a1a1a',
 
-  // ── Semantic aliases (DESIGN.md camelCase names) ─────────────────────────────
-  voidObsidian:  '#050403',   // ↔ bgDeep
-  surfaceDeep:   '#0c0908',   // ↔ surface1
-  surfaceMid:    '#1c1714',   // ↔ surface3
-  surfaceRaised: '#2a2320',   // ↔ surface4
-  surfaceMuted:  '#352c27',   // ↔ surface5
-  // surfaceBright already defined above (corrected to #3d342e) ↔ surface6
-  warmBone:      '#f4ede4',   // ↔ bone100
-  boneMid:       '#c7b8a4',   // ↔ bone70
-  boneDim:       '#9e907e',   // ↔ bone50
-  boneGhost:     '#6d6050',   // ↔ bone35
-  firedAmber:    '#E89240',   // ↔ emberBright
-  emberGlow:     '#C97326',   // ↔ ember
-  // emberDeep already defined above (#8A4E16, no rename)
-  coldSlate:     '#9ABDD8',   // ↔ quartzBright
-  quartzMid:     '#7BA8C4',   // ↔ quartz
-  // quartzDim already defined above (#4A7490, no rename)
-  // brass already defined above (#C4AC54, no rename)
+  // ── Semantic aliases (camelCase versions) ──
+  voidObsidian:  '#000000',
+  surfaceDeep:   '#000000',
+  surfaceMid:    '#0a0a0a',
+  surfaceRaised: '#181818',
+  surfaceMuted:  '#1f1f1f',
+  warmBone:      '#ffffff',
+  boneMid:       '#d4d4d4',
+  boneDim:       '#666666',
+  boneGhost:     '#444444',
+  firedAmber:    '#ffffff',
+  emberGlow:     '#ffffff',
+  coldSlate:     '#95ccff',
+  quartzMid:     '#00a8ff',
 };
 
 export const gradients = {
-  background:  ['#050403', '#0c0908', '#14100e'] as const,
-  ember:       ['#E89240', '#C97326', '#8A4E16'] as const,
-  quartz:      ['#9ABDD8', '#7BA8C4', '#4A7490'] as const,
-  heatCore:    ['rgba(232,146,64,0)', 'rgba(232,146,64,0.25)', 'rgba(201,115,38,0.5)'] as const,
-  // Card surface gradients — use via SurfaceCard component
-  cardActive:   ['#1e170e', '#0f0b06'] as const,  // active preset, highlighted rows
-  cardInactive: ['#110d0a', '#0a0806'] as const,  // non-active items in a list
-  cardNeutral:  ['#100e0c', '#0a0806'] as const,  // config sections, history cards
-  // legacy
-  amethyst:    ['#9ABDD8', '#7BA8C4', '#4A7490'] as const,
-  primary:     ['#E89240', '#C97326', '#8A4E16'] as const,
-  secondary:   ['#9ABDD8', '#7BA8C4', '#5C8CAE'] as const,
-  wordmark:    ['#f4ede4', '#c7b8a4'] as const,
-  crystal:     ['rgba(244,237,228,0.08)', 'rgba(244,237,228,0.02)', 'rgba(5,4,3,0)'] as const,
-  gloss:       ['rgba(244,237,228,0.08)', 'rgba(244,237,228,0)'] as const,
+  background:  ['#000000', '#000000', '#000000'] as const,
+  ember:       ['#ffffff', '#cccccc', '#222222'] as const,
+  quartz:      ['#95ccff', '#00a8ff', '#004a75'] as const,
+  heatCore:    ['rgba(255,255,255,0)', 'rgba(255,255,255,0.18)', 'rgba(255,255,255,0.45)'] as const,
+  cardActive:   ['#1a1a1a', '#000000'] as const,
+  cardInactive: ['#0a0a0a', '#000000'] as const,
+  cardNeutral:  ['#0a0a0a', '#000000'] as const,
+  amethyst:    ['#95ccff', '#00a8ff', '#004a75'] as const,
+  primary:     ['#ffffff', '#cccccc', '#222222'] as const,
+  secondary:   ['#95ccff', '#00a8ff', '#004a75'] as const,
+  wordmark:    ['#ffffff', '#d4d4d4'] as const,
+  crystal:     ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.04)', 'rgba(0,0,0,0)'] as const,
+  gloss:       ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0)'] as const,
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// design.md — spacing rhythm
+//   unit 4 · xs 8 · sm 16 · md 32 · lg 64 · xl 128 · element-gap 24 · container-padding 40
+// Numeric in px. Existing semantic names preserved for back-compat consumers.
+// ─────────────────────────────────────────────────────────────────────────────
 export const spacing = {
-  xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48,
+  unit: 4,
+  xs: 8,
+  sm: 16,
+  md: 32,
+  elementGap: 24,
+  containerPadding: 40,
+  lg: 64,
+  xl: 128,
+  xxl: 48,
 } as const;
 
 export const radius = {
-  sm: 8, md: 16, lg: 22, xl: 32, full: 9999,
+  sm: 8, md: 16, lg: 32, xl: 48, full: 9999,
 } as const;
 
+// On OLED black, shadow color is functionally invisible — kept at pure black
+// so any elevated component reads as a clean cut-out rather than a tinted halo.
+const SHADOW_COLOR = '#000000';
+
 export const shadow = {
+  color: SHADOW_COLOR,
   card: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
     elevation: 8,
   },
   orb: {
-    shadowColor: '#E89240',
+    shadowColor: '#ffffff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
+    shadowOpacity: 0.4,
+    shadowRadius: 25,
     elevation: 16,
   },
   button: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
@@ -155,14 +221,113 @@ export const shadow = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// design.md typography — Geist for display/body, Geist Mono for data/labels.
+// Expo Google Fonts ships per-weight families; use the explicit family name and
+// omit fontWeight so iOS/Android resolve identically.
+// ─────────────────────────────────────────────────────────────────────────────
 export const fonts = {
-  display:   { fontSize: 48, letterSpacing: -1.92, fontWeight: '300' as const },
-  h1:        { fontSize: 32, letterSpacing: -0.64, fontWeight: '400' as const },
-  h2:        { fontSize: 24, fontWeight: '400' as const },
-  bodyLg:    { fontSize: 18, fontWeight: '300' as const },
-  body:      { fontSize: 16, fontWeight: '300' as const },
-  caption:   { fontSize: 12, letterSpacing: 0.4 },
-  labelCaps: { fontSize: 10, letterSpacing: 2.2, fontWeight: '500' as const, textTransform: 'uppercase' as const },
+  // display-lg: 48px Light · -0.04em tracking · 1.1 line-height
+  display: {
+    fontFamily: 'Geist_300Light',
+    fontSize: 48,
+    letterSpacing: -1.92,   // -0.04em * 48
+    lineHeight: 53,         // 1.1 * 48
+  },
+  // headline-md: 24px Regular · -0.02em tracking · 1.2 line-height
+  h1: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 32,
+    letterSpacing: -0.64,
+    lineHeight: 38,
+  },
+  h2: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 24,
+    letterSpacing: -0.48,   // -0.02em * 24
+    lineHeight: 29,         // 1.2 * 24
+  },
+  // body-main: 16px Regular · 1.6 line-height
+  bodyLg: {
+    fontFamily: 'Geist_300Light',
+    fontSize: 18,
+    lineHeight: 26,
+  },
+  body: {
+    fontFamily: 'Geist_400Regular',
+    fontSize: 16,
+    lineHeight: 26,         // 1.6 * 16
+  },
+  // data-value: 14px Regular Mono · 1.4 line-height
+  dataValue: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  caption: {
+    fontFamily: 'GeistMono_400Regular',
+    fontSize: 12,
+    letterSpacing: 0.4,
+    lineHeight: 16,
+  },
+  // data-label: 12px Medium Mono · 0.1em tracking · uppercase
+  dataLabel: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.2,     // 0.1em * 12
+    lineHeight: 12,
+    textTransform: 'uppercase' as const,
+  },
+  labelCaps: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 10,
+    letterSpacing: 2.2,
+    textTransform: 'uppercase' as const,
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// design.md motion tokens — durations and easings.
+// ─────────────────────────────────────────────────────────────────────────────
+// Easing curves follow Emil Kowalski's principle: UI animations belong under
+// 300ms and exits should be snappier than enters. The bezier tuples here are
+// bridged to Reanimated via `reanimatedEasing` below — use that at callsites.
+export const motion = {
+  duration: {
+    // UI-class ramp (Emil: UI animations under 300ms)
+    tap:        160,  // button press feedback
+    tooltip:    180,  // small popovers
+    popover:    220,  // dropdowns, list-row enters
+    modal:      240,  // modals, sheets, stage transitions
+    // Legacy keys preserved for backward-compat (migrate in US-002)
+    instant:    150,
+    quick:      200,
+    base:       400,
+    smooth:     600,
+    enter:      480,
+    deliberate: 800,
+    slow:       900,
+  },
+  // Asymmetric exits — snappier than enters (Emil: "exits should be snappy")
+  exit: {
+    tap:        100,
+    tooltip:    140,
+    popover:    160,
+    modal:      180,
+  },
+  easing: {
+    easeOut:   [0.22, 1, 0.36, 1] as const,    // strong ease-out for enters/exits
+    easeInOut: [0.77, 0, 0.175, 1] as const,   // strong ease-in-out for on-screen movement
+    drawer:    [0.32, 0.72, 0, 1] as const,    // Ionic/iOS drawer / sheet curve
+    swoop:     [0.22, 1, 0.36, 1] as const,    // backward-compat alias for easeOut
+  },
+} as const;
+
+// Reanimated bridge — use these at callsites instead of inlining Easing.bezier(...).
+export const reanimatedEasing = {
+  easeOut:   Easing.bezier(...motion.easing.easeOut),
+  easeInOut: Easing.bezier(...motion.easing.easeInOut),
+  drawer:    Easing.bezier(...motion.easing.drawer),
 };
 
 export const animation = {
@@ -171,5 +336,6 @@ export const animation = {
   pressSpring:  { damping: 14, stiffness: 220, mass: 0.6 },
   toggleSpring: { damping: 15, stiffness: 260, mass: 0.5 },
   thumbSpring:  { damping: 18, stiffness: 200, mass: 0.7 },
+  toastSpring:  { damping: 22, stiffness: 200, mass: 0.9 },
   orbitDurationMs: 30000,
 };

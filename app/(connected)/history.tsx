@@ -12,11 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop } from 'react-native-svg';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { QBackground, ChromeButton, FloatingHeader } from '../../src/design';
-import { colors, spacing, fonts } from '../../src/design/tokens';
+import { colors, spacing, fonts, motion, reanimatedEasing } from '../../src/design/tokens';
+import { useReducedMotion } from '../../src/flow/components/useReducedMotion';
 import * as sessionsDb from '../../src/db/sessions';
 import type { SessionRecord } from '../../src/db/sessions';
+import * as presetsDb from '../../src/db/presets';
+import type { Preset } from '../../src/db/presets';
 
 function formatDuration(startedAt: number, endedAt: number | null): string {
   const durationMs = (endedAt ?? Date.now()) - startedAt;
@@ -77,15 +81,16 @@ function InlineSparkline({ samples, width = 70, height = 16 }: InlineSparklinePr
     >
       <Defs>
         <SVGGradient id="inlineSparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="rgba(232,146,64,0.22)" stopOpacity={1} />
-          <Stop offset="1" stopColor="rgba(232,146,64,0)" stopOpacity={1} />
+          <Stop offset="0" stopColor={colors.firedAmber} stopOpacity={0.22} />
+          <Stop offset="1" stopColor={colors.firedAmber} stopOpacity={0} />
         </SVGGradient>
       </Defs>
       <Path d={fillPath} fill="url(#inlineSparkFill)" />
       <Path
         d={linePath}
-        stroke={colors.primaryContainer}
-        strokeWidth={3}
+        stroke={colors.emberBright}
+        strokeWidth={2.4}
+        strokeOpacity={0.85}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -97,22 +102,19 @@ function InlineSparkline({ samples, width = 70, height = 16 }: InlineSparklinePr
 interface JournalRowProps {
   session: SessionRecord;
   isActive?: boolean;
+  presetName: string;
   onPress: () => void;
 }
 
-function JournalRow({ session, isActive, onPress }: JournalRowProps) {
+function JournalRow({ session, isActive, presetName, onPress }: JournalRowProps) {
   const date = new Date(session.startedAt);
   const dayOfMonth = format(date, 'd');
   const month = format(date, 'MMM').toUpperCase();
   const time = format(date, 'h:mm a');
-  const presetName = session.presetId ?? 'Session';
   const duration = formatDuration(session.startedAt, session.endedAt);
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.row}>
-      {/* Active indicator: ember-glow left edge */}
-      {isActive && <View style={styles.activeEdge} />}
-
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={[styles.row, isActive && styles.rowActive]}>
       {/* Left: tabular date stack */}
       <View style={styles.dateCol}>
         <Text style={styles.dateDay}>{dayOfMonth}</Text>
@@ -123,7 +125,7 @@ function JournalRow({ session, isActive, onPress }: JournalRowProps) {
       {/* Right: name + stats */}
       <View style={styles.contentCol}>
         <View style={styles.nameLine}>
-          <Text style={styles.presetName} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={[styles.presetName, isActive && styles.presetNameActive]} numberOfLines={1} ellipsizeMode="tail">
             {presetName}
           </Text>
           {isActive && (
@@ -149,23 +151,38 @@ function EmptyState() {
     <View style={styles.emptyContainer}>
       {/* Ember-tinted circle glyph */}
       <View style={styles.emptyGlyph} />
-      <Text style={styles.emptyPrimary}>Your first session will appear here.</Text>
-      <Text style={styles.emptySecondary}>Pull a dab while connected.</Text>
+      <Text style={styles.emptyPrimary}>The journal is empty.</Text>
+      <Text style={styles.emptySecondary}>Your next session lands here.</Text>
     </View>
   );
 }
 
+const STAGGER_MS = 40;
+const CAP = 7;
+
 export default function HistoryScreen() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const reduced = useReducedMotion();
 
   const load = useCallback(async () => {
-    const all = await sessionsDb.getAll();
-    setSessions(all);
+    const [allSessions, allPresets] = await Promise.all([
+      sessionsDb.getAll(),
+      presetsDb.getAll(),
+    ]);
+    setSessions(allSessions);
+    setPresets(allPresets);
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const presetNameById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of presets) map.set(p.id, p.name);
+    return map;
+  }, [presets]);
 
   const handleClearAll = useCallback(() => {
     Alert.alert(
@@ -202,17 +219,25 @@ export default function HistoryScreen() {
         <View style={styles.pageHeader}>
           <View style={styles.pageHeaderTop}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.heading}>Session Logs</Text>
+              <Text style={styles.heading}>Journal</Text>
               <Text style={styles.subheading}>
-                Review your recent rituals and temperature profiles.
+                Past sessions, peak temps, and the curves that got you there.
               </Text>
             </View>
-            <ChromeButton
-              label="Clear All"
-              onPress={handleClearAll}
-              variant="ghost"
-              disabled={sessions.length === 0}
-            />
+            <View style={styles.headerActions}>
+              <ChromeButton
+                label="Export"
+                onPress={handleExport}
+                variant="ghost"
+                disabled={sessions.length === 0}
+              />
+              <ChromeButton
+                label="Clear All"
+                onPress={handleClearAll}
+                variant="ghost"
+                disabled={sessions.length === 0}
+              />
+            </View>
           </View>
         </View>
 
@@ -226,11 +251,21 @@ export default function HistoryScreen() {
           ItemSeparatorComponent={() => <View style={styles.divider} />}
           ListEmptyComponent={<EmptyState />}
           renderItem={({ item, index }) => (
-            <JournalRow
-              session={item}
-              isActive={index === 0 && item.endedAt === null}
-              onPress={() => router.push(`/(connected)/history/${item.id}`)}
-            />
+            <Animated.View
+              entering={FadeInDown
+                .duration(motion.duration.popover)
+                .delay(reduced ? 0 : Math.min(index, CAP) * STAGGER_MS)
+                .easing(reanimatedEasing.easeOut)}
+            >
+              <JournalRow
+                session={item}
+                isActive={index === 0 && item.endedAt === null}
+                presetName={
+                  (item.presetId && presetNameById.get(item.presetId)) || 'Session'
+                }
+                onPress={() => router.push(`/(connected)/history/${item.id}`)}
+              />
+            </Animated.View>
           )}
         />
       </SafeAreaView>
@@ -250,13 +285,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   pageHeader: {
-    marginBottom: 24,
-    marginTop: 8,
+    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
   },
   pageHeaderTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   heading: {
     ...fonts.h1,
@@ -278,7 +317,8 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(109,96,80,0.2)',
+    backgroundColor: colors.outlineVariant,
+    opacity: 0.55,
   },
 
   // Journal row
@@ -289,17 +329,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingRight: spacing.sm,
   },
-  activeEdge: {
-    position: 'absolute',
-    left: -spacing.md,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: colors.firedAmber,
-    shadowColor: colors.firedAmber,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 4,
+  rowActive: {
+    backgroundColor: colors.firedAmber + '1F',
   },
   dateCol: {
     width: 44,
@@ -340,6 +371,9 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.bone100,
   },
+  presetNameActive: {
+    fontWeight: '600',
+  },
   activePill: {
     ...fonts.labelCaps,
     color: colors.firedAmber,
@@ -372,9 +406,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(232,146,64,0.15)',
+    backgroundColor: colors.firedAmber + '26',
     borderWidth: 1.5,
-    borderColor: 'rgba(232,146,64,0.4)',
+    borderColor: colors.firedAmber + '66',
     shadowColor: colors.firedAmber,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,

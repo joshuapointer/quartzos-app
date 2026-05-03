@@ -2,7 +2,7 @@
  * Banger wall thickness modifier. Thinner walls heat and cool faster, thicker
  * walls retain more heat and need a slightly higher displayed target.
  *
- * Source: docs/ref/perfect_dab/wall_thicknesses.json
+ * Source: docs/perfect_dab/wall_thicknesses.json
  */
 
 export type WallThicknessId = 'thin' | 'standard' | 'thick' | 'unknown';

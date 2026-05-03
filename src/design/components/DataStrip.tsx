@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
     fontWeight: '300',
-    fontFamily: 'SpaceGrotesk_300Light',
+    fontFamily: 'GeistMono_300Light',
   },
   label: {
     fontSize: 10,

@@ -3,7 +3,7 @@
  *
  * Converts an (concentrate, banger, sensor, wall) tuple into a *displayed*
  * dab target plus a recommended *dunk* alarm. Reproduces the canonical
- * formula from `docs/ref/perfect_dab/schema.json`:
+ * formula from `docs/perfect_dab/schema.json`:
  *
  *     displayed = interior_surface_temp
  *               + wall.modifier_f

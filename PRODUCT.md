@@ -6,37 +6,47 @@ product
 
 ## Users
 
-Cannabis concentrate enthusiasts who want precise temperature control over their sessions. They're connoisseurs, not casual users — they care about the difference between 480°F and 510°F. The app is used one-handed in low-light conditions during an active dabbing ritual: the device is already in one hand, the phone is a supporting instrument. Sessions have a rhythm and a pace; the app should fit into that rhythm, not interrupt it.
+A connoisseur on the couch, torch in hand. The coffee table is set: rig, banger, dab tool, a cap, the concentrate. They've already torched the banger or are about to. Lighting is dim, the room is warm, music is on. They want the next 90 seconds to be smooth and identical to the last hundred sessions — no fumbling, no mental math about cooldown curves, no second-guessing whether they're in the window. They're not learning thermodynamics; they're executing a ritual they've already decided on.
 
 ## Product Purpose
 
-Companion app for the Dab Rite PRO v2.2, a Bluetooth IR thermometer. Provides real-time temperature monitoring, device configuration (alarm thresholds, colors, sounds), preset management (saved session configurations), and session history with temperature waveform logging. Success looks like: the user never has to think about the app — it surfaces exactly what they need, when they need it, then gets out of the way.
+Quartzie hits the perfect dab window every session without making the user think about thermodynamics. The Dab Rite measures the surface temp; Quartzie reads it, models the cooling curve for the specific banger and concentrate in front of the user, and tells them precisely when to dab. Beyond the moment of truth, the app remembers: what banger, what concentrate, what wall thickness, what worked. Each session compounds into a tighter, more personal model of their setup.
+
+Success looks like: the user opens the app, the orb tells them the device's state, a single number confirms the moment, the dab lands. Nothing else competed for attention.
 
 ## Brand Personality
 
-Tactile, ceremonial, precise.
+Three words: **instrument-grade, ritualistic, restrained**.
 
-The reference: ordering a craft cocktail at a dimly lit upscale bar in the near future. The bartender knows what they're doing. Everything is unhurried, deliberate, material. The lighting is warm and ambient. You're not confused by the menu — it communicates confidence. Premium without announcing itself.
+- **Instrument-grade.** The numbers and curves are real physics. Type is precise, telemetry is monospaced, temperature units are deliberate. Nothing decorative pretends to be data.
+- **Ritualistic.** The interface respects the 30-second calm before the dab. No notifications competing for the moment, no celebratory confetti, no gamification. The orb pulses, the temperature falls, the user breathes.
+- **Restrained.** The orb is the only thing allowed to be loud. Everything else gets out of its way — flat surfaces, narrow type, breathing room. The drama is earned, not sprinkled.
+
+Aligned references: Teenage Engineering OP-1 UI, Nothing OS clock, Apple Watch fitness ring climaxes, Hermès Apollo watch face, certain Phantom Liberty in-game UIs.
 
 ## Anti-references
 
-- Cannabis leaf iconography and dispensary app aesthetics (Weedmaps, Leafly) — commodified, low-signal
-- Clinical white medical device UIs — cold, institutional, transactional
-- Neon-on-black headshop aesthetic — loud, immature, fights the darkness instead of owning it
-- SaaS dashboard chrome — tabs, sidebars, data tables, sterile grays
+Things this should never feel like:
+
+- **Stoner-bro cannabis app.** No cannabis leaves, smoke trails, "420" anywhere, kush-purple gradients, hippie psychedelia, weed-pun copy. The user is here for precision; the substance is incidental.
+- **Generic IoT companion dashboard.** Mi Home / SmartThings / Govee patterns — gridded device cards, settings pages that look like Android Auto. The orb is not a "device card."
+- **Apple Health-style stat-spam.** Hero metrics, stacked rings, ribboned achievements. We are not the Health app for dabs.
+- **SaaS B2B chrome.** Sidebars, breadcrumbs, dense settings tables, "configure your workspace." Quartzie is intimate, not enterprise.
+- **Maximalist RGB / cyberpunk.** Glowing neon edges on everything, scanlines, animated gradient backgrounds. The aesthetic is theatrical glass + ember, not gamer setup.
+- **Wellness-app softness.** Pastel pinks, rounded mascots, "you're doing great" reassurance copy. Quartzie respects the user's expertise; it doesn't coach.
 
 ## Design Principles
 
-1. **Ritual over interface.** The app is a supporting actor. During a session, it should recede — communicating state, not demanding interaction. Reduce chrome to the minimum that preserves clarity.
+1. **Companion, not replacement.** The Dab Rite is the instrument; Quartzie is the readout, the timer, and the memory. The app never pretends to be the source of truth — it amplifies what the device says, and remembers what the user did with it. Every screen earns its place against this rule.
 
-2. **Material honesty.** Every surface should feel like something: glass, quartz, polished stone, anodized metal. Depth comes from light and refraction, not decoration.
+2. **The orb is the protagonist.** One element on every screen is allowed to be loud, and it's the orb. Color, motion, glow, scale — all reserved for it. Everything else recedes. Two protagonists is one too many.
 
-3. **One-handed confidence.** Primary actions live within thumb reach. Nothing critical requires two hands or precise tap targets. Large, forgiving interaction zones.
+3. **Ritual over readout.** A session has a tempo. The interface respects it: no abrupt transitions during a window, no notifications stealing focus, no unnecessary state changes. If something can wait until after the dab, it waits.
 
-4. **Ambient precision.** Temperature and state should be readable at a glance in dim light — no squinting, no parsing. Color does the heavy lifting; numbers confirm it.
+4. **Instrument-grade fidelity, no theater in the data.** Numbers are the truth — exact temp, exact seconds, exact unit. Animations may be theatrical; data never is. No fake precision, no rounded-up countdowns, no "approximately."
 
-5. **Near-future restraint.** Sophisticated without trying hard. The near-future bar reference: things are slightly more refined than today, but not sci-fi. No gratuitous effects, no decoration that doesn't earn its space.
+5. **One thing at a time.** During the 90 seconds that matter, the screen serves the current moment — pre-torch, heating, in-window, post-dab. Modes are mutually exclusive. The user shouldn't need to read to know which moment they're in.
 
 ## Accessibility & Inclusion
 
-Deferred. To be revisited after core UX is solid.
+No specific WCAG target stated. Sensible defaults: legible contrast on the warm-on-dark palette (already strong: `on-surface` `#f6ded2` on `surface-container-lowest` `#160c06` clears WCAG AA for body text), respect `prefers-reduced-motion` for the orb pulse and ambient blooms, support Dynamic Type / system font sizing where it doesn't break the dial geometry. Color is never the sole signal for window state — the orb's hue carries it, but text and motion redundantly encode the same moment.

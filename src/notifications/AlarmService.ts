@@ -91,7 +91,7 @@ export class AlarmService {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '🔥 Dab Temp Reached',
+        title: 'Dab temp reached',
         body: 'Your quartz is ready.',
         sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,
@@ -111,7 +111,7 @@ export class AlarmService {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '❄️ Dunk Temp Reached',
+        title: 'Dunk temp reached',
         body: 'Time to drop your concentrate.',
         sound: 'dab_alarm.wav',
         priority: Notifications.AndroidNotificationPriority.MAX,

@@ -9,7 +9,7 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { gradients, radius, animation } from '../tokens';
+import { colors, gradients, radius, animation } from '../tokens';
 import { useThemeColors } from '../ThemeContext';
 
 interface Props {
@@ -225,9 +225,9 @@ const styles = StyleSheet.create({
     top: (THUMB + 8 - TRACK_H) / 2,
     borderRadius: radius.full,
     overflow: 'hidden',
-    backgroundColor: '#05030A',
+    backgroundColor: colors.voidObsidian,
     borderWidth: 1,
-    borderColor: 'rgba(244,237,228,0.05)',
+    borderColor: colors.bone100 + '0D',
   },
   innerShadowTop: {
     position: 'absolute',
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(244,237,228,0.15)',
+    backgroundColor: colors.bone100 + '26',
   },
   fillWrap: {
     position: 'absolute',
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: THUMB / 2,
     borderWidth: 1,
-    borderColor: 'rgba(244,237,228,0.55)',
+    borderColor: colors.bone100 + '8C',
   },
   thumbSpec: {
     position: 'absolute',
@@ -281,6 +281,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 6,
     borderRadius: 6,
-    backgroundColor: 'rgba(244,237,228,0.85)',
+    backgroundColor: colors.bone100 + 'D9',
   },
 });

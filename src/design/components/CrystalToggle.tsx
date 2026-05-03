@@ -72,7 +72,7 @@ export function CrystalToggle({ value, onValueChange, disabled = false, style, a
   return (
     <AnimatedPressable
       onPress={handlePress}
-      onPressIn={() => { pressScale.value = withSpring(0.96, animation.pressSpring); }}
+      onPressIn={() => { pressScale.value = withSpring(0.97, animation.pressSpring); }}
       onPressOut={() => { pressScale.value = withSpring(1, animation.pressSpring); }}
       disabled={disabled}
       style={[styles.wrap, disabled && styles.disabled, pressScaleStyle, style]}
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: THUMB_SIZE / 2,
     borderWidth: 0.5,
-    borderColor: 'rgba(244,237,228,0.6)',
+    borderColor: colors.bone100 + '99',
   },
   glow: {
     position: 'absolute',
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     right: -4,
     bottom: -4,
     borderRadius: (THUMB_SIZE + 8) / 2,
-    shadowColor: 'rgba(232,146,64,0.6)',
+    shadowColor: colors.firedAmber,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 8,
@@ -178,6 +178,6 @@ const styles = StyleSheet.create({
     width: 10,
     height: 5,
     borderRadius: 5,
-    backgroundColor: 'rgba(244,237,228,0.85)',
+    backgroundColor: colors.bone100 + 'D9',
   },
 });

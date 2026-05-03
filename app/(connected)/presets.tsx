@@ -11,12 +11,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import ReAnimated, { FadeInDown } from 'react-native-reanimated';
 
-import { QBackground, ChromeButton, FloatingHeader } from '../../src/design';
-import { colors, spacing, radius, fonts } from '../../src/design/tokens';
+import { QBackground, ChromeButton, FloatingHeader, toast } from '../../src/design';
+import { colors, spacing, radius, fonts, motion, reanimatedEasing } from '../../src/design/tokens';
+import { useReducedMotion } from '../../src/flow/components/useReducedMotion';
 import { formatTemp } from '../../src/utils/temperature';
 import { bleManager } from '../../src/ble/BleManager';
 import { useBleStore } from '../../src/state/bleStore';
+import { useSettingsStore } from '../../src/state/settingsStore';
 import * as presetsDb from '../../src/db/presets';
 import type { Preset } from '../../src/db/presets';
 import { PresetPill } from '../../src/design/components/PresetPill';
@@ -40,7 +43,6 @@ function gemColorFor(preset: Preset): string {
 // ─── PresetRow ────────────────────────────────────────────────────────────────
 // Wraps PresetPill with an overflow menu (Option A: three-dot inline expand).
 // Active indicator: 1px firedAmber ring around gem dot.
-// TODO: wire `isActive` to a shared activePresetId store when available.
 
 interface PresetRowProps {
   preset: Preset;
@@ -180,12 +182,19 @@ function EmptyState({ onCrystallize }: EmptyStateProps) {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+const STAGGER_MS = 40;
+const CAP = 7;
+
 export default function PresetsScreen() {
   const connectionState = useBleStore((s) => s.connectionState);
+  const reduced = useReducedMotion();
   const [presets, setPresets] = useState<Preset[]>([]);
-  // TODO: replace with shared activePresetId from a cross-screen store when available.
-  // Currently activePresetId is local to home.tsx only.
-  const [activePresetId] = useState<string | null>(null);
+  // Shared cross-screen source of truth lives in `useSettingsStore`
+  // (active preset is conceptually a settings derivative; persisted
+  // through MMKV alongside theme).
+  const activePresetId = useSettingsStore((s) => s.activePresetId);
+  const setActivePresetId = useSettingsStore((s) => s.setActivePresetId);
+  const setSettings = useSettingsStore((s) => s.setSettings);
 
   const load = useCallback(async () => {
     await presetsDb.seedBuiltins();
@@ -198,8 +207,22 @@ export default function PresetsScreen() {
   }, [load]);
 
   const handleApply = useCallback((preset: Preset) => {
-    void bleManager.writeSettings(preset.settings);
-  }, []);
+    const doWrite = async () => {
+      try {
+        await bleManager.writeSettings(preset.settings);
+        // Mirror device settings into the store so the divergence
+        // detector elsewhere doesn't immediately fire.
+        setSettings(preset.settings);
+        setActivePresetId(preset.id);
+      } catch {
+        toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+          retryLabel: 'Retry',
+          onRetry: () => { void doWrite(); },
+        });
+      }
+    };
+    void doWrite();
+  }, [setActivePresetId, setSettings]);
 
   const handleDelete = useCallback((preset: Preset) => {
     Alert.alert(
@@ -249,14 +272,21 @@ export default function PresetsScreen() {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              renderItem={({ item }) => (
-                <PresetRow
-                  preset={item}
-                  isActive={item.id === activePresetId}
-                  onApply={() => handleApply(item)}
-                  onDelete={() => handleDelete(item)}
-                  onEdit={() => router.push(`/(connected)/presets/${item.id}` as never)}
-                />
+              renderItem={({ item, index }) => (
+                <ReAnimated.View
+                  entering={FadeInDown
+                    .duration(motion.duration.popover)
+                    .delay(reduced ? 0 : Math.min(index, CAP) * STAGGER_MS)
+                    .easing(reanimatedEasing.easeOut)}
+                >
+                  <PresetRow
+                    preset={item}
+                    isActive={item.id === activePresetId}
+                    onApply={() => handleApply(item)}
+                    onDelete={() => handleDelete(item)}
+                    onEdit={() => router.push(`/(connected)/presets/${item.id}` as never)}
+                  />
+                </ReAnimated.View>
               )}
             />
           </>

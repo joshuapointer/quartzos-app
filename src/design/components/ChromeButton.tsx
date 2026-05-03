@@ -11,13 +11,10 @@ import {
   GestureResponderEvent,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { colors, radius, shadow, animation } from '../tokens';
+import Animated from 'react-native-reanimated';
+import { colors, radius, shadow } from '../tokens';
 import { useThemeColors } from '../ThemeContext';
+import { usePressScale } from '../hooks/usePressScale';
 
 export type ChromeButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -33,8 +30,6 @@ interface Props {
   accessibilityLabel?: string;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 export function ChromeButton({
   label,
   onPress,
@@ -47,19 +42,7 @@ export function ChromeButton({
   accessibilityLabel,
 }: Props) {
   const tc = useThemeColors();
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.96, animation.pressSpring);
-  }, [scale]);
-
-  const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, animation.pressSpring);
-  }, [scale]);
+  const press = usePressScale();
 
   const handlePress = useCallback(
     (_e: GestureResponderEvent) => {
@@ -73,7 +56,7 @@ export function ChromeButton({
   );
 
   const dynamicPrimaryStyles = variant === 'primary' ? {
-    bg: { backgroundColor: tc.primary + '4D' },
+    bg: { backgroundColor: tc.primary + '66' },
     border: { borderColor: tc.primary + '59' },
     shadow: { shadowColor: tc.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   } : null;
@@ -98,10 +81,11 @@ export function ChromeButton({
       : shadow.button;
 
   return (
-    <AnimatedPressable
+    <Animated.View style={[press.animatedStyle, style]}>
+    <Pressable
       onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       disabled={disabled || loading}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
@@ -110,8 +94,6 @@ export function ChromeButton({
         styles.pressable,
         shadowStyle,
         disabled && styles.disabled,
-        animatedStyle,
-        style,
       ]}
     >
       {/* Background layer */}
@@ -125,7 +107,8 @@ export function ChromeButton({
           <Text style={[styles.label, { color: tc.onSurface }, labelStyle]}>{label}</Text>
         )}
       </View>
-    </AnimatedPressable>
+    </Pressable>
+    </Animated.View>
   );
 }
 
@@ -166,8 +149,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontWeight: '700',
-    fontSize: 16,
-    letterSpacing: 0.3,
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
 });

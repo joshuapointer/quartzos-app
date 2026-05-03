@@ -1,0 +1,1772 @@
+
+// ===== tweaks-panel.jsx =====
+
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel"
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+function TweakColor({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <input type="color" className="twk-swatch" value={value}
+             onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+
+// ===== Chrome.jsx =====
+// Chrome.jsx — Quartzie-themed app shell pieces
+
+// Custom warm status bar with Quartzie-tinted whites
+function QStatusBar({ time = '9:41' }) {
+  const c = '#f4ede4';
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '21px 36px 0',
+      pointerEvents: 'none',
+    }}>
+      <span style={{
+        fontFamily: '-apple-system, "SF Pro", system-ui',
+        fontWeight: 600, fontSize: 17, lineHeight: '22px', color: c,
+      }}>{time}</span>
+      <div style={{ width: 126 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 1 }}>
+        <svg width="18" height="11" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="16" height="11" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.4" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// Wordmark — minimal, like an etched plate
+function QWordmark() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '8px 22px 0',
+    }}>
+      <div style={{
+        fontFamily: 'var(--serif)', fontStyle: 'italic',
+        fontSize: 22, color: 'var(--bone-90)',
+        letterSpacing: '-0.01em',
+      }}>
+        quartzie
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'oklch(0.78 0.18 55)',
+            boxShadow: '0 0 6px oklch(0.78 0.18 55 / 0.6)',
+          }} />
+          <span className="mono" style={{ fontSize: 9.5, letterSpacing: '0.18em', color: 'var(--bone-50)' }}>
+            CONNECTED
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Bottom tab nav — three tabs as a thin pill
+function QTabBar({ active = 'session', onChange = () => {} }) {
+  const tabs = [
+    { id: 'session', label: 'Session' },
+    { id: 'presets', label: 'Presets' },
+    { id: 'history', label: 'History' },
+    { id: 'configure', label: 'Configure' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 28, left: 16, right: 16, zIndex: 30,
+      display: 'flex', justifyContent: 'center',
+    }}>
+      <div style={{
+        display: 'flex', gap: 2, padding: 4,
+        borderRadius: 100,
+        background: 'rgba(20, 16, 14, 0.7)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+        boxShadow: `
+          inset 0 0.5px 0 rgba(255, 240, 220, 0.08),
+          inset 0 -0.5px 0 rgba(0,0,0,0.4),
+          0 8px 24px rgba(0,0,0,0.5),
+          0 0 0 0.5px rgba(255, 240, 220, 0.05)
+        `,
+      }}>
+        {tabs.map(t => {
+          const isActive = t.id === active;
+          return (
+            <button
+              key={t.id}
+              onClick={() => onChange(t.id)}
+              style={{
+                padding: '10px 16px',
+                borderRadius: 100,
+                fontSize: 12,
+                fontWeight: isActive ? 500 : 400,
+                letterSpacing: '0.04em',
+                color: isActive ? 'var(--bone-100)' : 'var(--bone-50)',
+                background: isActive
+                  ? 'linear-gradient(180deg, oklch(0.20 0.02 50), oklch(0.14 0.015 50))'
+                  : 'transparent',
+                boxShadow: isActive
+                  ? 'inset 0 0.5px 0 rgba(255,240,220,0.10), 0 1px 2px rgba(0,0,0,0.4)'
+                  : 'none',
+                transition: 'all 200ms ease',
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Home indicator (light)
+function QHomeIndicator() {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+      height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+      paddingBottom: 8, pointerEvents: 'none',
+    }}>
+      <div style={{
+        width: 139, height: 5, borderRadius: 100,
+        background: 'rgba(244, 237, 228, 0.4)',
+      }} />
+    </div>
+  );
+}
+
+// Phone shell — wraps content, no built-in nav
+function QPhone({ children, width = 390, height = 844 }) {
+  return (
+    <div style={{
+      width, height, borderRadius: 54, overflow: 'hidden',
+      position: 'relative',
+      background: '#050403',
+      boxShadow: `
+        0 50px 100px rgba(0,0,0,0.5),
+        0 0 0 1.5px #1a1614,
+        0 0 0 2px rgba(0,0,0,0.8),
+        0 0 0 8px #0c0908,
+        0 0 0 9.5px #2a2320
+      `,
+      fontFamily: 'var(--sans)',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      <QStatusBar />
+      <div style={{
+        position: 'absolute', inset: 0,
+        paddingTop: 54,
+      }} className="no-scrollbar">
+        {children}
+      </div>
+      <QHomeIndicator />
+    </div>
+  );
+}
+
+window.QPhone = QPhone;
+window.QStatusBar = QStatusBar;
+window.QWordmark = QWordmark;
+window.QTabBar = QTabBar;
+window.QHomeIndicator = QHomeIndicator;
+
+
+// ===== Dial.jsx =====
+// Dial.jsx — Quartzie temperature lens
+// States: idle | heating | target | cooling | dunk
+// Color does the heavy lifting; numerals confirm.
+
+const DIAL_PALETTE = {
+  idle:    { ring: 'oklch(0.45 0.04 245)',  inner: 'oklch(0.20 0.03 250)',  ambient: 'oklch(0.18 0.04 245 / 0.5)', text: 'var(--bone-90)' },
+  heating: { ring: 'oklch(0.55 0.10 50)',   inner: 'oklch(0.22 0.06 40)',   ambient: 'oklch(0.30 0.12 45 / 0.55)', text: 'var(--bone-100)' },
+  target:  { ring: 'oklch(0.78 0.18 55)',   inner: 'oklch(0.32 0.13 45)',   ambient: 'oklch(0.55 0.20 50 / 0.7)',  text: '#fff5e8' },
+  cooling: { ring: 'oklch(0.62 0.10 60)',   inner: 'oklch(0.24 0.07 50)',   ambient: 'oklch(0.32 0.10 50 / 0.45)', text: 'var(--bone-90)' },
+  dunk:    { ring: 'oklch(0.78 0.08 240)',  inner: 'oklch(0.25 0.05 245)',  ambient: 'oklch(0.40 0.10 240 / 0.55)', text: '#e6effa' },
+};
+
+function TempDial({
+  temp = 0,
+  state = 'idle',
+  unit = '°F',
+  size = 320,
+  targetMin = 530,
+  targetMax = 570,
+  // 0..1 progress around the ring (typically temp / max)
+  progress = 0,
+}) {
+  const p = DIAL_PALETTE[state];
+  const tempStr = String(Math.round(temp));
+  // Dynamic font sizing for 1 / 2 / 3 / 4 chars
+  const numSize = tempStr.length >= 3 ? size * 0.46 : size * 0.55;
+
+  // arc geometry
+  const r = size * 0.44;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = 2 * Math.PI * r;
+  // arc starts at top, sweeps clockwise
+  const dash = Math.max(0, Math.min(1, progress)) * circumference;
+
+  return (
+    <div style={{
+      width: size, height: size, position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {/* outer ambient halo */}
+      <div style={{
+        position: 'absolute', inset: -size * 0.15,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${p.ambient}, transparent 65%)`,
+        filter: 'blur(20px)',
+        transition: 'background 800ms ease',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Outer ring (etched) */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at 30% 25%, oklch(0.16 0.02 50), oklch(0.06 0.01 50) 75%)',
+        boxShadow: `
+          inset 0 1px 1px rgba(255, 240, 220, 0.06),
+          inset 0 -2px 4px rgba(0,0,0,0.6),
+          0 30px 60px rgba(0,0,0,0.5)
+        `,
+      }} />
+
+      {/* progress arc */}
+      <svg
+        width={size} height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}
+      >
+        {/* track */}
+        <circle
+          cx={cx} cy={cy} r={r}
+          stroke="rgba(255, 240, 220, 0.04)"
+          strokeWidth="1"
+          fill="none"
+        />
+        {/* progress */}
+        <circle
+          cx={cx} cy={cy} r={r}
+          stroke={p.ring}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${dash} ${circumference}`}
+          style={{
+            transition: 'stroke 800ms ease, stroke-dasharray 600ms ease',
+            filter: state === 'target' ? `drop-shadow(0 0 12px ${p.ring})` : 'none',
+          }}
+        />
+      </svg>
+
+      {/* inner lens */}
+      <div style={{
+        position: 'absolute',
+        width: size * 0.78, height: size * 0.78,
+        borderRadius: '50%',
+        background: `
+          radial-gradient(circle at 35% 30%, ${p.inner}, oklch(0.08 0.01 50) 75%)
+        `,
+        boxShadow: `
+          inset 0 2px 8px rgba(0,0,0,0.7),
+          inset 0 -1px 1px rgba(255,240,220,0.04),
+          0 0 0 0.5px rgba(255, 240, 220, 0.05)
+        `,
+        transition: 'background 800ms ease',
+      }}>
+        {/* refraction highlight */}
+        <div style={{
+          position: 'absolute', top: '8%', left: '15%', right: '15%', height: '40%',
+          borderRadius: '50%',
+          background: 'linear-gradient(180deg, rgba(255,240,220,0.06), transparent)',
+          filter: 'blur(8px)',
+        }} />
+        {/* horizon line */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '12%', right: '12%', height: 0.5,
+          background: 'linear-gradient(90deg, transparent, rgba(255,240,220,0.08), transparent)',
+        }} />
+      </div>
+
+      {/* numeric readout */}
+      <div style={{
+        position: 'relative', zIndex: 2,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+      }}>
+        <div className="eyebrow" style={{ marginBottom: 12, color: 'rgba(255, 240, 220, 0.5)' }}>
+          {state === 'idle' && 'STANDBY'}
+          {state === 'heating' && 'HEATING'}
+          {state === 'target' && 'AT TARGET'}
+          {state === 'cooling' && 'DAB WINDOW'}
+          {state === 'dunk' && 'DUNK READY'}
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start',
+          color: p.text,
+          transition: 'color 600ms ease',
+        }}>
+          <span className="serif" style={{
+            fontSize: numSize, lineHeight: 0.9, fontWeight: 400,
+            letterSpacing: '-0.04em',
+            fontVariantNumeric: 'lining-nums',
+          }}>{tempStr}</span>
+          <span className="serif" style={{
+            fontSize: numSize * 0.32, marginTop: numSize * 0.18, marginLeft: 4,
+            opacity: 0.6,
+          }}>{unit}</span>
+        </div>
+        {state !== 'idle' && (
+          <div className="mono" style={{
+            marginTop: 14, fontSize: 10, letterSpacing: '0.12em',
+            color: 'rgba(255, 240, 220, 0.4)',
+          }}>
+            {targetMin}–{targetMax}{unit}
+          </div>
+        )}
+      </div>
+
+      {/* tick marks at cardinal points */}
+      <svg
+        width={size} height={size}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+      >
+        {[0, 90, 180, 270].map((deg) => {
+          const rad = (deg - 90) * Math.PI / 180;
+          const r1 = size * 0.46;
+          const r2 = size * 0.48;
+          const x1 = cx + Math.cos(rad) * r1;
+          const y1 = cy + Math.sin(rad) * r1;
+          const x2 = cx + Math.cos(rad) * r2;
+          const y2 = cy + Math.sin(rad) * r2;
+          return (
+            <line
+              key={deg}
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="rgba(255, 240, 220, 0.18)"
+              strokeWidth="0.5"
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+window.TempDial = TempDial;
+window.DIAL_PALETTE = DIAL_PALETTE;
+
+
+// ===== Screens.jsx =====
+// Screens.jsx — Quartzie screens (Session / Presets / History / Configure)
+
+// ─── Session screen ────────────────────────────────────────────────
+function SessionScreen({ state = 'idle', temp = 0, sessionTime = '0:00', peak = 0, unit = '°F', presetName = 'Quartz Recommended', presetDab = 550, targetMin = 530, targetMax = 570 }) {
+  // progress around the dial — relative to 700°F max
+  const progress = Math.max(0, Math.min(1, temp / 700));
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%', height: '100%',
+      display: 'flex', flexDirection: 'column',
+      paddingTop: 8,
+    }}>
+      <QWordmark />
+
+      {/* Dial centerpiece */}
+      <div style={{
+        flex: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginTop: -20,
+      }}>
+        <TempDial
+          temp={temp}
+          state={state}
+          unit={unit}
+          size={310}
+          targetMin={targetMin}
+          targetMax={targetMax}
+          progress={progress}
+        />
+      </div>
+
+      {/* Session strip */}
+      <div style={{ padding: '0 22px' }}>
+        <div className="hairline" style={{ marginBottom: 18 }} />
+
+        {/* metrics row */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+          gap: 4,
+        }}>
+          <Metric label="SESSION" value={sessionTime} />
+          <Metric label="PEAK" value={`${peak}°`} highlight={state === 'target' || state === 'cooling'} />
+          <Metric label="WINDOW" value={`${targetMin}–${targetMax}`} />
+        </div>
+
+        {/* preset bar */}
+        <div style={{
+          marginTop: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 18px',
+          borderRadius: 18,
+          background: 'linear-gradient(180deg, oklch(0.13 0.012 50), oklch(0.08 0.008 50))',
+          boxShadow: 'inset 0 0.5px 0 rgba(255,240,220,0.06), 0 1px 0 rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <PresetGlyph kind="quartz" size={28} />
+            <div>
+              <div className="eyebrow" style={{ fontSize: 9, marginBottom: 2 }}>PRESET</div>
+              <div style={{ fontSize: 14, color: 'var(--bone-90)', fontWeight: 500 }}>
+                {presetName} · <span className="mono" style={{ fontSize: 13, color: 'oklch(0.78 0.18 55)' }}>{presetDab}°</span>
+              </div>
+            </div>
+          </div>
+          <button style={{
+            fontSize: 11, color: 'var(--bone-50)', letterSpacing: '0.08em',
+            textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            Change
+            <svg width="6" height="10" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* spacer for tab bar */}
+      <div style={{ height: 110 }} />
+
+      <QTabBar active="session" />
+    </div>
+  );
+}
+
+function Metric({ label, value, highlight = false }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', gap: 4,
+    }}>
+      <div className="serif" style={{
+        fontSize: 26, lineHeight: 1, fontWeight: 400,
+        color: highlight ? 'oklch(0.78 0.18 55)' : 'var(--bone-90)',
+        letterSpacing: '-0.02em',
+      }}>{value}</div>
+      <div className="eyebrow" style={{ fontSize: 9 }}>{label}</div>
+    </div>
+  );
+}
+
+// Glyph for preset cards — simple shape, no emoji/cannabis iconography
+function PresetGlyph({ kind = 'quartz', size = 44 }) {
+  const palettes = {
+    quartz:  { bg: 'oklch(0.18 0.02 50)',   ring: 'oklch(0.55 0.10 55)',  glyph: 'oklch(0.78 0.18 55)' },
+    opaque:  { bg: 'oklch(0.18 0.015 245)', ring: 'oklch(0.55 0.06 240)', glyph: 'oklch(0.78 0.08 240)' },
+    custom:  { bg: 'oklch(0.18 0.012 80)',  ring: 'oklch(0.55 0.06 80)',  glyph: 'oklch(0.76 0.10 80)' },
+    low:     { bg: 'oklch(0.18 0.015 200)', ring: 'oklch(0.50 0.05 220)', glyph: 'oklch(0.72 0.06 220)' },
+  };
+  const p = palettes[kind] || palettes.quartz;
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: size * 0.30,
+      background: `radial-gradient(circle at 30% 25%, ${p.bg}, oklch(0.06 0.01 50))`,
+      boxShadow: `inset 0 0 0 0.5px ${p.ring}, inset 0 1px 0 rgba(255,240,220,0.08)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      {/* simple sigil — diamond / square / triangle / circle */}
+      {kind === 'quartz' && (
+        <svg width={size * 0.42} height={size * 0.42} viewBox="0 0 20 20">
+          <path d="M10 2 L18 10 L10 18 L2 10 Z" fill={p.glyph} opacity="0.95" />
+          <path d="M10 2 L14 10 L10 18 L6 10 Z" fill="rgba(0,0,0,0.25)" />
+        </svg>
+      )}
+      {kind === 'opaque' && (
+        <svg width={size * 0.42} height={size * 0.42} viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="7" fill={p.glyph} opacity="0.9" />
+          <circle cx="10" cy="10" r="3.5" fill="rgba(0,0,0,0.3)" />
+        </svg>
+      )}
+      {kind === 'custom' && (
+        <svg width={size * 0.42} height={size * 0.42} viewBox="0 0 20 20">
+          <path d="M10 2 L18 16 L2 16 Z" fill={p.glyph} opacity="0.9" />
+        </svg>
+      )}
+      {kind === 'low' && (
+        <svg width={size * 0.42} height={size * 0.42} viewBox="0 0 20 20">
+          <rect x="3" y="3" width="14" height="14" rx="2" fill={p.glyph} opacity="0.9" transform="rotate(45 10 10)" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+// ─── Presets screen ────────────────────────────────────────────────
+function PresetsScreen({ activePresetId = 'quartz' }) {
+  const presets = [
+    { id: 'quartz',  name: 'Quartz Recommended', kind: 'quartz', dab: 550, dunk: 250, builtin: true, desc: 'For traditional banger setups.' },
+    { id: 'opaque',  name: 'Opaque Recommended', kind: 'opaque', dab: 530, dunk: 275, builtin: true, desc: 'For thicker thermal banger walls.' },
+    { id: 'low',     name: 'Low & Slow',         kind: 'low',    dab: 480, dunk: 230, builtin: false, desc: 'Terpene-forward sipping temps.' },
+    { id: 'custom',  name: 'Friday Setup',       kind: 'custom', dab: 565, dunk: 260, builtin: false, desc: 'Last edited 2 days ago.' },
+  ];
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%', height: '100%',
+      display: 'flex', flexDirection: 'column',
+      paddingTop: 8,
+    }}>
+      <QWordmark />
+
+      <div style={{ padding: '20px 22px 12px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <h1 className="serif" style={{
+          margin: 0, fontSize: 32, fontWeight: 400,
+          letterSpacing: '-0.02em', color: 'var(--bone-100)',
+        }}>Presets</h1>
+        <button style={{
+          fontSize: 11, letterSpacing: '0.10em', textTransform: 'uppercase',
+          color: 'oklch(0.78 0.18 55)',
+          display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          <span style={{ fontSize: 14, lineHeight: 1, marginTop: -1 }}>+</span> New
+        </button>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 22px 130px' }} className="no-scrollbar">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {presets.map(p => (
+            <PresetCard key={p.id} preset={p} active={p.id === activePresetId} />
+          ))}
+        </div>
+      </div>
+
+      <QTabBar active="presets" />
+    </div>
+  );
+}
+
+function PresetCard({ preset, active = false }) {
+  return (
+    <div style={{
+      position: 'relative',
+      borderRadius: 22,
+      padding: 18,
+      background: active
+        ? 'linear-gradient(180deg, oklch(0.16 0.02 50), oklch(0.10 0.012 50))'
+        : 'linear-gradient(180deg, oklch(0.11 0.01 50), oklch(0.075 0.008 50))',
+      boxShadow: active
+        ? 'inset 0 0 0 0.5px oklch(0.55 0.10 55 / 0.6), inset 0 0.5px 0 rgba(255,240,220,0.08), 0 0 30px oklch(0.55 0.10 55 / 0.15)'
+        : 'inset 0 0.5px 0 rgba(255,240,220,0.05), inset 0 0 0 0.5px rgba(255,240,220,0.04)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <PresetGlyph kind={preset.kind} size={48} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <h3 style={{
+              margin: 0, fontSize: 16, fontWeight: 500,
+              color: 'var(--bone-100)', letterSpacing: '-0.01em',
+            }}>{preset.name}</h3>
+            {preset.builtin && (
+              <span className="mono" style={{
+                fontSize: 8.5, letterSpacing: '0.14em',
+                color: 'var(--bone-50)',
+                padding: '2px 6px', borderRadius: 4,
+                background: 'rgba(255, 240, 220, 0.05)',
+              }}>BUILT-IN</span>
+            )}
+          </div>
+          <div style={{
+            fontSize: 12, color: 'var(--bone-50)', lineHeight: 1.4,
+            marginBottom: 10,
+          }}>{preset.desc}</div>
+          <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+            <TempPill label="DAB" temp={preset.dab} accent="ember" />
+            <TempPill label="DUNK" temp={preset.dunk} accent="quartz" />
+          </div>
+        </div>
+        {active ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '5px 9px', borderRadius: 100,
+            background: 'oklch(0.55 0.10 55 / 0.18)',
+            boxShadow: 'inset 0 0 0 0.5px oklch(0.78 0.18 55 / 0.4)',
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: 'oklch(0.78 0.18 55)',
+              boxShadow: '0 0 4px oklch(0.78 0.18 55 / 0.8)',
+            }} />
+            <span className="mono" style={{
+              fontSize: 9, letterSpacing: '0.14em', color: 'oklch(0.85 0.10 55)',
+            }}>ACTIVE</span>
+          </div>
+        ) : (
+          <button style={{
+            fontSize: 11, letterSpacing: '0.10em', textTransform: 'uppercase',
+            color: 'var(--bone-70)',
+            padding: '6px 10px', borderRadius: 100,
+            background: 'rgba(255,240,220,0.04)',
+            boxShadow: 'inset 0 0 0 0.5px rgba(255,240,220,0.08)',
+          }}>Apply</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TempPill({ label, temp, accent = 'ember' }) {
+  const color = accent === 'ember' ? 'oklch(0.78 0.18 55)' : 'oklch(0.78 0.08 240)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+      <span className="eyebrow" style={{ fontSize: 9 }}>{label}</span>
+      <span className="mono" style={{
+        fontSize: 14, color, fontWeight: 500,
+      }}>{temp}°</span>
+    </div>
+  );
+}
+
+window.SessionScreen = SessionScreen;
+window.PresetsScreen = PresetsScreen;
+window.PresetCard = PresetCard;
+window.PresetGlyph = PresetGlyph;
+window.Metric = Metric;
+window.TempPill = TempPill;
+
+
+// ===== Screens2.jsx =====
+// Screens2.jsx — History + Configure screens
+
+// ─── History screen ────────────────────────────────────────────────
+function HistoryScreen() {
+  const sessions = [
+    { id: 1, date: 'TODAY · 22:07', duration: '4:18', peak: 552, target: 550, kind: 'quartz', curve: [0,40,140,280,420,520,548,552,550,540,510,470,420,360,300,240,180,140,110,90] },
+    { id: 2, date: 'TODAY · 19:42', duration: '3:52', peak: 568, target: 565, kind: 'custom', curve: [0,60,180,320,470,560,568,565,558,540,500,450,380,310,250,200,160,130] },
+    { id: 3, date: 'YESTERDAY · 23:14', duration: '5:01', peak: 545, target: 550, kind: 'quartz', curve: [0,30,120,260,400,500,540,545,540,530,500,460,410,350,290,230,180,140,110,95,80,70] },
+    { id: 4, date: 'YESTERDAY · 20:50', duration: '4:35', peak: 528, target: 530, kind: 'opaque', curve: [0,40,150,290,420,500,525,528,525,515,490,450,400,340,280,220,170,135,105,85] },
+    { id: 5, date: 'APR 23 · 22:38', duration: '6:12', peak: 482, target: 480, kind: 'low', curve: [0,30,110,230,350,440,475,482,480,470,450,420,380,330,280,230,190,160,130,110,95,82,72,65] },
+  ];
+
+  const [filter, setFilter] = React.useState('all');
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%', height: '100%',
+      display: 'flex', flexDirection: 'column',
+      paddingTop: 8,
+    }}>
+      <QWordmark />
+
+      <div style={{ padding: '20px 22px 8px' }}>
+        <h1 className="serif" style={{
+          margin: 0, fontSize: 32, fontWeight: 400,
+          letterSpacing: '-0.02em', color: 'var(--bone-100)',
+        }}>History</h1>
+        <div style={{
+          marginTop: 4, fontSize: 12, color: 'var(--bone-50)',
+        }}>
+          <span className="mono">{sessions.length}</span> sessions · last 7 days
+        </div>
+      </div>
+
+      {/* filter chips */}
+      <div style={{
+        display: 'flex', gap: 6, padding: '14px 22px 12px',
+        overflowX: 'auto',
+      }} className="no-scrollbar">
+        {[
+          { id: 'all', label: 'All' },
+          { id: 'high', label: 'High · 540°+' },
+          { id: 'mid', label: 'Mid · 500–540°' },
+          { id: 'low', label: 'Low · <500°' },
+        ].map(c => (
+          <button
+            key={c.id}
+            onClick={() => setFilter(c.id)}
+            style={{
+              padding: '7px 13px',
+              borderRadius: 100,
+              fontSize: 11, letterSpacing: '0.04em',
+              color: filter === c.id ? 'var(--bone-100)' : 'var(--bone-50)',
+              background: filter === c.id ? 'oklch(0.18 0.02 50)' : 'transparent',
+              boxShadow: filter === c.id
+                ? 'inset 0 0 0 0.5px oklch(0.55 0.10 55 / 0.5), inset 0 0.5px 0 rgba(255,240,220,0.06)'
+                : 'inset 0 0 0 0.5px rgba(255,240,220,0.08)',
+              flexShrink: 0,
+            }}
+          >{c.label}</button>
+        ))}
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '4px 22px 130px' }} className="no-scrollbar">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sessions.map(s => (
+            <SessionCard key={s.id} session={s} />
+          ))}
+        </div>
+      </div>
+
+      <QTabBar active="history" />
+    </div>
+  );
+}
+
+function SessionCard({ session }) {
+  const targetMatched = Math.abs(session.peak - session.target) <= 5;
+  return (
+    <div style={{
+      borderRadius: 18,
+      padding: '14px 16px 12px',
+      background: 'linear-gradient(180deg, oklch(0.10 0.01 50), oklch(0.075 0.008 50))',
+      boxShadow: 'inset 0 0.5px 0 rgba(255,240,220,0.05), inset 0 0 0 0.5px rgba(255,240,220,0.03)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div>
+          <div className="mono" style={{
+            fontSize: 9.5, letterSpacing: '0.14em', color: 'var(--bone-35)',
+          }}>{session.date}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+            <span className="serif" style={{
+              fontSize: 24, lineHeight: 1, color: 'var(--bone-100)',
+              letterSpacing: '-0.02em',
+            }}>{session.peak}<span style={{ fontSize: 14, opacity: 0.5 }}>°</span></span>
+            <span style={{ fontSize: 11, color: 'var(--bone-50)' }}>peak</span>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div className="mono" style={{
+            fontSize: 13, color: 'var(--bone-90)', fontWeight: 500,
+          }}>{session.duration}</div>
+          <div className="eyebrow" style={{ fontSize: 9, marginTop: 2 }}>{session.kind.toUpperCase()}</div>
+        </div>
+      </div>
+      {/* waveform */}
+      <Waveform data={session.curve} target={session.target} matched={targetMatched} />
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', marginTop: 6,
+        fontSize: 10, color: 'var(--bone-35)',
+      }}>
+        <span className="mono">0:00</span>
+        <span className="mono">{session.duration}</span>
+      </div>
+    </div>
+  );
+}
+
+function Waveform({ data = [], target = 550, matched = false }) {
+  const w = 320;
+  const h = 50;
+  const max = 700;
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - (v / max) * h;
+    return `${x},${y}`;
+  }).join(' ');
+  const targetY = h - (target / max) * h;
+  const accent = matched ? 'oklch(0.78 0.18 55)' : 'oklch(0.65 0.10 55)';
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 50, display: 'block' }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`wf-fill-${target}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={accent} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={accent} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* target line */}
+      <line x1="0" y1={targetY} x2={w} y2={targetY} stroke="rgba(255, 240, 220, 0.12)" strokeWidth="0.5" strokeDasharray="2 3" />
+      {/* fill */}
+      <polygon points={`0,${h} ${points} ${w},${h}`} fill={`url(#wf-fill-${target})`} />
+      {/* line */}
+      <polyline points={points} fill="none" stroke={accent} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ─── Configure screen ──────────────────────────────────────────────
+function ConfigureScreen() {
+  const [dabAlarm, setDabAlarm] = React.useState(550);
+  const [dunkAlarm, setDunkAlarm] = React.useState(250);
+  const [unitC, setUnitC] = React.useState(false);
+  const [opaque, setOpaque] = React.useState(false);
+  const [sound, setSound] = React.useState(true);
+  const [light, setLight] = React.useState(true);
+  const [led, setLed] = React.useState(true);
+  const [night, setNight] = React.useState(false);
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%', height: '100%',
+      display: 'flex', flexDirection: 'column',
+      paddingTop: 8,
+    }}>
+      <QWordmark />
+
+      <div style={{ padding: '20px 22px 12px' }}>
+        <h1 className="serif" style={{
+          margin: 0, fontSize: 32, fontWeight: 400,
+          letterSpacing: '-0.02em', color: 'var(--bone-100)',
+        }}>Configure</h1>
+        <div style={{ marginTop: 4, fontSize: 12, color: 'var(--bone-50)' }}>
+          <span style={{ color: 'oklch(0.78 0.18 55)' }}>●</span> Dab Rite PRO · <span className="mono">v2.2</span>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px 22px 130px' }} className="no-scrollbar">
+        {/* Temperatures */}
+        <ConfigSection title="Thresholds">
+          <TempSlider label="Dab alarm" value={dabAlarm} min={400} max={700} accent="ember" onChange={setDabAlarm} />
+          <div style={{ height: 14 }} />
+          <TempSlider label="Dunk alarm" value={dunkAlarm} min={150} max={400} accent="quartz" onChange={setDunkAlarm} />
+          <div style={{ height: 18 }} />
+          <ConfigRow label="Display in °C">
+            <Toggle on={unitC} onChange={() => setUnitC(!unitC)} />
+          </ConfigRow>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <DefaultButton label="Quartz defaults" onClick={() => { setDabAlarm(550); setDunkAlarm(250); }} />
+            <DefaultButton label="Opaque defaults" onClick={() => { setDabAlarm(530); setDunkAlarm(275); }} />
+          </div>
+        </ConfigSection>
+
+        {/* Device */}
+        <ConfigSection title="Device">
+          <ConfigRow label="Opaque mode" sub="For thick-walled bangers"><Toggle on={opaque} onChange={() => setOpaque(!opaque)} /></ConfigRow>
+          <Divider />
+          <ConfigRow label="Sound alert"><Toggle on={sound} onChange={() => setSound(!sound)} /></ConfigRow>
+          <Divider />
+          <ConfigRow label="Light alert"><Toggle on={light} onChange={() => setLight(!light)} /></ConfigRow>
+          <Divider />
+          <ConfigRow label="LED guide"><Toggle on={led} onChange={() => setLed(!led)} /></ConfigRow>
+          <Divider />
+          <ConfigRow label="Night mode" sub="Dim display & soften alerts"><Toggle on={night} onChange={() => setNight(!night)} /></ConfigRow>
+        </ConfigSection>
+
+        {/* Sound */}
+        <ConfigSection title="Sound">
+          <ConfigRow label="Volume" detail="Level 3">
+            <div style={{ width: 90 }}>
+              <SimpleSlider value={3} max={5} />
+            </div>
+          </ConfigRow>
+          <Divider />
+          <SoundRow label="Key tone" options={['None', 'Arcade', 'Calypso', 'Classic']} active="None" />
+          <Divider />
+          <SoundRow label="Dab sound" options={['—', 'Cloud9', 'Codex', 'Excalibur']} active="Cloud9" />
+          <Divider />
+          <SoundRow label="Dunk sound" options={['—', 'Blocks', 'Codex', 'Excalibur']} active="Blocks" />
+        </ConfigSection>
+
+        {/* Appearance */}
+        <ConfigSection title="Appearance">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            <ThemeSwatch name="Warm Mineral" pal={['#1a1410', '#3a2818', 'oklch(0.72 0.10 65)']} />
+            <ThemeSwatch name="Smoke" pal={['#0d0d12', '#1a1722', 'oklch(0.65 0.08 280)']} />
+            <ThemeSwatch name="Cool Shell" pal={['#0a0d12', '#162028', 'oklch(0.78 0.07 240)']} active />
+          </div>
+        </ConfigSection>
+
+        {/* Save bar */}
+        <div style={{
+          marginTop: 18,
+          display: 'flex', gap: 10, alignItems: 'center',
+          padding: '14px 16px',
+          borderRadius: 18,
+          background: 'linear-gradient(180deg, oklch(0.13 0.02 50), oklch(0.08 0.012 50))',
+          boxShadow: 'inset 0 0.5px 0 rgba(255,240,220,0.06)',
+        }}>
+          <button style={{
+            flex: 1,
+            padding: '13px 0',
+            borderRadius: 12,
+            background: 'linear-gradient(180deg, oklch(0.55 0.10 55), oklch(0.45 0.08 50))',
+            color: '#fff',
+            fontSize: 13, fontWeight: 500, letterSpacing: '0.03em',
+            boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.2), 0 4px 12px oklch(0.55 0.10 55 / 0.3)',
+          }}>Save to device</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="oklch(0.78 0.12 150)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="mono" style={{ fontSize: 9.5, letterSpacing: '0.10em', color: 'oklch(0.72 0.10 150)' }}>SYNCED</span>
+          </div>
+        </div>
+      </div>
+
+      <QTabBar active="configure" />
+    </div>
+  );
+}
+
+function ConfigSection({ title, children }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div className="eyebrow" style={{
+        marginBottom: 10, paddingLeft: 4,
+      }}>{title}</div>
+      <div style={{
+        borderRadius: 20,
+        padding: '16px',
+        background: 'linear-gradient(180deg, oklch(0.10 0.01 50), oklch(0.075 0.008 50))',
+        boxShadow: 'inset 0 0.5px 0 rgba(255,240,220,0.05), inset 0 0 0 0.5px rgba(255,240,220,0.03)',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+function ConfigRow({ label, sub, detail, children }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12, minHeight: 36,
+    }}>
+      <div>
+        <div style={{ fontSize: 14, color: 'var(--bone-90)', fontWeight: 400 }}>{label}</div>
+        {sub && <div style={{ fontSize: 11, color: 'var(--bone-35)', marginTop: 2 }}>{sub}</div>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {detail && <span className="mono" style={{ fontSize: 12, color: 'var(--bone-50)' }}>{detail}</span>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Divider() {
+  return <div style={{ height: 0.5, background: 'rgba(255, 240, 220, 0.06)', margin: '12px 0' }} />;
+}
+
+function Toggle({ on, onChange }) {
+  return (
+    <button onClick={onChange} style={{
+      width: 42, height: 25, borderRadius: 100,
+      background: on ? 'oklch(0.55 0.10 55)' : 'oklch(0.18 0.01 50)',
+      boxShadow: on
+        ? 'inset 0 0.5px 0 rgba(255,240,220,0.15), 0 0 12px oklch(0.55 0.10 55 / 0.4)'
+        : 'inset 0 0.5px 1px rgba(0,0,0,0.5), inset 0 0 0 0.5px rgba(255,240,220,0.06)',
+      position: 'relative',
+      transition: 'background 200ms ease',
+    }}>
+      <div style={{
+        position: 'absolute', top: 2.5, left: on ? 19 : 2.5,
+        width: 20, height: 20, borderRadius: '50%',
+        background: 'linear-gradient(180deg, #f4ede4, #d8cfc2)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.4), inset 0 0.5px 0 rgba(255,255,255,0.6)',
+        transition: 'left 200ms ease',
+      }} />
+    </button>
+  );
+}
+
+function TempSlider({ label, value, min, max, accent = 'ember', onChange }) {
+  const pct = (value - min) / (max - min);
+  const color = accent === 'ember' ? 'oklch(0.78 0.18 55)' : 'oklch(0.78 0.08 240)';
+  const trackGrad = accent === 'ember'
+    ? 'linear-gradient(90deg, oklch(0.55 0.10 55 / 0.3), oklch(0.78 0.18 55))'
+    : 'linear-gradient(90deg, oklch(0.55 0.06 240 / 0.3), oklch(0.78 0.08 240))';
+  return (
+    <div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        marginBottom: 8,
+      }}>
+        <span className="eyebrow" style={{ fontSize: 9.5 }}>{label}</span>
+        <span className="mono" style={{ fontSize: 16, color, fontWeight: 500 }}>{value}°F</span>
+      </div>
+      <div
+        onMouseDown={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const handler = (ev) => {
+            const x = (ev.clientX - rect.left) / rect.width;
+            onChange(Math.round(min + Math.max(0, Math.min(1, x)) * (max - min)));
+          };
+          handler(e);
+          const up = () => { window.removeEventListener('mousemove', handler); window.removeEventListener('mouseup', up); };
+          window.addEventListener('mousemove', handler);
+          window.addEventListener('mouseup', up);
+        }}
+        style={{
+          position: 'relative', height: 6, borderRadius: 100, cursor: 'pointer',
+          background: 'rgba(0,0,0,0.5)',
+          boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0,
+          width: `${pct * 100}%`, borderRadius: 100,
+          background: trackGrad,
+          boxShadow: `0 0 8px ${color}`,
+        }} />
+        <div style={{
+          position: 'absolute', top: '50%', left: `${pct * 100}%`,
+          transform: 'translate(-50%, -50%)',
+          width: 18, height: 18, borderRadius: '50%',
+          background: 'linear-gradient(180deg, #f4ede4, #c8bfb2)',
+          boxShadow: `0 2px 6px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(0,0,0,0.4), inset 0 0.5px 0 rgba(255,255,255,0.7), 0 0 12px ${color}`,
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function SimpleSlider({ value, max }) {
+  const pct = value / max;
+  return (
+    <div style={{
+      position: 'relative', height: 4, borderRadius: 100,
+      background: 'rgba(0,0,0,0.5)',
+      boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.5)',
+    }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: `${pct * 100}%`, borderRadius: 100,
+        background: 'oklch(0.78 0.18 55)',
+      }} />
+      <div style={{
+        position: 'absolute', top: '50%', left: `${pct * 100}%`,
+        transform: 'translate(-50%, -50%)',
+        width: 14, height: 14, borderRadius: '50%',
+        background: 'linear-gradient(180deg, #f4ede4, #c8bfb2)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
+      }} />
+    </div>
+  );
+}
+
+function DefaultButton({ label, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      flex: 1,
+      padding: '10px 10px',
+      borderRadius: 12,
+      fontSize: 11.5, letterSpacing: '0.04em',
+      color: 'var(--bone-90)',
+      background: 'rgba(255,240,220,0.04)',
+      boxShadow: 'inset 0 0 0 0.5px rgba(255,240,220,0.10), inset 0 0.5px 0 rgba(255,240,220,0.06)',
+    }}>{label}</button>
+  );
+}
+
+function SoundRow({ label, options, active }) {
+  return (
+    <div>
+      <div className="eyebrow" style={{ fontSize: 9.5, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 6, overflow: 'auto' }} className="no-scrollbar">
+        {options.map(o => (
+          <div key={o} style={{
+            padding: '6px 11px',
+            borderRadius: 100,
+            fontSize: 11, letterSpacing: '0.02em',
+            color: o === active ? 'var(--bone-100)' : 'var(--bone-50)',
+            background: o === active ? 'oklch(0.18 0.02 50)' : 'transparent',
+            boxShadow: o === active
+              ? 'inset 0 0 0 0.5px oklch(0.55 0.10 55 / 0.5)'
+              : 'inset 0 0 0 0.5px rgba(255,240,220,0.08)',
+            flexShrink: 0,
+          }}>{o}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ThemeSwatch({ name, pal, active = false }) {
+  return (
+    <div style={{
+      borderRadius: 14,
+      padding: 8,
+      background: pal[0],
+      boxShadow: active
+        ? 'inset 0 0 0 0.5px oklch(0.55 0.10 55 / 0.5), 0 0 16px oklch(0.55 0.10 55 / 0.2)'
+        : 'inset 0 0 0 0.5px rgba(255,240,220,0.06)',
+      display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <div style={{
+        position: 'relative',
+        height: 56, borderRadius: 8,
+        background: `radial-gradient(circle at 60% 40%, ${pal[2]} 0%, ${pal[1]} 35%, ${pal[0]} 80%)`,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: 8, left: 8,
+          width: 8, height: 8, borderRadius: '50%',
+          background: pal[2], opacity: 0.7,
+        }} />
+      </div>
+      <div className="mono" style={{
+        fontSize: 8.5, letterSpacing: '0.12em', color: active ? 'var(--bone-90)' : 'var(--bone-50)',
+        textTransform: 'uppercase',
+      }}>{name}</div>
+    </div>
+  );
+}
+
+window.HistoryScreen = HistoryScreen;
+window.ConfigureScreen = ConfigureScreen;
+window.SessionCard = SessionCard;
+window.Waveform = Waveform;
+
+
+// ===== app.jsx =====
+// app.jsx — Quartzie hi-fi canvas
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showState": "all",
+  "unit": "F",
+  "theme": "warm",
+  "ritualMode": false
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  const showState = tweaks.showState;
+  const unit = tweaks.unit === 'F' ? '°F' : '°C';
+
+  // helpers
+  const toUnit = (f) => tweaks.unit === 'C' ? Math.round((f - 32) * 5 / 9) : f;
+
+  // Frame configurations to display
+  const frames = [
+    {
+      id: 'session-idle',
+      label: '01 · Session — Standby',
+      sub: 'Connected, no heat. Cool ambient.',
+      content: (
+        <SessionScreen
+          state="idle"
+          temp={toUnit(72)}
+          unit={unit}
+          sessionTime="0:00"
+          peak={0}
+          presetName="Quartz Recommended"
+          presetDab={toUnit(550)}
+          targetMin={toUnit(530)} targetMax={toUnit(570)}
+        />
+      ),
+    },
+    {
+      id: 'session-heating',
+      label: '02 · Session — Heating',
+      sub: 'Climbing toward target. Amber edge bleed.',
+      content: (
+        <SessionScreen
+          state="heating"
+          temp={toUnit(412)}
+          unit={unit}
+          sessionTime="0:38"
+          peak={toUnit(412)}
+          presetName="Quartz Recommended"
+          presetDab={toUnit(550)}
+          targetMin={toUnit(530)} targetMax={toUnit(570)}
+        />
+      ),
+    },
+    {
+      id: 'session-target',
+      label: '03 · Session — At Target',
+      sub: 'Window hit. Lens fully saturates amber.',
+      content: (
+        <SessionScreen
+          state="target"
+          temp={toUnit(552)}
+          unit={unit}
+          sessionTime="1:14"
+          peak={toUnit(552)}
+          presetName="Quartz Recommended"
+          presetDab={toUnit(550)}
+          targetMin={toUnit(530)} targetMax={toUnit(570)}
+        />
+      ),
+    },
+    {
+      id: 'session-cooling',
+      label: '04 · Session — Dab Window',
+      sub: 'Falling through cooldown. Drop now.',
+      content: (
+        <SessionScreen
+          state="cooling"
+          temp={toUnit(478)}
+          unit={unit}
+          sessionTime="2:02"
+          peak={toUnit(552)}
+          presetName="Quartz Recommended"
+          presetDab={toUnit(550)}
+          targetMin={toUnit(530)} targetMax={toUnit(570)}
+        />
+      ),
+    },
+    {
+      id: 'session-dunk',
+      label: '05 · Session — Dunk Ready',
+      sub: 'Cool side of the cycle. Quartz blue ambient.',
+      content: (
+        <SessionScreen
+          state="dunk"
+          temp={toUnit(252)}
+          unit={unit}
+          sessionTime="3:30"
+          peak={toUnit(552)}
+          presetName="Quartz Recommended"
+          presetDab={toUnit(550)}
+          targetMin={toUnit(240)} targetMax={toUnit(260)}
+        />
+      ),
+    },
+    {
+      id: 'presets',
+      label: '06 · Presets',
+      sub: 'Saved configurations. Quartz active.',
+      content: <PresetsScreen activePresetId="quartz" />,
+    },
+    {
+      id: 'history',
+      label: '07 · History',
+      sub: 'Sessions with mini-waveforms.',
+      content: <HistoryScreen />,
+    },
+    {
+      id: 'configure',
+      label: '08 · Configure',
+      sub: 'Thresholds, device, sound, appearance.',
+      content: <ConfigureScreen />,
+    },
+  ];
+
+  const filtered = showState === 'all'
+    ? frames
+    : frames.filter(f => f.id === showState);
+
+  return (
+    <>
+      {/* Canvas header */}
+      <div style={{
+        textAlign: 'center', padding: '20px 16px 8px',
+        maxWidth: 720, margin: '0 auto',
+      }}>
+        <div className="eyebrow" style={{ fontSize: 10, color: 'var(--bone-35)', marginBottom: 12 }}>
+          QUARTZIE · COMPANION FOR DAB RITE PRO v2.2
+        </div>
+        <h1 className="serif" style={{
+          fontSize: 56, fontWeight: 400, lineHeight: 1.0,
+          letterSpacing: '-0.025em', margin: '0 0 14px',
+          color: 'var(--bone-100)',
+        }}>
+          Tactile, ceremonial, precise.
+        </h1>
+        <p style={{
+          fontSize: 13, lineHeight: 1.6, color: 'var(--bone-50)',
+          maxWidth: 540, margin: '0 auto',
+          letterSpacing: '0.005em',
+        }}>
+          The companion app should feel like ordering a craft cocktail at a dim, near-future bar — unhurried,
+          deliberate, material. Color does the heavy lifting; numbers confirm. Below: eight screens across
+          the session lifecycle and supporting tabs.
+        </p>
+      </div>
+
+      {/* Canvas */}
+      <div className="canvas">
+        {filtered.map(f => (
+          <div key={f.id} className="frame-wrap">
+            <QPhone>{f.content}</QPhone>
+            <div style={{ textAlign: 'center', maxWidth: 360 }}>
+              <div className="label" style={{ marginBottom: 4 }}>{f.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--bone-50)' }}>{f.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        textAlign: 'center', padding: '60px 16px 30px',
+        fontSize: 11, color: 'var(--bone-35)', letterSpacing: '0.04em',
+      }}>
+        Toggle Tweaks (top toolbar) to change unit, focus a single state, or cycle themes.
+      </div>
+
+      <TweaksUI tweaks={tweaks} setTweak={setTweak} />
+    </>
+  );
+}
+
+function TweaksUI({ tweaks, setTweak }) {
+  return (
+    <TweaksPanel title="Quartzie">
+      <TweakSection title="View">
+        <TweakSelect
+          label="Show"
+          value={tweaks.showState}
+          onChange={(v) => setTweak('showState', v)}
+          options={[
+            { value: 'all', label: 'All screens' },
+            { value: 'session-idle', label: '01 · Standby' },
+            { value: 'session-heating', label: '02 · Heating' },
+            { value: 'session-target', label: '03 · At Target' },
+            { value: 'session-cooling', label: '04 · Dab Window' },
+            { value: 'session-dunk', label: '05 · Dunk Ready' },
+            { value: 'presets', label: '06 · Presets' },
+            { value: 'history', label: '07 · History' },
+            { value: 'configure', label: '08 · Configure' },
+          ]}
+        />
+      </TweakSection>
+      <TweakSection title="Display">
+        <TweakRadio
+          label="Unit"
+          value={tweaks.unit}
+          onChange={(v) => setTweak('unit', v)}
+          options={[
+            { value: 'F', label: '°F' },
+            { value: 'C', label: '°C' },
+          ]}
+        />
+      </TweakSection>
+    </TweaksPanel>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+

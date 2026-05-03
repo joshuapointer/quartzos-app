@@ -142,9 +142,9 @@ export default function PairScreen() {
       </View>
       <View style={styles.screen}>
         <GlassCard padding={24} style={styles.card}>
-          <Text style={styles.title}>Scanning for Dab Rite…</Text>
+          <Text style={styles.title}>Listening for your rig</Text>
           <Text style={styles.body}>
-            Make sure your device is powered on and within a few feet.
+            Power the Dab Rite on and keep it close.
           </Text>
 
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
@@ -158,7 +158,7 @@ export default function PairScreen() {
             ))}
             {empty && devices.length === 0 ? (
               <Text style={styles.emptyHint}>
-                No devices found. Make sure your Dab Rite is on and nearby.
+                Nothing in range. Wake the rig and try again.
               </Text>
             ) : null}
             {connectError ? (
@@ -280,13 +280,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.glassFill,
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.glassBorder,
   },
   rowPressed: {
-    opacity: 0.7,
+    opacity: 0.72,
+    transform: [{ scale: 0.98 }],
   },
   rowText: {
     flex: 1,

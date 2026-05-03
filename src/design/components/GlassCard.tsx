@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewProps, ViewStyle, StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { radius, shadow } from '../tokens';
+import { colors, radius, shadow } from '../tokens';
 import { useThemeColors } from '../ThemeContext';
 
 interface Props extends ViewProps {
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    borderColor: 'rgba(244,237,228,0.03)',
+    borderColor: colors.bone100 + '08',
   },
   border: {
     ...StyleSheet.absoluteFillObject,

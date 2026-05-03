@@ -12,6 +12,7 @@ import { alarmService } from '../notifications/AlarmService';
 import { useBleStore } from '../state/bleStore';
 import { useSessionStore } from '../state/sessionStore';
 import { useSettingsStore } from '../state/settingsStore';
+import { validateAlarms } from '../utils/temperature';
 import { ConnectionStateMachine } from './ConnectionStateMachine';
 import {
   ATT_MTU,
@@ -33,7 +34,6 @@ import {
   encodeQuerySettings,
   encodeWriteAll,
   encodeWriteColors,
-  fragmentFrame,
 } from './DabRiteProtocol';
 import type { ConnectionState, DeviceSettings, RGB565 } from './types';
 
@@ -151,7 +151,6 @@ export class BleManager {
   private device: Device | null = null;
   private ff01Sub: Subscription | null = null;
   private disconnectSub: Subscription | null = null;
-  private negotiatedMtu: number = ATT_MTU + 3; // BLE chunk size = mtu - 3 ATT bytes
 
   private queryInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -162,6 +161,10 @@ export class BleManager {
 
   private idleTempSince: number | null = null;
   private currentSessionId: string | null = null;
+
+  // Mock state
+  private mockTempInterval: ReturnType<typeof setInterval> | null = null;
+  private mockCurrentTemp = 70;
 
   private constructor() {
     this.commandQueue = new CommandQueue((frame) => this.sendFrame(frame));
@@ -180,6 +183,17 @@ export class BleManager {
   startScan(): void {
     if (this.sm.current !== 'IDLE') return;
     this.setState('SCANNING');
+
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      setTimeout(() => {
+        if (this.sm.current === 'SCANNING') {
+          this.rnBle.stopDeviceScan();
+          void this.connectToDevice('mock-dabrite-01');
+        }
+      }, 1000);
+      return;
+    }
+
     this.rnBle.startDeviceScan([SERVICE_UUID], null, (error, scanned) => {
       if (error) {
         this.rnBle.stopDeviceScan();
@@ -215,6 +229,28 @@ export class BleManager {
       }
     }
 
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      this.device = { id: deviceId, name: 'Mock DabRite' } as unknown as Device;
+      useBleStore.getState().setConnectedDevice(deviceId);
+
+      setTimeout(() => this.setState('DISCOVERING'), 200);
+      setTimeout(() => this.setState('SUBSCRIBING'), 400);
+      setTimeout(() => {
+        this.setState('READY');
+        this.reconnectAttempts = 0;
+        this.querySettingsReceived = true;
+        
+        this.mockCurrentTemp = 70;
+        this.mockTempInterval = setInterval(() => {
+          if (this.mockCurrentTemp < 600) {
+            this.mockCurrentTemp += Math.floor(Math.random() * 4) + 2;
+          }
+          this.onTempSample(this.mockCurrentTemp);
+        }, 500);
+      }, 600);
+      return;
+    }
+
     try {
       const device = await this.rnBle.connectToDevice(deviceId, { timeout: 15000 });
       this.device = device;
@@ -239,16 +275,12 @@ export class BleManager {
 
       // iOS auto-negotiates MTU at connect time; requestMTU is a no-op there but harmless.
       // On Android, default is 23 — we must explicitly request a larger MTU so the 22-byte
-      // WRITE_ALL frame fits in a single write (preventing fragmented writes that crash firmware).
-      this.negotiatedMtu = device.mtu && device.mtu >= ATT_MTU + 3 ? device.mtu : ATT_MTU + 3;
+      // WRITE_ALL frame fits in a single write.
       try {
         const negotiated = await device.requestMTU(185);
-        if (negotiated.mtu && negotiated.mtu > 0) {
-          this.negotiatedMtu = negotiated.mtu;
-        }
-        console.log('[BLE] MTU is', this.negotiatedMtu);
+        console.log('[BLE] MTU negotiated:', negotiated.mtu);
       } catch (e) {
-        console.warn('[BLE] requestMTU failed; using', this.negotiatedMtu, e);
+        console.warn('[BLE] requestMTU failed (normal on iOS):', e);
       }
 
       this.setState('READY');
@@ -275,6 +307,18 @@ export class BleManager {
     this.stopQueryPoll();
     this.commandQueue.flush(new Error('disconnected'));
     this.teardownSubscriptions();
+
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      if (this.mockTempInterval) {
+        clearInterval(this.mockTempInterval);
+        this.mockTempInterval = null;
+      }
+      this.device = null;
+      useBleStore.getState().setConnectedDevice(null);
+      if (this.sm.canTransition('IDLE')) this.setState('IDLE');
+      return;
+    }
+
     const device = this.device;
     this.device = null;
     useBleStore.getState().setConnectedDevice(null);
@@ -291,9 +335,34 @@ export class BleManager {
   }
 
   async writeSettings(settings: DeviceSettings): Promise<void> {
-    if (!this.device) return;
-    const frame = encodeWriteAll(settings);
+    if (!this.device) throw new Error('BLE not connected');
+    // Defense-in-depth: enforce the dunk = dab - 10 cross-field constraint
+    // before encoding. encodeWriteAll already clamps each field to 100..900,
+    // but it doesn't enforce the cross-field rule.
+    const { dab, dunk } = validateAlarms(settings.dabAlarmF, settings.dunkAlarmF);
+    const validated: DeviceSettings = {
+      ...settings,
+      dabAlarmF: dab,
+      dunkAlarmF: dunk,
+    };
+    const frame = encodeWriteAll(validated);
     await this.commandQueue.enqueue(frame, 'WRITE_ALL');
+  }
+
+  /**
+   * Persist the in-memory session to SQLite and zero out the in-memory
+   * session state. Safe to call when no session is active (no-op).
+   *
+   * Exposed as a public static method so the AppState handler in
+   * `app/_layout.tsx` can flush on backgrounding without poking the
+   * BleManager's internals. Reuses `currentSessionId`, the same path
+   * the BLE-driven idle teardown uses.
+   */
+  static async flushActiveSession(): Promise<void> {
+    const inst = BleManager.instance;
+    if (!inst) return;
+    if (!useSessionStore.getState().active) return;
+    await inst.endSession();
   }
 
   async writeColors(
@@ -452,21 +521,25 @@ export class BleManager {
     }
   }
 
-  /** Writes a frame to FF02 in ATT-sized fragments. */
+  /** Writes a frame to FF02 in a single transmission. */
   private async sendFrame(frame: Uint8Array): Promise<void> {
     const device = this.device;
     if (!device) throw new Error('BLE not connected');
-    const chunkSize = Math.max(this.negotiatedMtu - 3, ATT_MTU);
-    const chunks = fragmentFrame(frame, chunkSize);
-    for (const chunk of chunks) {
-      const b64 = Buffer.from(chunk).toString('base64');
-      await this.rnBle.writeCharacteristicWithResponseForDevice(
-        device.id,
-        SERVICE_UUID,
-        CHAR_FF02_UUID,
-        b64,
-      );
+    
+    if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
+      setTimeout(() => {
+        this.commandQueue.resolveAck();
+      }, 50);
+      return;
     }
+
+    const b64 = Buffer.from(frame).toString('base64');
+    await this.rnBle.writeCharacteristicWithResponseForDevice(
+      device.id,
+      SERVICE_UUID,
+      CHAR_FF02_UUID,
+      b64,
+    );
   }
 
   private handleDisconnected(): void {

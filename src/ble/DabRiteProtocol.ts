@@ -225,18 +225,3 @@ export function decodeTempStream(buf: Uint8Array): number | null {
   return readBE16(buf, 2);
 }
 
-// --- ATT fragmentation -------------------------------------------------------
-
-/**
- * Split a frame into BLE ATT-sized chunks (default MTU 20).
- * A 22-byte settings frame becomes [20 bytes, 2 bytes] (the trailing CRLF).
- */
-export function fragmentFrame(frame: Uint8Array, mtu: number = ATT_MTU): Uint8Array[] {
-  if (mtu <= 0) throw new Error('mtu must be > 0');
-  if (frame.length <= mtu) return [frame];
-  const chunks: Uint8Array[] = [];
-  for (let offset = 0; offset < frame.length; offset += mtu) {
-    chunks.push(frame.slice(offset, Math.min(offset + mtu, frame.length)));
-  }
-  return chunks;
-}

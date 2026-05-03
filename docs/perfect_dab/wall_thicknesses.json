@@ -1,0 +1,34 @@
+[
+  {
+    "id": "thin",
+    "name": "Thin (2 mm)",
+    "thickness_mm_range": "1.5-2.5",
+    "modifier_f": -8,
+    "gradient_multiplier": 0.5,
+    "description": "Light flat tops. Faster heat, faster cool. Smaller interior↔exterior gradient."
+  },
+  {
+    "id": "standard",
+    "name": "Standard (3-4 mm)",
+    "thickness_mm_range": "3-4",
+    "modifier_f": 0,
+    "gradient_multiplier": 1.0,
+    "description": "Typical premium banger. Default. Banger gradient_lag_f values are anchored here."
+  },
+  {
+    "id": "thick",
+    "name": "Thick (5-6 mm)",
+    "thickness_mm_range": "5-6",
+    "modifier_f": 12,
+    "gradient_multiplier": 1.6,
+    "description": "Heavy reactor / opaque floor. More retention, larger gradient — Fourier τ scales as L²."
+  },
+  {
+    "id": "unknown",
+    "name": "Don't Know",
+    "thickness_mm_range": null,
+    "modifier_f": 0,
+    "gradient_multiplier": 1.0,
+    "description": "Defaults to standard."
+  }
+]

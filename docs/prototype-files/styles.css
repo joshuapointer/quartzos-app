@@ -1,0 +1,308 @@
+/* Quartzie — design tokens & global styles
+   Aesthetic: deep navy + warm amber glow (matches QuartzOS marketing).
+   Type: Geist sans (display + body), Geist Mono (telemetry).
+   No serif italics — modern, geometric, glass-clean.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ── Deep navy backdrop (matches the marketing banner) ── */
+  --navy-0: #050a14;     /* outermost — near-black blue */
+  --navy-1: #081224;     /* main canvas */
+  --navy-2: #0c1a30;     /* card base */
+  --navy-3: #122439;     /* raised surface */
+  --navy-4: #1a3052;     /* divider / hairline-on-card */
+
+  /* ── Bone / off-whites with cool blue tint (the "QuartzOS" wordmark color) ── */
+  --bone-100: #f4f6fa;
+  --bone-90:  #e6ebf2;
+  --bone-70:  oklch(0.78 0.012 240);
+  --bone-50:  oklch(0.62 0.012 240);
+  --bone-35:  oklch(0.45 0.012 240);
+  --bone-20:  oklch(0.30 0.010 240);
+
+  /* ── Ember — the glowing-quartz amber. More saturated, warmer hue (~45°) ── */
+  --ember-bright: oklch(0.78 0.20 55);
+  --ember:        oklch(0.72 0.19 50);
+  --ember-deep:   oklch(0.58 0.17 45);
+  --ember-glow:   oklch(0.72 0.20 50 / 0.45);
+
+  /* ── Quartz — cool blue accent (used sparingly, for dunk / cold cues) ── */
+  --quartz-bright: oklch(0.82 0.08 240);
+  --quartz:        oklch(0.72 0.07 240);
+  --quartz-deep:   oklch(0.55 0.06 245);
+  --quartz-glow:   oklch(0.72 0.10 240 / 0.30);
+
+  --serif: 'Geist', -apple-system, system-ui, sans-serif; /* alias kept; no longer a serif */
+  --sans:  'Geist', -apple-system, system-ui, sans-serif;
+  --mono:  'Geist Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--navy-0);
+  color: var(--bone-100);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background:
+    radial-gradient(ellipse at 22% 28%, oklch(0.36 0.12 50 / 0.22), transparent 55%),
+    radial-gradient(ellipse at 82% 72%, oklch(0.30 0.14 38 / 0.18), transparent 52%),
+    radial-gradient(ellipse at 50% 110%, oklch(0.22 0.08 245 / 0.40), transparent 62%),
+    radial-gradient(ellipse at 50% -10%, oklch(0.24 0.06 240 / 0.35), transparent 60%),
+    #02050c;
+}
+
+.q-view-enter {
+  animation: q-view-in 480ms cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes q-view-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.q-stagger > * {
+  animation: q-stagger-in 600ms cubic-bezier(.22,1,.36,1) both;
+  animation-delay: calc(120ms + var(--i, 0) * 55ms);
+}
+@keyframes q-stagger-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.q-fade-key { animation: q-fade-key 380ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes q-fade-key {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.q-pulse { animation: q-pulse 700ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes q-pulse {
+  0%   { opacity: 0; transform: scale(0.94); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes estimated-breathe {
+  0%, 100% { opacity: 0.78; }
+  50%      { opacity: 1; }
+}
+@keyframes estimated-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Orb-specific motion: subtle "breathing" for a hand-blown feel ── */
+@keyframes q-orb-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.012); }
+}
+@keyframes q-orb-pulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+@keyframes q-caustic-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Projected / etched UI primitives ──
+   Replaces "card" rectangles. A glass surface is a backdrop-blur disc with a
+   hairline edge that catches light from above. */
+.glass-disc {
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 0%, rgba(255,255,255,0.05), transparent 55%),
+    rgba(8, 14, 26, 0.55);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.55),
+    inset 0 0 0 0.5px rgba(180, 200, 230, 0.08),
+    0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.glass-disc-warm {
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 0%, oklch(0.78 0.20 55 / 0.10), transparent 55%),
+    rgba(14, 10, 8, 0.55);
+  backdrop-filter: blur(22px) saturate(1.3);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  box-shadow:
+    inset 0 0.5px 0 oklch(0.78 0.20 55 / 0.20),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.55),
+    inset 0 0 0 0.5px oklch(0.78 0.20 55 / 0.15),
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 24px oklch(0.62 0.20 50 / 0.08);
+}
+
+/* ── Etched type — projected onto the environment, with a faint bloom ── */
+.etched {
+  text-shadow:
+    0 0 18px rgba(220, 230, 245, 0.10),
+    0 1px 0 rgba(0, 0, 0, 0.4);
+}
+.etched-warm {
+  text-shadow:
+    0 0 24px oklch(0.78 0.20 55 / 0.45),
+    0 0 48px oklch(0.62 0.20 50 / 0.18);
+}
+
+/* ── Pill action — emissive button without rectangular feel ── */
+.q-action {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 14px 26px;
+  border-radius: 100px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #fff5e8;
+  background:
+    radial-gradient(120% 200% at 50% 0%, oklch(0.86 0.18 55 / 0.55), transparent 60%),
+    linear-gradient(180deg, oklch(0.62 0.20 50), oklch(0.42 0.16 42));
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 240, 220, 0.45),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.45),
+    inset 0 0 0 0.5px oklch(0.86 0.18 55 / 0.50),
+    0 0 0 0.5px rgba(0, 0, 0, 0.40),
+    0 8px 28px oklch(0.62 0.20 50 / 0.55),
+    0 0 60px oklch(0.62 0.20 50 / 0.18);
+  transition: transform 200ms ease, box-shadow 300ms ease;
+}
+.q-action:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 240, 220, 0.55),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.45),
+    inset 0 0 0 0.5px oklch(0.86 0.18 55 / 0.65),
+    0 0 0 0.5px rgba(0, 0, 0, 0.40),
+    0 12px 36px oklch(0.62 0.20 50 / 0.65),
+    0 0 80px oklch(0.62 0.20 50 / 0.28);
+}
+.q-action--ghost {
+  background:
+    radial-gradient(120% 200% at 50% 0%, rgba(220, 230, 245, 0.10), transparent 60%),
+    rgba(8, 14, 26, 0.55);
+  color: var(--bone-90);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.45),
+    inset 0 0 0 0.5px rgba(180, 200, 230, 0.14),
+    0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Hairline divider with light-catch ── */
+.q-hairline {
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, rgba(220, 230, 245, 0.16), transparent);
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.4);
+}
+
+.q-smooth {
+  transition: transform 600ms cubic-bezier(.22,1,.36,1),
+              opacity 400ms ease,
+              color 600ms ease,
+              background 600ms ease;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--bone-50);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+}
+
+/* `.serif` kept for backward compatibility but now resolves to a tight sans
+   display style — matches the "QuartzOS / Know Your Temperature." treatment. */
+.serif {
+  font-family: var(--sans);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Display headline class — used for the big H1s on each stage. */
+.display {
+  font-family: var(--sans);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.0;
+  text-shadow: 0 0 24px rgba(220, 230, 245, 0.08);
+}
+
+/* Amber-glow accent text (the "Know Your Temperature." line) */
+.accent-amber {
+  color: oklch(0.82 0.20 55);
+  font-weight: 400;
+  text-shadow:
+    0 0 28px oklch(0.78 0.20 55 / 0.55),
+    0 0 56px oklch(0.62 0.20 50 / 0.25);
+}
+
+.canvas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 56px 48px;
+  max-width: 1700px;
+  margin: 0 auto;
+  padding: 24px;
+  align-items: start;
+  justify-items: center;
+}
+
+.frame-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.frame-wrap .label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--bone-35);
+  text-transform: uppercase;
+}
+
+.no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Globally suppress webkit scrollbars across the whole app —
+   the design uses internal scroll regions but never wants visible chrome. */
+*::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+* { scrollbar-width: none; }
+
+.hairline {
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, rgba(180, 200, 230, 0.14), transparent);
+}

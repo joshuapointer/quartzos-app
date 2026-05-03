@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../tokens';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,28 +25,30 @@ export function QBackground() {
     );
   }, []);
 
-  const warmStyle = useAnimatedStyle(() => ({
-    opacity: 0.65 + breathe.value * 0.2,
+  // White radial — peaks at ~10% opacity, never higher
+  const whiteStyle = useAnimatedStyle(() => ({
+    opacity: 0.04 + breathe.value * 0.06,
   }));
 
-  const coolStyle = useAnimatedStyle(() => ({
-    opacity: 0.45 + (1 - breathe.value) * 0.18,
+  // Cyan radial — peaks at ~8% opacity, opposite phase
+  const cyanStyle = useAnimatedStyle(() => ({
+    opacity: 0.03 + (1 - breathe.value) * 0.05,
   }));
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#050403' }]} />
-      <Animated.View style={[StyleSheet.absoluteFill, warmStyle]}>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.voidObsidian }]} />
+      <Animated.View style={[StyleSheet.absoluteFill, whiteStyle]}>
         <LinearGradient
-          colors={['rgba(42,22,6,0.6)', 'transparent']}
+          colors={['rgba(255,255,255,0.6)', 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, coolStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, cyanStyle]}>
         <LinearGradient
-          colors={['rgba(14,26,40,0.45)', 'transparent']}
+          colors={['rgba(0,168,255,0.45)', 'transparent']}
           start={{ x: 1, y: 1 }}
           end={{ x: 0, y: 0 }}
           style={StyleSheet.absoluteFill}

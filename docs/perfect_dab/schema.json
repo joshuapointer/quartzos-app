@@ -1,0 +1,327 @@
+{
+  "meta": {
+    "name": "QuartzOS Reference Data",
+    "version": "2.0.0",
+    "release_date": "2026-04-28",
+    "description": "Production-grade reference data for cannabis concentrate dabbing — banger form factors, concentrates, sensors, and a parameterized metrology calibration model. v2.0.0 replaces the fused single-offset calibration with the research-derived four-term equation: T_IR_Setpoint = T_Ideal + dT_Load + dT_Gradient + dT_emissivity. Sourced from manufacturer documentation (Dab Rite, Highly Educated, Quave, Honeybee Herb), brand guidance (710 Labs, Mood, Press Club), thermophysical properties of fused silica, and 2025-2026 community consensus.",
+    "license": "Open data for non-commercial integration. Verify temperature recommendations against current community testing before production deployment.",
+    "units": {
+      "temperature": "fahrenheit",
+      "distance": "inches",
+      "time": "seconds",
+      "wall_thickness": "millimeters"
+    },
+    "temperature_convention": "Two distinct temperature anchors are tracked per concentrate: (1) surface_temp_optimal_f — the INTERIOR QUARTZ SURFACE temperature at the moment of dab introduction (probe-truth, what a Terpometer V1 contact probe reads). (2) fluid_target_optimal_f — the target BOILING TEMPERATURE of the concentrate fluid itself (what determines vapor production and terpene preservation). Surface > fluid by the phase-change load constant (~65°F) which the surface must supply to the cold extract mass on contact.",
+    "calibration_model": "T_IR_Setpoint = T_Ideal + dT_Load + dT_Gradient_total + dT_emissivity",
+    "model_breakdown": {
+      "T_Ideal": "concentrate.fluid_target_optimal_f — biochemical boiling target",
+      "dT_Load": "calibration.constants.phase_change_load_f — cold-mass + cap heat-sink deficit (sample-mass dependent)",
+      "dT_Gradient_total": "banger.gradient_lag_f × wall.gradient_multiplier — transient conduction lag from interior to exterior surface (Fourier's law over wall thickness)",
+      "dT_emissivity": "sensor.emissivity_bias_f × banger.emissivity_bias_multiplier — radiometric calculation error from sensor firmware emissivity vs. material true emissivity"
+    },
+    "data_sources": [
+      "Dab Rite official documentation and 2025 placement guide (dabrite.com)",
+      "Highly Educated Control Tower FAQ (highlyeducatedti.com)",
+      "Honeybee Herb product documentation (honeybeeherb.com)",
+      "Mood blog torch + temperature guides (mood.com)",
+      "420 VapeZone empirical Dab Rite + slurper testing",
+      "710 Labs solventless temperature guidance",
+      "Press Club temple ball / hash temp guidance",
+      "Quave Club Banger product documentation",
+      "Hashwriter community Terpometer averages",
+      "Reddit r/Dabs, r/QuartzBangers, r/COents technique threads (2024-2026)",
+      "Thermophysical properties of fused silica (k=1.4 W/m·K, ρ=2200 kg/m³, Cp=730 J/kg·K, ε≈0.92 at 400-600°F)",
+      "Stefan-Boltzmann radiometric analysis of Dab Rite Pro v2.2 firmware (ε_set=0.95)"
+    ],
+    "confidence_levels": {
+      "S": "peer-reviewed scientific source",
+      "M": "manufacturer-published (primary source)",
+      "B": "brand/extractor-published",
+      "C": "community consensus (multi-source convergence)",
+      "E": "empirically tested (controlled measurement)",
+      "A": "anecdotal / single source"
+    },
+    "migration_notes_v1_to_v2": [
+      "REMOVED: banger.ir_offset_f and banger.ir_offset_sign (fused single-offset model)",
+      "ADDED: banger.gradient_lag_f — Fourier's-law conduction lag for the banger's measurement geometry",
+      "ADDED: banger.emissivity_bias_multiplier — modifies sensor emissivity bias for opaque vs. clear quartz",
+      "ADDED: concentrate.fluid_target_optimal_f and fluid_target_range_f — the boiling target before phase-change load",
+      "ADDED: sensor.emissivity_bias_f — firmware-vs-material emissivity calculation error (per sensor)",
+      "ADDED: wall.gradient_multiplier — wall thickness scales gradient lag (Fourier τ = L²/α)",
+      "ADDED: calibration.constants — phase_change_load_f, fused_silica thermal properties",
+      "PRESERVED: surface_temp_optimal_f and surface_temp_range_f (probe-truth, contact sensors use directly)",
+      "PRESERVED: wall.modifier_f (legacy field — soft additive override on top of gradient_multiplier)"
+    ]
+  },
+  "schema": {
+    "bangers": {
+      "description": "Quartz banger form factors in active 2025-2026 production. Each entry contains geometry, temperature ranges, calibration parameters (gradient_lag_f + emissivity_bias_multiplier), torch technique, and cooling kinetics.",
+      "fields": {
+        "id": "Stable string identifier (lowercase, hyphenated)",
+        "name": "Display name",
+        "category": "One of: classic | slurper | specialty | premium",
+        "geometry": "Thermal class for calibration math: bucket | slurper | insert | enail.",
+        "description": "Brief description for UI",
+        "surface_temp_range_f": "[low, high] interior surface temp where this banger is operable",
+        "gradient_lag_f": "dT_Gradient component of the metrology equation: signed °F. Positive = exterior measurement face is COOLER than dab interface (bucket-class during cooldown). Negative = measurement face is HOTTER than dab interface. Zero = measurement face IS the dab interface (e-nail). Anchored at standard wall (3-4mm); wall.gradient_multiplier scales for thinner/thicker.",
+        "emissivity_bias_multiplier": "Scalar applied to sensor.emissivity_bias_f. 1.0 = clear quartz, full firmware bias. ~0.2 = opaque quartz with Dab Rite 'Opaque Quartz' preset enabled (preset cancels most ε bias). 0 = no IR / e-nail.",
+        "ir_aim_location": "Where to aim the IR thermometer (verified against Dab Rite 2025 placement guide where available)",
+        "heat_time_seconds": "Total torch time as a string range",
+        "cooldown_seconds": "Wait time after torch-off before dabbing (community-reported)",
+        "torch_pattern": "circular_sweep | circular_sweep_outer_only | circular_sweep_floor | sequenced | simultaneous_sweep | none",
+        "torch_zones": "Array of {anatomy, time_pct} describing where to focus the flame",
+        "torch_distance_inches": "Distance from inner-cone tip of Blazer Big Shot to quartz",
+        "visual_cue": "Stop-torching visual signal",
+        "cold_start_compatible": "YES | NO | OPTIONAL",
+        "tags": "Array of UI tags",
+        "notable_manufacturers": "Array of brands producing this form factor in 2026",
+        "cooling": "{k_per_second, thermal_class} — Newton's-law cooling constant for the dab-window calculation (separate doc)."
+      },
+      "deprecated_fields": {
+        "ir_offset_f": "REMOVED in v2.0.0. Replaced by gradient_lag_f + sensor.emissivity_bias_f.",
+        "ir_offset_sign": "REMOVED in v2.0.0. gradient_lag_f is signed directly."
+      }
+    },
+    "concentrates": {
+      "description": "Cannabis concentrates in active 2025-2026 rotation. Two temperature anchors: surface_temp_* (interior probe-truth) and fluid_target_* (boiling target of oil itself, surface minus phase-change load).",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "category": "solventless | hash | hydrocarbon | distillate | novel",
+        "description": "Brief description",
+        "surface_temp_range_f": "[low, high] INTERIOR QUARTZ SURFACE temp range (pre-dab, what a Terpometer V1 reads)",
+        "surface_temp_optimal_f": "Single optimal interior surface temp",
+        "fluid_target_range_f": "[low, high] BOILING TEMPERATURE of the oil itself (surface_temp_range_f - phase_change_load_f). The T_Ideal in the metrology equation.",
+        "fluid_target_optimal_f": "Single optimal fluid boiling target (surface_temp_optimal_f - phase_change_load_f)",
+        "terpene_profile": "none | low | med | high",
+        "good_for_cold_start": "Boolean — concentrate benefits from cold-start workflow",
+        "blocked": "If present, this concentrate should NOT be dabbed. Value is the user-facing explanation.",
+        "warning": "If present, soft warning to display alongside dab recommendation",
+        "notes": "Array of contextual notes",
+        "confidence": "Confidence level per META.confidence_levels",
+        "tags": "Array of UI tags"
+      }
+    },
+    "sensors": {
+      "description": "Temperature measurement instruments. Method drives the calibration formula branch.",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "method": "contact | ir | enail | visual",
+        "emissivity_bias_f": "dT_emissivity component: °F to add to setpoint to compensate for firmware-vs-material emissivity error. ~15°F for clear-quartz on Dab Rite Pro v2.2 (firmware ε=0.95, quartz ε≈0.92). 0 for contact/visual. Repurposed as PID coil offset for e-nail.",
+        "applies_gradient_lag": "Boolean — whether dT_Gradient term applies for this sensor (true for IR, false for direct-contact / PID).",
+        "description": "Brief description",
+        "calibration_note": "How this instrument relates to interior surface temp"
+      }
+    },
+    "wall_thicknesses": {
+      "description": "Banger wall thickness modifier. Thickness scales gradient lag (Fourier τ = L²/α) and provides a small additive temperature target tweak.",
+      "fields": {
+        "id": "Stable string identifier",
+        "name": "Display name",
+        "thickness_mm_range": "Approximate wall thickness in mm",
+        "modifier_f": "Legacy additive °F modifier on surface temp target (thicker = positive)",
+        "gradient_multiplier": "Scalar applied to banger.gradient_lag_f. Standard wall = 1.0. Thin = 0.5 (less lag). Thick = 1.6 (more lag).",
+        "description": "Brief description"
+      }
+    }
+  },
+  "calibration": {
+    "model_id": "metrology_v2",
+    "formula": "T_IR_Setpoint = T_Ideal + dT_Load + (dT_Gradient × wall.gradient_multiplier) + (dT_emissivity × banger.emissivity_bias_multiplier)",
+    "explanation": [
+      "1. T_Ideal := concentrate.fluid_target_optimal_f (the boiling target of the oil itself)",
+      "2. dT_Load := calibration.constants.phase_change_load_f (sensible + latent heat absorbed by the cold extract mass and cap on contact, ~65°F for a 0.1-0.2g dab)",
+      "3. dT_Gradient := banger.gradient_lag_f × wall.gradient_multiplier (Fourier's-law conduction lag from interior to the exterior face the IR sensor sees)",
+      "4. dT_emissivity := sensor.emissivity_bias_f × banger.emissivity_bias_multiplier (firmware ε_set=0.95 vs. quartz ε_actual≈0.92 produces ~15°F under-reading on Dab Rite for clear quartz; the Opaque Quartz preset cancels most of this for opaque bottoms)",
+      "5. For contact probes (Terpometer V1): dT_Gradient and dT_emissivity collapse to 0; setpoint = surface_temp_optimal_f (probe reads interior directly).",
+      "6. For e-nail PID: setpoint = surface_temp_optimal_f + sensor.emissivity_bias_f (PID coil-vs-surface offset, NOT radiometric)."
+    ],
+    "constants": {
+      "phase_change_load_f": 65,
+      "phase_change_load_tolerance_f": 15,
+      "phase_change_load_note": "Instantaneous interior-surface temperature drop when a 0.1-0.2g cold (70°F) extract mass is introduced and a cold carb cap is seated. Sum of sensible heat (raise oil to boiling point) + latent heat of vaporization + conductive loss to cap. Tolerance ±15°F per dab volume.",
+      "fused_silica": {
+        "thermal_conductivity_w_per_mk": 1.4,
+        "density_kg_per_m3": 2200,
+        "specific_heat_j_per_kgk": 730,
+        "thermal_diffusivity_m2_per_s": 8.71e-07,
+        "spectral_emissivity_400_600f": 0.92,
+        "coefficient_of_thermal_expansion_per_c": 5.5e-07,
+        "note": "Constants used to derive gradient_lag_f via Fourier diffusion time τ = L²/α."
+      },
+      "ambient_temp_f": 72,
+      "torch_off_temp_f": 700
+    },
+    "examples": [
+      {
+        "scenario": "Live Rosin + 4mm clear Flat Top + Dab Rite Pro IR + Standard wall",
+        "T_Ideal": 415,
+        "dT_Load": 65,
+        "dT_Gradient": 25,
+        "dT_emissivity": 15,
+        "math": "415 (fluid) + 65 (load) + 25 (4mm gradient) + 15 (emissivity) = 520°F displayed on Dab Rite",
+        "displayed_target_f": 520
+      },
+      {
+        "scenario": "Live Rosin + Opaque Bottom + Dab Rite Pro IR (Opaque preset) + Standard wall",
+        "T_Ideal": 415,
+        "dT_Load": 65,
+        "dT_Gradient": 35,
+        "dT_emissivity": 3,
+        "math": "415 + 65 + 35 (opaque high-mass barrier) + 3 (Opaque preset cancels most ε bias) = 518°F displayed",
+        "displayed_target_f": 518
+      },
+      {
+        "scenario": "Cured Shatter + 2mm Flat Top + Dab Rite Pro IR + Thin wall",
+        "T_Ideal": 480,
+        "dT_Load": 65,
+        "dT_Gradient": 10,
+        "dT_emissivity": 15,
+        "math": "480 + 65 + 10 (2mm gradient) + 15 = 570°F displayed",
+        "displayed_target_f": 570
+      },
+      {
+        "scenario": "Live Rosin + Flat Top + Terpometer V1 contact probe",
+        "T_Ideal": 415,
+        "dT_Load": 65,
+        "dT_Gradient": 0,
+        "dT_emissivity": 0,
+        "math": "415 + 65 + 0 + 0 = 480°F displayed (= surface_temp_optimal_f directly)",
+        "displayed_target_f": 480
+      },
+      {
+        "scenario": "Live Rosin + Blender slurper + Dab Rite Pro IR (side-of-column aim)",
+        "T_Ideal": 415,
+        "dT_Load": 65,
+        "dT_Gradient": 15,
+        "dT_emissivity": 15,
+        "math": "415 + 65 + 15 (slurper column wall, thinner than 4mm bucket floor) + 15 = 510°F displayed (community: 515-540°F)",
+        "displayed_target_f": 510
+      },
+      {
+        "scenario": "Live Rosin + E-Banger + PID setpoint",
+        "T_Ideal": null,
+        "dT_Load": null,
+        "math": "PID branch: surface_temp_optimal_f (480) + sensor.emissivity_bias_f (50, coil-surface midpoint) = 530°F PID setpoint",
+        "displayed_target_f": 530
+      }
+    ],
+    "workflow_notes": {
+      "ir_descent_dab": "Dab Rite alarms when temp DESCENDS through the set point. Torch past the displayed target, pull the flame, dab when the alarm fires on the way down. Don't dab AT peak torch.",
+      "contact_probe_vs_ir": "If you have a Terpometer V1 contact probe AND a Dab Rite, they will show different numbers for the same dab — and both are correct. The probe reads interior surface; the IR reads exterior wall thermal radiation through firmware-assumed emissivity. The new model explicitly accounts for this via the dT_Gradient and dT_emissivity terms.",
+      "opaque_quartz_preset": "The Dab Rite Pro v2.2 'Opaque Quartz' emissivity preset largely cancels the ε bias for nucleated/sandblasted bottoms — but does NOT cancel the gradient lag, which is actually LARGER for opaque (air pockets restrict thermal conduction)."
+    }
+  },
+  "enums": {
+    "banger_categories": [
+      {
+        "id": "classic",
+        "label": "Classic"
+      },
+      {
+        "id": "slurper",
+        "label": "Slurper Class"
+      },
+      {
+        "id": "specialty",
+        "label": "Specialty"
+      },
+      {
+        "id": "premium",
+        "label": "Premium"
+      }
+    ],
+    "banger_geometries": [
+      {
+        "id": "bucket",
+        "label": "Bucket-class",
+        "gradient_lag_direction": "positive",
+        "description": "Exterior measurement face cools faster than interior — IR reads lower than dab interface during cooldown."
+      },
+      {
+        "id": "slurper",
+        "label": "Slurper-class",
+        "gradient_lag_direction": "positive_small",
+        "description": "Side-of-column aim. Thin wall, small gradient lag."
+      },
+      {
+        "id": "insert",
+        "label": "Insert workflow",
+        "gradient_lag_direction": "positive",
+        "description": "Read host banger temp + extra gradient through insert."
+      },
+      {
+        "id": "enail",
+        "label": "E-nail (electric)",
+        "gradient_lag_direction": "none",
+        "description": "PID setpoint; coil-vs-surface offset handled in sensor.emissivity_bias_f."
+      }
+    ],
+    "concentrate_categories": [
+      {
+        "id": "solventless",
+        "label": "Solventless"
+      },
+      {
+        "id": "hash",
+        "label": "Hash"
+      },
+      {
+        "id": "hydrocarbon",
+        "label": "Hydrocarbon"
+      },
+      {
+        "id": "distillate",
+        "label": "Distillate"
+      },
+      {
+        "id": "novel",
+        "label": "Novel / 2026"
+      }
+    ],
+    "torch_patterns": [
+      {
+        "id": "circular_sweep",
+        "label": "Circular sweep — keep flame moving"
+      },
+      {
+        "id": "circular_sweep_outer_only",
+        "label": "Circular sweep — OUTER WALL ONLY"
+      },
+      {
+        "id": "circular_sweep_floor",
+        "label": "Circular sweep — focus floor, not pillar"
+      },
+      {
+        "id": "sequenced",
+        "label": "Sequenced — dish → column → dish"
+      },
+      {
+        "id": "simultaneous_sweep",
+        "label": "Simultaneous side-to-side + top-to-bottom"
+      },
+      {
+        "id": "none",
+        "label": "No torch (electric)"
+      }
+    ],
+    "cold_start_compatibility": [
+      "YES",
+      "NO",
+      "OPTIONAL"
+    ],
+    "terpene_profiles": [
+      "none",
+      "low",
+      "med",
+      "high"
+    ],
+    "sensor_methods": [
+      "contact",
+      "ir",
+      "enail",
+      "visual"
+    ]
+  }
+}

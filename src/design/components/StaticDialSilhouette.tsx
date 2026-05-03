@@ -58,7 +58,7 @@ export function StaticDialSilhouette({ state = 'idle', size = 280 }: Props) {
           {
             borderRadius: size / 2,
             backgroundColor: colors.surface1,
-            shadowColor: '#000',
+            shadowColor: colors.voidObsidian,
             shadowOffset: { width: 0, height: 12 },
             shadowOpacity: 0.45,
             shadowRadius: 24,
@@ -87,7 +87,7 @@ export function StaticDialSilhouette({ state = 'idle', size = 280 }: Props) {
           cx={cx}
           cy={cy}
           r={r}
-          stroke="rgba(244,237,228,0.06)"
+          stroke={colors.bone100 + '0F'}
           strokeWidth={1}
           fill="none"
         />
@@ -114,7 +114,7 @@ export function StaticDialSilhouette({ state = 'idle', size = 280 }: Props) {
           borderRadius: lensSize / 2,
           backgroundColor: colors.lensIdle,
           borderWidth: 0.5,
-          borderColor: 'rgba(244,237,228,0.04)',
+          borderColor: colors.bone100 + '0A',
           overflow: 'hidden',
         }}
       />
@@ -126,7 +126,7 @@ export function StaticDialSilhouette({ state = 'idle', size = 280 }: Props) {
             fontSize: 11,
             letterSpacing: 2.2,
             fontWeight: '500',
-            color: 'rgba(244,237,228,0.18)',
+            color: colors.bone100 + '2E',
             textTransform: 'uppercase',
           }}
         >

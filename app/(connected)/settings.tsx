@@ -15,6 +15,7 @@ import {
   FloatingHeader,
   QBackground,
   SkeuSlider,
+  toast,
 } from '../../src/design';
 import { colors, fonts, radius, spacing } from '../../src/design/tokens';
 import { useSettingsStore } from '../../src/state/settingsStore';
@@ -64,6 +65,10 @@ export default function SettingsScreen() {
       setStatus('synced');
     } catch {
       setStatus('error');
+      toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
+        retryLabel: 'Retry',
+        onRetry: () => { void flushWrite(next); },
+      });
     }
   }, [markConfirmed]);
 
@@ -526,8 +531,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.glassFill,
   },
   segmentActive: {
-    backgroundColor: '#2a2320',
-    borderColor: '#6d6050',
+    backgroundColor: colors.surfaceContainerHigh,
+    borderColor: colors.bone35,
   },
   segmentText: {
     ...fonts.caption,
@@ -535,7 +540,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   segmentTextActive: {
-    color: '#f4ede4',
+    color: colors.bone100,
   },
   saveRow: {
     flexDirection: 'row',
