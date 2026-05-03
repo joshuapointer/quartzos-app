@@ -11,6 +11,7 @@ import Animated, {
 import { Circle, G } from 'react-native-svg';
 import { colors } from '../../../tokens';
 import { MoltenPhase } from './STATES';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -95,7 +96,8 @@ interface SparksProps {
 }
 
 export default function Sparks({ cx, cy, orbR, phase }: SparksProps): React.ReactElement | null {
-  if (phase !== 'heating') return null;
+  const reducedMotion = useReducedMotion();
+  if (phase !== 'heating' || reducedMotion) return null;
   return (
     <G>
       {Array.from({ length: SPARK_COUNT }, (_, i) => (

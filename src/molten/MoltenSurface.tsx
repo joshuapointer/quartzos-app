@@ -22,7 +22,8 @@ import Svg, { Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
-import { colors, fonts } from '../design/tokens';
+import { colors, fonts, animation } from '../design/tokens';
+import { useReducedMotion } from '../design/hooks/useReducedMotion';
 import { useBleStore } from '../state/bleStore';
 import { useSessionStore } from '../state/sessionStore';
 import type { ConnectionState } from '../ble/types';
@@ -234,7 +235,7 @@ function ColdCopy({ onPair }: { onPair: () => void }) {
         <CopyStack
           eyebrow="Step 01"
           headline="Power on your Dabrite."
-          sub="Hold the side button until the LED breathes — then tap to pair."
+          sub="Hold the side button until the LED breathes. Then tap to pair."
         />
         <View style={styles.tapHintRow}>
           <TapHintPip />
@@ -311,57 +312,16 @@ function ConnectingCopy() {
   );
 }
 
-function ConnectedCopy({ batteryPct }: { batteryPct: number }) {
+function ConnectedCopy({ batteryPct }: { batteryPct?: number }) {
   return (
     <View style={styles.copyOuter}>
       <CopyStack
         eyebrow="Linked"
-        headline={`Dabrite Pro · ${batteryPct}%`}
+        headline={batteryPct !== undefined ? `Dabrite Pro · ${batteryPct}%` : 'Dabrite Pro'}
         sub="Calibrated for opaque-bottom emissivity."
       />
     </View>
   );
-}
-
-// PickerEnter — DIAGNOSTIC PASSTHROUGH. Re-enable spring entry once the
-// invisible-picker bug is isolated.
-function PickerEnter({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
-
-// DIAGNOSTIC error boundary — catches render errors from picker phase children
-// and renders the error message inline so we can see what (if anything) blew up.
-class PhaseErrorBoundary extends React.Component<
-  { label: string; children: React.ReactNode },
-  { error: Error | null }
-> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-  componentDidCatch(error: Error) {
-    // eslint-disable-next-line no-console
-    console.log('[PhaseErrorBoundary]', this.props.label, 'caught:', error.message, error.stack);
-  }
-  render() {
-    if (this.state.error !== null) {
-      return (
-        <View
-          style={{
-            backgroundColor: 'rgba(255,0,0,0.4)',
-            borderColor: 'red',
-            borderWidth: 2,
-            padding: 8,
-          }}
-        >
-          <Text style={{ color: 'white', fontSize: 11 }}>
-            {`[${this.props.label}] ${this.state.error.message}`}
-          </Text>
-        </View>
-      );
-    }
-    return <>{this.props.children}</>;
-  }
 }
 
 // 5-bar mic-pad indicator. Idle (`live=false`) uses bone-25 for all bars
@@ -438,7 +398,7 @@ function ReadyCopy({
       <CopyStack
         eyebrow="Profile loaded"
         headline="Ready when you are."
-        sub="Spark your torch — the mic will hear it."
+        sub="Spark your torch. The mic will hear it."
       />
       <MicPadIndicator />
       {showFallback ? (
@@ -488,19 +448,13 @@ function Header({
         })}
       >
         <Svg width={108} height={28} viewBox="0 0 216 56">
-          <Defs>
-            <LinearGradient id="wordmark-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <Stop offset="0%" stopColor={colors.bone100} stopOpacity={1} />
-              <Stop offset="100%" stopColor="#c8cdd4" stopOpacity={1} />
-            </LinearGradient>
-          </Defs>
           <SvgText
             x={108}
             y={42}
             fontFamily="InstrumentSerif_400Regular_Italic"
             fontSize={36}
             fontStyle="italic"
-            fill="url(#wordmark-grad)"
+            fill={colors.bone100}
             textAnchor="middle"
           >
             Quartzie
@@ -592,9 +546,9 @@ export function MoltenSurface({
   recents,
   onApplyPreset,
 }: MoltenSurfaceProps) {
+  const reducedMotion = useReducedMotion();
   const { height: screenH } = useWindowDimensions();
   const connectionState = useBleStore((s) => s.connectionState);
-  const liveBatteryPct = 92; // No battery field on bleStore yet — keep parity with index.html
   const router = useRouter();
 
   const {
@@ -626,33 +580,28 @@ export function MoltenSurface({
 
   // Derived numbers
   const optimalF = concentrate?.surface_temp_optimal_f ?? 480;
-  const orbSize = ORB_SIZE_BY_PHASE[phase];
 
-  // Spring orb wrapper top/size based on phase
+  // Max canvas size — orb's internal radius spring handles visual size changes
+  const MAX_ORB_SIZE = Math.max(...Object.values(ORB_SIZE_BY_PHASE));
+
+  // Spring orb wrapper top based on phase
   const orbTopShared = useSharedValue(
-    (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH - orbSize / 2,
+    (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH - MAX_ORB_SIZE / 2,
   );
-  const orbSizeShared = useSharedValue(orbSize);
 
   useEffect(() => {
     const targetY =
       (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH -
-      ORB_SIZE_BY_PHASE[phase] / 2;
-    const targetSize = ORB_SIZE_BY_PHASE[phase];
-    orbTopShared.value = withSpring(targetY, {
-      damping: 18,
-      stiffness: 110,
-      mass: 1,
-    });
-    orbSizeShared.value = withSpring(targetSize, {
-      damping: 18,
-      stiffness: 110,
-      mass: 1,
-    });
-  }, [phase, screenH, orbTopShared, orbSizeShared]);
+      MAX_ORB_SIZE / 2;
+    if (reducedMotion) {
+      orbTopShared.value = targetY;
+    } else {
+      orbTopShared.value = withSpring(targetY, animation.orbPositionSpring);
+    }
+  }, [phase, screenH, orbTopShared, reducedMotion, MAX_ORB_SIZE]);
 
   const orbWrapperStyle = useAnimatedStyle(() => ({
-    top: orbTopShared.value,
+    transform: [{ translateY: orbTopShared.value }],
   }));
 
   // Recent sessions: prefer the pre-resolved `recents` prop (from
@@ -826,12 +775,7 @@ export function MoltenSurface({
       });
   }, [phase, selections.bangerId, selections.concentrateId]);
 
-  // Window-phase duration: captured by useMoltenPhase on the window→dabbing
-  // transition. Falls back to the prototype's "0:24" placeholder until a real
-  // window has happened in this session.
-  const windowLabel = windowDurationMs !== null
-    ? formatMmSs(windowDurationMs)
-    : '0:24';
+  const windowLabel: string | null = windowDurationMs !== null ? formatMmSs(windowDurationMs) : null;
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -848,8 +792,8 @@ export function MoltenSurface({
           style={[styles.orbWrapper, orbWrapperStyle]}
           pointerEvents="none"
         >
-          <View style={{ width: orbSize, height: orbSize }}>
-            <MoltenOrb phase={phase} size={orbSize} />
+          <View style={{ width: MAX_ORB_SIZE, height: MAX_ORB_SIZE }}>
+            <MoltenOrb phase={phase} size={MAX_ORB_SIZE} />
           </View>
         </Animated.View>
 
@@ -871,40 +815,34 @@ export function MoltenSurface({
             </Pressable>
           )}
           {phase === 'connected' && (
-            <ConnectedCopy batteryPct={liveBatteryPct} />
+            <ConnectedCopy />
           )}
           {phase === 'presets' && (
-            <PickerEnter>
-              <RecentsRow
-                recents={recentEntries}
-                onSelect={handleRecentSelect}
-                onBuildFresh={handleBuildFresh}
-              />
-            </PickerEnter>
+            <RecentsRow
+              recents={recentEntries}
+              onSelect={handleRecentSelect}
+              onBuildFresh={handleBuildFresh}
+            />
           )}
           {phase === 'banger' && (
-            <PhaseErrorBoundary label="banger">
-              <BangerCarousel
-                bangers={BANGERS}
-                selectedId={selections.bangerId}
-                onSelect={selectBanger}
-              />
-            </PhaseErrorBoundary>
+            <BangerCarousel
+              bangers={BANGERS}
+              selectedId={selections.bangerId}
+              onSelect={selectBanger}
+            />
           )}
           {phase === 'concentrate' && (
-            <PhaseErrorBoundary label="concentrate">
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 16 }}
-                showsVerticalScrollIndicator={false}
-              >
-                <ConcentrateGrid
-                  concentrates={CONCENTRATES}
-                  selectedId={selections.concentrateId}
-                  onSelect={selectConcentrate}
-                />
-              </ScrollView>
-            </PhaseErrorBoundary>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 16 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <ConcentrateGrid
+                concentrates={CONCENTRATES}
+                selectedId={selections.concentrateId}
+                onSelect={selectConcentrate}
+              />
+            </ScrollView>
           )}
           {phase === 'ready' && (
             <ReadyCopy
@@ -958,7 +896,6 @@ export function MoltenSurface({
                 }
               : undefined
           }
-          batteryPct={liveBatteryPct}
         />
       </SafeAreaView>
     </MoltenBackground>
@@ -998,9 +935,10 @@ const styles = StyleSheet.create({
     color: colors.bone60,
   },
 
-  // Orb wrapper — absolutely positioned, animated 'top'
+  // Orb wrapper — absolutely positioned, animated via translateY
   orbWrapper: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
     alignItems: 'center',

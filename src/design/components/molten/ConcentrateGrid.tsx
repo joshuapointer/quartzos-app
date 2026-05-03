@@ -62,6 +62,9 @@ function TileCard({ concentrate, isActive, tileWidth, tileHeight, onSelect }: Ti
   return (
     <Pressable
       onPress={() => onSelect(concentrate.id)}
+      accessibilityRole="button"
+      accessibilityLabel={concentrate.name}
+      accessibilityState={{ selected: isActive }}
       style={[
         styles.tile,
         {
@@ -85,7 +88,7 @@ function TileCard({ concentrate, isActive, tileWidth, tileHeight, onSelect }: Ti
 
       {/* Dark shade gradient — bottom fade to near-black */}
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.78)']}
+        colors={gradients.tileShadeBottom}
         start={{ x: 0, y: 0.32 }}
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -152,7 +155,7 @@ export function ConcentrateGrid({
     <View style={styles.wrapper}>
       {/* Header row */}
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Your hash</Text>
+        <Text style={styles.headerTitle}>Your concentrate</Text>
         <Text style={styles.headerMeta}>{filtered.length} textures</Text>
       </View>
 
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
     ...fonts.serifCard,
     fontSize: 13.5,
     color: colors.bone100,
-    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowColor: colors.textShadowDark,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },

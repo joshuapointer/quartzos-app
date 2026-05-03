@@ -10,6 +10,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { prism, animation } from '../../tokens';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface PrismEdgeProps {
   radius?: number;
@@ -26,16 +27,22 @@ export function PrismEdge({
   opacity = 1,
   durationMs = animation.prismDriftMs,
 }: PrismEdgeProps) {
+  const reducedMotion = useReducedMotion();
   const progress = useSharedValue(0);
 
   useEffect(() => {
+    if (reducedMotion) {
+      cancelAnimation(progress);
+      progress.value = 0;
+      return;
+    }
     progress.value = withRepeat(
       withTiming(1, { duration: durationMs, easing: Easing.linear }),
       -1,
       false,
     );
     return () => cancelAnimation(progress);
-  }, [durationMs, progress]);
+  }, [durationMs, progress, reducedMotion]);
 
   const animatedGradientProps = useAnimatedProps(() => {
     const angle = progress.value * 360;

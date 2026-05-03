@@ -10,7 +10,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
-import { colors, fonts, prism } from '../../tokens';
+import { colors, fonts, gradients, prism } from '../../tokens';
 
 export type RecentEntry = {
   id: string;
@@ -45,6 +45,8 @@ function BuildFreshTile({ tileWidth, onPress }: BuildFreshTileProps) {
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel="Build fresh session"
       style={[
         styles.card,
         {
@@ -104,6 +106,8 @@ function PresetCard({ entry, tileWidth, onPress }: PresetCardProps) {
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`${entry.concentrateName} on ${entry.bangerName}, optimal ${entry.optimalF} degrees`}
       style={[styles.card, { width: tileWidth, height: tileHeight }]}
     >
       <BlurView
@@ -114,7 +118,7 @@ function PresetCard({ entry, tileWidth, onPress }: PresetCardProps) {
       {/* Top gradient region */}
       <View style={[styles.cardTop, { height: topHeight }]}>
         <LinearGradient
-          colors={['#2a1a4a', '#0a0c18']}
+          colors={gradients.presetCardTop}
           start={{ x: 0.2, y: 0 }}
           end={{ x: 0.8, y: 1 }}
           style={StyleSheet.absoluteFill}

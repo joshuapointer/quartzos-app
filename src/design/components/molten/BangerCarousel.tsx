@@ -3,7 +3,7 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableWithoutFeedback,
+  Pressable,
   StyleSheet,
   Dimensions,
   NativeSyntheticEvent,
@@ -18,7 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts } from '../../tokens';
+import { colors, fonts, gradients } from '../../tokens';
 import { PrismEdge } from './PrismEdge';
 import { Banger } from '../../../data/bangers';
 
@@ -51,13 +51,17 @@ function BangerCard({ banger, isActive, onPress }: BangerCardProps) {
   const glyph = banger.name.charAt(0).toUpperCase();
 
   return (
-    <TouchableWithoutFeedback onPress={onPress} accessibilityRole="button">
-      <View
-        style={[
-          styles.card,
-          isActive && styles.cardActive,
-        ]}
-      >
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={banger.name}
+      accessibilityState={{ selected: isActive }}
+      style={({ pressed }) => [
+        styles.card,
+        isActive && styles.cardActive,
+        pressed && { transform: [{ scale: 0.98 }] },
+      ]}
+    >
         {/* Glass blur layer */}
         <BlurView
           intensity={14}
@@ -83,7 +87,7 @@ function BangerCard({ banger, isActive, onPress }: BangerCardProps) {
           {/* Photo placeholder — TODO: real banger photos */}
           <View style={styles.photoWrapper}>
             <LinearGradient
-              colors={['rgba(32,26,58,0.45)', 'rgba(20,20,40,0.30)', 'rgba(10,12,24,0.55)']}
+              colors={gradients.photoPlaceholder}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
               style={[styles.photo, isActive && styles.photoActive]}
@@ -110,8 +114,7 @@ function BangerCard({ banger, isActive, onPress }: BangerCardProps) {
             <Text style={styles.tempUnit}>{'°F'}</Text>
           </Text>
         </View>
-      </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }
 
@@ -145,22 +148,24 @@ function AnimatedPip({ index, scrollX }: AnimatedPipProps) {
     return dist === 0 ? 1 : 0;
   });
 
-  const animStyle = useAnimatedStyle(() => {
-    const size = interpolate(activeProgress.value, [0, 1], [4, 6]);
-    const bgOpacity = activeProgress.value;
-    return {
-      width: size,
-      height: size,
-      borderRadius: size / 2,
-      backgroundColor: activeProgress.value > 0.5 ? colors.bone100 : colors.glassEdge,
-      shadowColor: activeProgress.value > 0.5 ? colors.prismCyan : 'transparent',
-      shadowOffset: { width: -2, height: 0 },
-      shadowOpacity: bgOpacity,
-      shadowRadius: 2,
-    };
-  });
+  // Dot scales between 0.66 (inactive, visual ~4px) and 1.0 (active, 6px).
+  // Fixed container (12×12) keeps layout stable as scale changes.
+  const dotStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(activeProgress.value, [0, 1], [0.66, 1]) }],
+    backgroundColor: activeProgress.value > 0.5 ? colors.bone100 : colors.glassEdge,
+  }));
 
-  return <Animated.View style={[styles.dot, animStyle]} />;
+  // Static halo: prismCyan circle behind the dot, opacity driven by activeProgress.
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: activeProgress.value,
+  }));
+
+  return (
+    <View style={styles.dotContainer}>
+      <Animated.View style={[styles.dotHalo, haloStyle]} />
+      <Animated.View style={[styles.dot, dotStyle]} />
+    </View>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -369,7 +374,26 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     minHeight: 14,
   },
+  // Fixed 12×12 container centers the dot so scale doesn't shift layout
+  dotContainer: {
+    width: 12,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Halo: prismCyan glow behind active dot
+  dotHalo: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.prismCyan,
+    opacity: 0.4,
+  },
+  // Dot: rendered at active size (6×6), scaled down to ~4px when inactive
   dot: {
-    // Base size overridden by Animated.View per-dot
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });

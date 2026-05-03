@@ -12,14 +12,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, fonts, motion } from '../design/tokens';
 import { PrismEdge } from '../design/components/molten/PrismEdge';
-import { useBleStore } from '../state/bleStore';
 import { useSessionStore } from '../state/sessionStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type CompleteOverlayProps = {
   bangerName: string;
-  windowLabel: string;
+  windowLabel: string | null;
   onAgain: () => void;
   onNew: () => void;
 };
@@ -119,8 +118,7 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
   onNew,
 }: CompleteOverlayProps) {
   const peakF = useSessionStore((s) => s.peakF);
-  const tempF = useBleStore((s) => s.liveTempF);
-  const displayPeakF = Math.round(peakF || tempF || 0);
+  const displayPeakF = Math.round(peakF || 0);
   // Card-pair entrance: spring from scale 0.86 / opacity 0 → 1 on mount.
   // The prototype CSS doesn't formally specify an entrance, but the cards
   // visually pop on phase entry — matching the spec's "session card pair
@@ -151,7 +149,7 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
       <Animated.View style={[styles.cardPair, cardPairStyle]}>
         <CompleteCard
           title="Again"
-          sub={`Same banger\nsame hash`}
+          sub={`Same banger\nsame concentrate`}
           onPress={onAgain}
         />
         <CompleteCard
@@ -169,15 +167,19 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
         <Text style={styles.recapValue} allowFontScaling={false}>
           {` ${displayPeakF}°F`}
         </Text>
-        <Text style={styles.recapSep} allowFontScaling={false}>
-          {' · '}
-        </Text>
-        <Text style={styles.recapLabel} allowFontScaling={false}>
-          {'Window'}
-        </Text>
-        <Text style={styles.recapValue} allowFontScaling={false}>
-          {` ${windowLabel}`}
-        </Text>
+        {windowLabel !== null && (
+          <>
+            <Text style={styles.recapSep} allowFontScaling={false}>
+              {' · '}
+            </Text>
+            <Text style={styles.recapLabel} allowFontScaling={false}>
+              {'Window'}
+            </Text>
+            <Text style={styles.recapValue} allowFontScaling={false}>
+              {` ${windowLabel}`}
+            </Text>
+          </>
+        )}
         <Text style={styles.recapSep} allowFontScaling={false}>
           {' · '}
         </Text>
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   cardGlass: {
-    backgroundColor: 'rgba(252,252,255,0.04)',
+    backgroundColor: colors.glassThin,
     borderRadius: 18,
   },
   cardContent: {

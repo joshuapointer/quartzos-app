@@ -147,6 +147,17 @@ export const colors = {
   glassPane:        'rgba(252,252,255,0.05)',
   glassEdge:        'rgba(252,252,255,0.16)',
   glassEdgeStrong:  'rgba(252,252,255,0.32)',
+  glassEdgeFaint:   'rgba(252,252,255,0.10)',
+
+  // ── Text shadow / glyph helpers ──
+  textShadowDark: 'rgba(0,0,0,0.7)',
+
+  // ── Orb chromatic fringe ──
+  fringePos: '#00f0ff',
+  fringeNeg: '#ff0055',
+
+  // ── Orb outline fallback ──
+  orbOutlineDefault: '#ffffff',
 
   // ── Backward-compat aliases ──
   inversePrimary:    '#060507',
@@ -242,6 +253,12 @@ export const gradients = {
   prismSoft:   [colors.prismCyanSoft, colors.prismMagentaSoft, colors.prismGoldSoft] as const,
   // Spectrum bar — celebratory chromatic band shown in the dab window
   spectrum:    ['rgba(58,205,240,0)', colors.prismCyan, colors.prismMagenta, colors.prismGold, 'rgba(240,214,112,0)'] as const,
+  // Banger card photo placeholder
+  photoPlaceholder: ['rgba(32,26,58,0.45)', 'rgba(20,20,40,0.30)', 'rgba(10,12,24,0.55)'] as const,
+  // Concentrate tile bottom fade
+  tileShadeBottom: ['transparent', 'rgba(0,0,0,0.78)'] as const,
+  // Recents row preset card top region
+  presetCardTop: ['#2a1a4a', '#0a0c18'] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -450,6 +467,7 @@ export const animation = {
   toggleSpring: { damping: 15, stiffness: 260, mass: 0.5 },
   thumbSpring:  { damping: 18, stiffness: 200, mass: 0.7 },
   toastSpring:  { damping: 22, stiffness: 200, mass: 0.9 },
-  orbSpring:    { damping: 18, stiffness: 140, mass: 1.0 },
+  orbSpring:         { damping: 18, stiffness: 140, mass: 1.0 },
+  orbPositionSpring: { damping: 18, stiffness: 110, mass: 1 },
   orbitDurationMs: 30000,
 };

@@ -71,6 +71,26 @@ const DISCONNECT_GUARD_PHASES = new Set<MoltenPhase>([
 ]);
 
 // ---------------------------------------------------------------------------
+// Phase thresholds
+// ---------------------------------------------------------------------------
+
+const PHASE_THRESHOLDS = {
+  ringSize: 6,
+  ringMinSamples: 4,
+  windowVelocityF_per_s: -50,
+  swabBandLowF: 200,
+  swabBandHighF: 320,
+  dunkSafeF: 250,
+  completeBelowF: 180,
+  completeHoldMs: 4500,
+  scanTimeoutMs: 30000,
+  connectedDelayMs: 1500,
+  concentrateAdvanceMs: 750,
+  presetAdvanceMs: 700,
+  recentAdvanceMs: 700,
+} as const;
+
+// ---------------------------------------------------------------------------
 // Ring buffer helpers
 // ---------------------------------------------------------------------------
 
@@ -79,11 +99,9 @@ interface TempSample {
   f: number;
 }
 
-const RING_SIZE = 6;
-
 function pushRing(buf: TempSample[], sample: TempSample): TempSample[] {
   const next = [...buf, sample];
-  return next.length > RING_SIZE ? next.slice(next.length - RING_SIZE) : next;
+  return next.length > PHASE_THRESHOLDS.ringSize ? next.slice(next.length - PHASE_THRESHOLDS.ringSize) : next;
 }
 
 function ringMax(buf: TempSample[]): number {
@@ -179,7 +197,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
             setPhase('presets');
           }
           connectedTimerRef.current = null;
-        }, 1500);
+        }, PHASE_THRESHOLDS.connectedDelayMs);
       }
     }
   }, [connectionState, setPhase]);
@@ -200,9 +218,9 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
     if (connectionState !== 'SCANNING') return;
     const id = setTimeout(() => {
       bleManager.stopScan();
-      toast.error('No Dabrite found nearby — try again');
+      toast.error('No Dabrite found nearby. Try again.');
       setPhase('cold');
-    }, 30000);
+    }, PHASE_THRESHOLDS.scanTimeoutMs);
     return () => clearTimeout(id);
   }, [connectionState, setPhase]);
 
@@ -238,7 +256,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
         if (tempF <= 0) return;
         const sample: TempSample = { t: Date.now(), f: tempF };
         ringRef.current = pushRing(ringRef.current, sample);
-        if (ringRef.current.length < 4) return;
+        if (ringRef.current.length < PHASE_THRESHOLDS.ringMinSamples) return;
         const peak = ringMax(ringRef.current);
         if (tempF < peak - 5 && tempF > 0) {
           setPhase('window');
@@ -254,7 +272,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
           const dt = (now - prevV.lastT) / 1000;
           if (dt > 0) {
             const velocity = (tempF - prevV.lastF) / dt;
-            if (velocity < -50) {
+            if (velocity < PHASE_THRESHOLDS.windowVelocityF_per_s) {
               setPhase('dabbing');
               velocityRef.current = null;
               return;
@@ -266,29 +284,29 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
       }
 
       if (current === 'dabbing') {
-        if (tempF > 200 && tempF < 320) {
+        if (tempF > PHASE_THRESHOLDS.swabBandLowF && tempF < PHASE_THRESHOLDS.swabBandHighF) {
           setPhase('swab');
         }
         return;
       }
 
       if (current === 'swab') {
-        if (tempF < 250) {
+        if (tempF < PHASE_THRESHOLDS.dunkSafeF) {
           setPhase('dunk');
         }
         return;
       }
 
       if (current === 'dunk') {
-        if (tempF < 180) {
+        if (tempF < PHASE_THRESHOLDS.completeBelowF) {
           if (dunkCompleteTimerRef.current === null) {
             dunkCompleteTimerRef.current = setTimeout(() => {
               const latestTemp = useBleStore.getState().liveTempF;
-              if (phaseRef.current === 'dunk' && latestTemp < 180) {
+              if (phaseRef.current === 'dunk' && latestTemp < PHASE_THRESHOLDS.completeBelowF) {
                 setPhase('complete');
               }
               dunkCompleteTimerRef.current = null;
-            }, 4500);
+            }, PHASE_THRESHOLDS.completeHoldMs);
           }
         } else if (dunkCompleteTimerRef.current !== null) {
           // Temp rose back above threshold — cancel pending timer
@@ -365,7 +383,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
           setPhase('ready');
         }
         concentrateTimerRef.current = null;
-      }, 750);
+      }, PHASE_THRESHOLDS.concentrateAdvanceMs);
     }
     return () => {
       if (concentrateTimerRef.current !== null) {
@@ -410,7 +428,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
       presetTimerRef.current = setTimeout(() => {
         setPhase('ready');
         presetTimerRef.current = null;
-      }, 700);
+      }, PHASE_THRESHOLDS.presetAdvanceMs);
     })();
   }, [setPhase]);
 
@@ -427,7 +445,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
       recentTimerRef.current = setTimeout(() => {
         setPhase('ready');
         recentTimerRef.current = null;
-      }, 700);
+      }, PHASE_THRESHOLDS.recentAdvanceMs);
     },
     [setPhase],
   );

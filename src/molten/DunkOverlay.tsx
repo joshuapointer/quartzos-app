@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { colors, fonts } from '../design/tokens';
+import { colors, fonts, animation } from '../design/tokens';
 import { PrismEdge } from '../design/components/molten/PrismEdge';
 import { useBleStore } from '../state/bleStore';
 
@@ -41,8 +41,8 @@ function PrismDriftBorder() {
   useEffect(() => {
     op.value = withRepeat(
       withSequence(
-        withTiming(1,    { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.55, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1,    { duration: animation.prismDriftMs / 2, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.55, { duration: animation.prismDriftMs / 2, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
       false,
@@ -60,14 +60,19 @@ function PrismDriftBorder() {
 // ─── DunkOverlay ─────────────────────────────────────────────────────────────
 
 export const DunkOverlay = React.memo(function DunkOverlay() {
-  const tempF = useBleStore((s) => s.liveTempF);
-  const displayTemp = Math.round(Math.max(0, tempF));
+  const displayTemp = useBleStore((s) => Math.max(0, Math.round(s.liveTempF)));
 
   return (
     <View style={styles.container}>
       {/* Big temp number row */}
       <View style={styles.numbersRow}>
-        <Text style={styles.tempNumber} allowFontScaling={false}>
+        <Text
+          style={styles.tempNumber}
+          allowFontScaling={false}
+          accessibilityRole="text"
+          accessibilityLabel={`${displayTemp} degrees Fahrenheit`}
+          accessibilityLiveRegion="polite"
+        >
           {displayTemp}
         </Text>
         <Text style={styles.degSuffix} allowFontScaling={false}>

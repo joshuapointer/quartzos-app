@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { SharedValue } from 'react-native-reanimated';
 import { getOrbStops } from './palette';
+import { colors } from '../../../tokens';
 
 const vertexShader = `
 uniform float uTime;
@@ -144,7 +145,7 @@ const OrbMesh = ({
   baseRadius,
   geometry,
   isOutline = false,
-  outlineColor = '#ffffff',
+  outlineColor = colors.orbOutlineDefault,
   outlineScale = 1.02,
   position = [0, 0, 0]
 }: OrbMeshProps) => {
@@ -230,8 +231,8 @@ export default function MoltenOrb3D(props: MoltenOrb3DProps) {
       <ambientLight intensity={1} />
 
       {/* Chromatic Fringes (Inverted Hull Outlines) */}
-      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} isOutline outlineColor="#00f0ff" outlineScale={1.03} position={[-2, 0, -2]} />
-      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} isOutline outlineColor="#ff0055" outlineScale={1.03} position={[2, 0, -2]} />
+      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} isOutline outlineColor={colors.fringePos} outlineScale={1.03} position={[-2, 0, -2]} />
+      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} isOutline outlineColor={colors.fringeNeg} outlineScale={1.03} position={[2, 0, -2]} />
 
       {/* The sphere base radius is mapped 1:1 to size / 2. We use baseRadius to size the geometry
           and uRadiusRatio to scale it dynamically in the shader based on orbR / baseRadius. */}

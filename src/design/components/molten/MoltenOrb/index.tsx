@@ -22,6 +22,7 @@ import { animation, colors, reanimatedEasing } from '../../../tokens';
 import { MOLTEN_STATES, MoltenPhase } from './STATES';
 import Sparks from './Sparks';
 import MoltenOrb3D from './MoltenOrb3D';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 // Animated SVG primitives
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -42,6 +43,7 @@ export default function MoltenOrb({
   y = 0,
   torchProgress = 0,
 }: MoltenOrbProps): React.ReactElement {
+  const reducedMotion = useReducedMotion();
   const target = MOLTEN_STATES[phase];
   const cx = size / 2 + x;
   const cy = size / 2 + y;
@@ -73,11 +75,28 @@ export default function MoltenOrb({
   // ── Phase transitions ────────────────────────────────────────────────────────
   useEffect(() => {
     const s = MOLTEN_STATES[phase];
+
+    if (reducedMotion) {
+      orbR.value = s.r;
+      haloRv.value = s.haloR;
+      haloAv.value = s.haloA;
+      chromV.value = s.chrom;
+      roilV.value = s.roil ?? 0;
+      complexityV.value = s.complexity ?? 0;
+      tempKV.value = s.tempK ?? 0;
+      const prismActivePhases: MoltenPhase[] = ['ready', 'heating', 'window', 'swab', 'dunk'];
+      haloPrismR.value = prismActivePhases.includes(phase) ? s.r * (1.4 + 0.6 * s.chrom) : 0;
+      pulse1R.value = 0; pulse1A.value = 0;
+      pulse2R.value = 0; pulse2A.value = 0;
+      pulse3R.value = 0; pulse3A.value = 0;
+      return;
+    }
+
     orbR.value   = withSpring(s.r,     animation.orbSpring);
     haloRv.value = withSpring(s.haloR, animation.orbSpring);
     haloAv.value = withSpring(s.haloA, animation.orbSpring);
     chromV.value = withTiming(s.chrom, { duration: 500 });
-    
+
     roilV.value = withTiming(s.roil || 0, { duration: 500 });
     complexityV.value = withTiming(s.complexity || 0, { duration: 500 });
     tempKV.value = withTiming(s.tempK || 0, { duration: 500 });
@@ -118,14 +137,18 @@ export default function MoltenOrb({
       pulse3R.value = withTiming(0, { duration: 300 });
       pulse3A.value = withTiming(0, { duration: 300 });
     }
-  }, [phase, size]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, size, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Breathing ────────────────────────────────────────────────────────────────
   useEffect(() => {
     cancelAnimation(breath);
+    if (reducedMotion) {
+      breath.value = 0;
+      return;
+    }
     const period = 1000 / MOLTEN_STATES[phase].breathHz;
     breath.value = withRepeat(withTiming(1, { duration: period }), -1, false);
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const breathR = useDerivedValue(() => {
     'worklet';
@@ -166,8 +189,30 @@ export default function MoltenOrb({
   const prismGId        = `prism-grad-${size}`;
   const prismSoftGId    = `prism-soft-grad-${size}`;
 
+  const ORB_ACCESSIBILITY_LABEL: Record<MoltenPhase, string> = {
+    cold: 'Quartzie idle',
+    connecting: 'Searching for Dabrite',
+    connected: 'Dabrite connected',
+    presets: 'Choosing your loadout',
+    banger: 'Choosing your loadout',
+    concentrate: 'Choosing your loadout',
+    ready: 'Ready, waiting for torch',
+    heating: 'Heating',
+    window: 'Dab window open',
+    dabbing: 'Dabbing',
+    swab: 'Swab now',
+    dunk: 'Dunk safe',
+    complete: 'Session complete',
+  };
+
   return (
-    <View style={{ width: size, height: size }}>
+    <View
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel={ORB_ACCESSIBILITY_LABEL[phase]}
+      accessibilityLiveRegion="polite"
+      style={{ width: size, height: size }}
+    >
       
       {/* Background SVG: Halo and Pulses */}
       <View style={{ position: 'absolute', inset: 0 }} pointerEvents="none">

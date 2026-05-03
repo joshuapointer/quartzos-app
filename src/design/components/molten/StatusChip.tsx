@@ -29,7 +29,7 @@ function buildSegments(
   phase: MoltenPhase,
   banger: StatusChipProps['banger'],
   concentrate: StatusChipProps['concentrate'],
-  batteryPct: number,
+  batteryPct: number | undefined,
 ): TextSegment[] {
   const c = concentrate?.name?.toUpperCase();
   const b = banger?.name?.toUpperCase();
@@ -39,7 +39,9 @@ function buildSegments(
 
   switch (phase) {
     case 'connected':
-      return [em('DABRITE PRO'), sep('·'), plain(`${batteryPct}%`)];
+      return batteryPct !== undefined
+        ? [em('DABRITE PRO'), sep('·'), plain(`${batteryPct}%`)]
+        : [em('DABRITE PRO')];
 
     case 'ready':
       return c && b
@@ -80,7 +82,7 @@ export function StatusChip({
   phase,
   banger,
   concentrate,
-  batteryPct = 92,
+  batteryPct,
 }: StatusChipProps) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(6);
@@ -130,7 +132,14 @@ export function StatusChip({
   const segments = buildSegments(phase, banger, concentrate, batteryPct);
 
   return (
-    <Animated.View style={[styles.container, chipStyle]} pointerEvents="none">
+    <Animated.View
+      style={[styles.container, chipStyle]}
+      pointerEvents="none"
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={segments.map((s) => s.text).join(' ')}
+    >
       <BlurView intensity={22} tint="dark" style={StyleSheet.absoluteFill} />
       <View
         style={[StyleSheet.absoluteFill, styles.glassOverlay]}

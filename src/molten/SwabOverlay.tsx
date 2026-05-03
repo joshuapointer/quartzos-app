@@ -109,14 +109,19 @@ export const SwabOverlay = React.memo(function SwabOverlay({
   bandLowF = 250,
   bandHighF = 300,
 }: SwabOverlayProps) {
-  const tempF = useBleStore((s) => s.liveTempF);
-  const displayTemp = Math.round(Math.max(0, tempF));
+  const displayTemp = useBleStore((s) => Math.max(0, Math.round(s.liveTempF)));
 
   return (
     <View style={styles.container}>
       {/* Big temp number row */}
       <View style={styles.numbersRow}>
-        <Text style={styles.tempNumber} allowFontScaling={false}>
+        <Text
+          style={styles.tempNumber}
+          allowFontScaling={false}
+          accessibilityRole="text"
+          accessibilityLabel={`${displayTemp} degrees Fahrenheit`}
+          accessibilityLiveRegion="polite"
+        >
           {displayTemp}
         </Text>
         <Text style={styles.degSuffix} allowFontScaling={false}>
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   glassFill: {
-    backgroundColor: 'rgba(252,252,255,0.06)',
+    backgroundColor: colors.glassPane,
     borderRadius: 22,
   },
   calloutInner: {

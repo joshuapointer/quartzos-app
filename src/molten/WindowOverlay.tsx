@@ -73,17 +73,22 @@ export const WindowOverlay = React.memo(function WindowOverlay({
   windowHighF,
   coachingText,
 }: WindowOverlayProps) {
-  const tempF = useBleStore((s) => s.liveTempF);
   const low = windowLowF ?? optimalF - 25;
   const high = windowHighF ?? optimalF + 15;
-  const displayTemp = Math.round(Math.max(0, tempF));
-  const stateLabel = deriveWindowState(tempF, low, high);
+  const displayTemp = useBleStore((s) => Math.max(0, Math.round(s.liveTempF)));
+  const stateLabel = useBleStore((s) => deriveWindowState(s.liveTempF, low, high));
 
   return (
     <View style={styles.container}>
       {/* Big numbers row */}
       <View style={styles.numbersRow}>
-        <Text style={styles.tempNumber} allowFontScaling={false}>
+        <Text
+          style={styles.tempNumber}
+          allowFontScaling={false}
+          accessibilityRole="text"
+          accessibilityLabel={`${displayTemp} degrees Fahrenheit`}
+          accessibilityLiveRegion="polite"
+        >
           {displayTemp}
         </Text>
         <Text style={styles.degSuffix} allowFontScaling={false}>

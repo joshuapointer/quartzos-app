@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Stop, Rect, G } from 'react-native-svg';
 import { colors } from '../../tokens';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -44,10 +45,12 @@ type MoltenBackgroundProps = {
 };
 
 export function MoltenBackground({ children, intensity = 1 }: MoltenBackgroundProps) {
+  const reducedMotion = useReducedMotion();
   // Slow drift shared value: 0 → 1 → 0 over ~30 seconds
   const drift = useSharedValue(0);
 
   useEffect(() => {
+    if (reducedMotion) return;
     drift.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 15000, easing: Easing.inOut(Easing.sin) }),
@@ -56,7 +59,7 @@ export function MoltenBackground({ children, intensity = 1 }: MoltenBackgroundPr
       -1,
       false,
     );
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cyan haze drifts +DRIFT in each direction over the cycle
   const cyanGProps = useAnimatedProps(() => ({

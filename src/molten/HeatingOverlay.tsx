@@ -52,7 +52,7 @@ export const HeatingOverlay = React.memo(function HeatingOverlay({
   torchSecondsLeft,
   size = 320,
 }: HeatingOverlayProps) {
-  const tempF = useBleStore((s) => s.liveTempF);
+  const displayTemp = useBleStore((s) => Math.max(0, Math.round(s.liveTempF)));
   const frameW = size;
   const frameH = size * (VIEWBOX_H / VIEWBOX_W); // 0.625 ratio
 
@@ -80,13 +80,14 @@ export const HeatingOverlay = React.memo(function HeatingOverlay({
       style={{ width: frameW, height: frameH, alignSelf: 'center' }}
       pointerEvents="none"
     >
-      {/* SVG ring layer */}
+      {/* SVG ring layer — decorative, hidden from screen reader */}
       <Svg
         viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
         width={frameW}
         height={frameH}
         style={{ position: 'absolute', top: 0, left: 0 }}
-        aria-hidden
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no-hide-descendants"
       >
         <Defs>
           <LinearGradient id="torch-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -101,7 +102,7 @@ export const HeatingOverlay = React.memo(function HeatingOverlay({
           cx={CX}
           cy={CY}
           r={RADIUS}
-          stroke="rgba(252,252,255,0.10)"
+          stroke={colors.glassEdgeFaint}
           strokeWidth={1}
           fill="none"
         />
@@ -140,8 +141,11 @@ export const HeatingOverlay = React.memo(function HeatingOverlay({
               ...fonts.serifDisplay,
               color: colors.bone100,
             }}
+            accessibilityRole="text"
+            accessibilityLabel={`${displayTemp} degrees Fahrenheit`}
+            accessibilityLiveRegion="polite"
           >
-            {Math.round(tempF)}
+            {displayTemp}
           </Text>
           <Text
             style={{
