@@ -93,6 +93,10 @@
       "typedRoutes": true
     },
     "scheme": "quartzos",
+    "web": {
+      "favicon": "./public/favicon.ico",
+      "bundler": "metro"
+    },
     "extra": {
       "router": {},
       "eas": {
