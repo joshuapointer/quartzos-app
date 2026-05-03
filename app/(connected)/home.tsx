@@ -7,10 +7,8 @@ import { useSettingsStore } from '../../src/state/settingsStore';
 import { useSessionStore } from '../../src/state/sessionStore';
 import { bleManager } from '../../src/ble/BleManager';
 import * as presetsDb from '../../src/db/presets';
-import * as sessionsDb from '../../src/db/sessions';
 import * as moltenRecentsDb from '../../src/db/moltenRecents';
 import type { Preset } from '../../src/db/presets';
-import type { SessionRecord } from '../../src/db/sessions';
 import type { MoltenRecent } from '../../src/db/moltenRecents';
 import { BANGERS } from '../../src/data/bangers';
 import { CONCENTRATES } from '../../src/data/concentrates';
@@ -33,7 +31,6 @@ export default function HomeScreen() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [presets, setPresets] = useState<Preset[]>([]);
-  const [, setSessions] = useState<SessionRecord[]>([]);
   const [moltenRecents, setMoltenRecents] = useState<MoltenRecent[]>([]);
   const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guard against re-entrant retries: if the user mashes the toast's
@@ -41,34 +38,27 @@ export default function HomeScreen() {
   // are no-ops. Otherwise N taps would queue N WRITE_ALL frames.
   const retryInFlightRef = useRef<Promise<void> | null>(null);
 
-  const refreshSessions = useCallback(() => {
-    sessionsDb.getAll().then(setSessions).catch(() => {});
-  }, []);
-
   const refreshMoltenRecents = useCallback(() => {
     moltenRecentsDb.getRecent(4).then(setMoltenRecents).catch(() => {});
   }, []);
 
   useEffect(() => {
     presetsDb.getAll().then(setPresets).catch(() => {});
-    refreshSessions();
     refreshMoltenRecents();
-  }, [refreshSessions, refreshMoltenRecents]);
+  }, [refreshMoltenRecents]);
 
-  // Refresh history whenever a session ends. BleManager flips active=false
+  // Refresh recents whenever a session ends. BleManager flips active=false
   // BEFORE its async sessionsDb.end() write completes, so we refresh once
   // immediately (catches any prior writes) and again after a short delay
-  // to read the just-persisted endedAt + peakTempF + samples.
+  // to read the just-persisted record.
   useEffect(() => {
     if (sessionActive) return;
-    refreshSessions();
     refreshMoltenRecents();
     const t = setTimeout(() => {
-      refreshSessions();
       refreshMoltenRecents();
     }, 600);
     return () => clearTimeout(t);
-  }, [sessionActive, refreshSessions, refreshMoltenRecents]);
+  }, [sessionActive, refreshMoltenRecents]);
 
   // ── Preset apply ──────────────────────────────────────────────────────────
   const handleApplyPreset = useCallback(

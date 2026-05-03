@@ -362,13 +362,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
 
-  // Preserved style from prior pass (hexLabel role — kept for reference, used elsewhere if needed)
-  hexLabel: {
-    ...fonts.labelCaps,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-
   // Buttons
   btnRow: {
     flexDirection: 'row',

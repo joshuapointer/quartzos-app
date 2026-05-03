@@ -15,7 +15,6 @@ import { useSettingsStore } from '../state/settingsStore';
 import { validateAlarms } from '../utils/temperature';
 import { ConnectionStateMachine } from './ConnectionStateMachine';
 import {
-  ATT_MTU,
   CHAR_FF01_UUID,
   CHAR_FF02_UUID,
   FRAME_SETTINGS_LEN,
