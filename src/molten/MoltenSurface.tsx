@@ -607,9 +607,13 @@ export function MoltenSurface({
     bleManager.startScan();
   }, []);
 
-  // Cancel an in-flight scan by tapping the connecting screen.
+  // Cancel an in-flight scan OR an ongoing reconnect cycle by tapping the
+  // connecting screen. stopScan() is a no-op while RECONNECTING, so we also
+  // call cancelReconnect() to break out of the exponential backoff and let
+  // the user immediately try a fresh scan.
   const handleCancelScan = useCallback(() => {
     bleManager.stopScan();
+    bleManager.cancelReconnect();
     setPhase('cold');
   }, [setPhase]);
 

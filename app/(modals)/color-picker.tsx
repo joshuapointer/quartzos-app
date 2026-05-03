@@ -163,6 +163,10 @@ export default function ColorPickerModal() {
     () => closestSwatch(currentStored),
   );
 
+  // Guard re-entrant retries on the toast — mashing "Retry" otherwise stacks
+  // duplicate WRITE_COLORS frames.
+  const retryInFlightRef = React.useRef<Promise<void> | null>(null);
+
   const selectedSwatch = useMemo(
     () => SWATCHES.find((s) => s.key === selectedKey) ?? SWATCHES[0],
     [selectedKey],
@@ -186,7 +190,18 @@ export default function ColorPickerModal() {
     void bleManager.writeColors(next).catch(() => {
       toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
         retryLabel: 'Retry',
-        onRetry: () => { void bleManager.writeColors(next).catch(() => {}); },
+        onRetry: () => {
+          if (retryInFlightRef.current) return;
+          retryInFlightRef.current = bleManager
+            .writeColors(next)
+            .catch(() => {
+              /* swallow — toast already surfaced */
+            })
+            .finally(() => {
+              retryInFlightRef.current = null;
+            });
+          void retryInFlightRef.current;
+        },
       });
     });
     router.back();

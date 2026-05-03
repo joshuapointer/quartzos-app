@@ -48,6 +48,11 @@ type QueuedCommand = {
 const IDLE_TEMP_GRACE_MS = 30_000;
 const SESSION_START_TEMP_F = 150;
 
+// Quiet period after a WRITE_ACK before sending the next frame. The link-layer
+// ACK is not a firmware-commit signal — the device needs ~80ms to finish
+// flushing flash/EEPROM before it can safely accept another mutating write.
+const POST_ACK_QUIET_MS = 80;
+
 class CommandQueue {
   private queue: QueuedCommand[] = [];
   private inflight: QueuedCommand | null = null;
@@ -66,7 +71,13 @@ class CommandQueue {
   }
 
   /** Called by BleManager on WRITE_ACK arrival. Guards against duplicate ACKs
-   *  when both FF01 and FF02 deliver the same WRITE_ACK notification. */
+   *  when both FF01 and FF02 deliver the same WRITE_ACK notification.
+   *
+   *  We schedule the next pump 80ms later (POST_ACK_QUIET_MS) rather than
+   *  calling pump() synchronously: the BLE link-layer ACK is NOT a
+   *  firmware-commit confirmation. The Dabrite firmware needs a brief quiet
+   *  period to finish committing the previous frame before we slam it with
+   *  the next one. */
   resolveAck(): void {
     if (!this.inflight) return;
     if (this.ackReceived) return;  // duplicate ACK from FF02 echo — ignore
@@ -75,7 +86,7 @@ class CommandQueue {
     const done = this.inflight;
     this.inflight = null;
     done.resolve();
-    void this.pump();
+    setTimeout(() => void this.pump(), POST_ACK_QUIET_MS);
   }
 
   /** Drop all pending commands (e.g. on disconnect). */
@@ -180,8 +191,31 @@ export class BleManager {
 
   // --- public API ------------------------------------------------------------
 
+  /**
+   * User-initiated cancel of an in-progress reconnect cycle. Lets the user
+   * tap back into a fresh scan without waiting out the exponential-backoff
+   * timer (which can be 30–60s deep into the cycle).
+   */
+  cancelReconnect(): void {
+    this.clearReconnect();
+    this.intentionalDisconnect = true;
+    if (this.sm.current === 'RECONNECTING') {
+      this.setState('IDLE');
+    }
+  }
+
   startScan(): void {
+    // Allow takeover from RECONNECTING — otherwise the user's "tap to pair"
+    // tap is silently swallowed during a flap.
+    if (this.sm.current === 'RECONNECTING') {
+      this.clearReconnect();
+      this.intentionalDisconnect = true;
+      this.setState('IDLE');
+    }
     if (this.sm.current !== 'IDLE') return;
+    // User is initiating a fresh scan — clear the intentional flag so a
+    // subsequent disconnect during connect is treated as unexpected.
+    this.intentionalDisconnect = false;
     this.setState('SCANNING');
 
     if (__DEV__ && useSettingsStore.getState().mockBleEnabled) {
@@ -256,7 +290,12 @@ export class BleManager {
       this.device = device;
       useBleStore.getState().setConnectedDevice(device.id);
 
+      // Capture device.id in the closure and gate on it: stale disconnect
+      // callbacks from a prior connection (e.g. when discovery failed and
+      // we already started a fresh attempt) must NOT tear down the new
+      // connection's subscriptions.
       this.disconnectSub = this.rnBle.onDeviceDisconnected(device.id, () => {
+        if (this.device?.id !== device.id) return;
         this.handleDisconnected();
       });
 
@@ -287,6 +326,11 @@ export class BleManager {
       this.reconnectAttempts = 0;
       this.querySettingsReceived = false;
 
+      // Quiet period before the very first frame post-READY: the firmware
+      // has just finished MTU/connection-priority negotiation and benefits
+      // from the same settle window we use between frames.
+      await new Promise<void>((r) => setTimeout(r, POST_ACK_QUIET_MS));
+
       // Kick off QUERY_SETTINGS and start polling.
       await this.enqueueQuerySettings();
       this.startQueryPoll();
@@ -298,6 +342,22 @@ export class BleManager {
         /* ignore */
       });
     } catch (err) {
+      // Discovery / MTU / connection-priority can throw AFTER we set
+      // `this.device` and registered `disconnectSub`. If we just schedule a
+      // reconnect, the stale disconnectSub stays registered and the old
+      // device handle stays referenced — when the late disconnect callback
+      // fires, it tears down whatever fresh connection has by then replaced
+      // it. Fully unwind first.
+      this.disconnectSub?.remove();
+      this.disconnectSub = null;
+      this.teardownCharacteristicSubs();
+      try {
+        await this.rnBle.cancelDeviceConnection(deviceId);
+      } catch {
+        /* device may already be disconnected */
+      }
+      this.device = null;
+      useBleStore.getState().setConnectedDevice(null);
       this.scheduleReconnect();
     }
   }
@@ -346,7 +406,12 @@ export class BleManager {
       dunkAlarmF: dunk,
     };
     const frame = encodeWriteAll(validated);
-    await this.commandQueue.enqueue(frame, 'WRITE_ALL');
+    // retries=0 INTENTIONALLY: WRITE_ALL is idempotent in payload but it
+    // mutates persistent state on the device. A "slow ACK" can mean the
+    // firmware is still committing the previous write — silently retrying
+    // would queue a duplicate frame. We surface the failure so the user
+    // can re-press via the toast retry path with full context.
+    await this.commandQueue.enqueue(frame, 'WRITE_ALL', 0);
   }
 
   /**
@@ -361,8 +426,22 @@ export class BleManager {
   static async flushActiveSession(): Promise<void> {
     const inst = BleManager.instance;
     if (!inst) return;
-    if (!useSessionStore.getState().active) return;
-    await inst.endSession();
+    // 1. End the in-memory session (no-op if none is active).
+    if (useSessionStore.getState().active) {
+      await inst.endSession();
+    }
+    // 2. Flush any in-flight or queued writes. Otherwise the ACK timer
+    //    can fire after iOS resumes the app, triggering a retry against
+    //    a torn-down connection.
+    inst.commandQueue.flush(new Error('app backgrounded'));
+    // 3. Tear down BLE cleanly so we don't leak a half-connected state
+    //    across the background → foreground boundary.
+    try {
+      inst.intentionalDisconnect = true;
+      await inst.disconnect();
+    } catch {
+      /* swallow — backgrounding shouldn't surface errors */
+    }
   }
 
   async writeColors(
@@ -370,7 +449,10 @@ export class BleManager {
   ): Promise<void> {
     if (!this.device) return;
     const frame = encodeWriteColors(colors);
-    await this.commandQueue.enqueue(frame, 'WRITE_COLORS');
+    // retries=0 INTENTIONALLY (same rationale as writeSettings): silent
+    // retries on a slow ACK can stack a duplicate persistent-state write.
+    // The user retries explicitly via toast.
+    await this.commandQueue.enqueue(frame, 'WRITE_COLORS', 0);
   }
 
   destroy(): void {

@@ -56,6 +56,10 @@ export default function SettingsScreen() {
   const [status, setStatus] = useState<WriteStatus>('synced');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const opaqueFollowupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guard re-entrant retries from the toast's "Retry" button — without
+  // this, mashing the button stacks duplicate WRITE_ALL frames in the
+  // command queue.
+  const retryInFlightRef = useRef<Promise<void> | null>(null);
 
   const flushWrite = useCallback(async (next: DeviceSettings) => {
     setStatus('pending');
@@ -67,7 +71,17 @@ export default function SettingsScreen() {
       setStatus('error');
       toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
         retryLabel: 'Retry',
-        onRetry: () => { void flushWrite(next); },
+        onRetry: () => {
+          if (retryInFlightRef.current) return;
+          retryInFlightRef.current = flushWrite(next)
+            .catch(() => {
+              /* inner flushWrite already surfaced the toast */
+            })
+            .finally(() => {
+              retryInFlightRef.current = null;
+            });
+          void retryInFlightRef.current;
+        },
       });
     }
   }, [markConfirmed]);

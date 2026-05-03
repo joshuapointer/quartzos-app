@@ -35,7 +35,10 @@ export const OPAQUE_DUNK_ALARM_F = 275;
 
 export const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000, 60000];
 export const MAX_RECONNECT_ATTEMPTS = 10;
-export const WRITE_ACK_TIMEOUT_MS  = 1500;
+// Bumped from 1500ms — stressed firmware (torch heat, RF noise) can be slow to ACK.
+// A short timeout combined with retries was causing duplicate frames to be
+// re-sent while the device was still committing the previous one.
+export const WRITE_ACK_TIMEOUT_MS  = 3000;
 export const QUERY_INTERVAL_MS     = 60_000;
 export const SETTINGS_WRITE_DEBOUNCE_MS = 300;
 export const OPAQUE_MODE_ALARM_DELAY_MS = 10_000;

@@ -36,6 +36,10 @@ export default function HomeScreen() {
   const [, setSessions] = useState<SessionRecord[]>([]);
   const [moltenRecents, setMoltenRecents] = useState<MoltenRecent[]>([]);
   const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guard against re-entrant retries: if the user mashes the toast's
+  // "Retry" button while a retry write is still in-flight, those taps
+  // are no-ops. Otherwise N taps would queue N WRITE_ALL frames.
+  const retryInFlightRef = useRef<Promise<void> | null>(null);
 
   const refreshSessions = useCallback(() => {
     sessionsDb.getAll().then(setSessions).catch(() => {});
@@ -85,7 +89,16 @@ export default function HomeScreen() {
         toast.error("Couldn't reach the rig. Check Bluetooth and try again.", {
           retryLabel: 'Retry',
           onRetry: () => {
-            void handleApplyPreset(presetId);
+            // Guard: ignore re-entrant taps while a retry is in flight.
+            if (retryInFlightRef.current) return;
+            retryInFlightRef.current = handleApplyPreset(presetId)
+              .catch(() => {
+                /* toast already shown by inner failure */
+              })
+              .finally(() => {
+                retryInFlightRef.current = null;
+              });
+            void retryInFlightRef.current;
           },
         });
         throw new Error('write failed');
