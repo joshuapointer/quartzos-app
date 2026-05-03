@@ -1,11 +1,13 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import Svg, { Polyline, Line } from 'react-native-svg';
 import Animated, {
+  cancelAnimation,
   useSharedValue,
   useAnimatedStyle,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { colors, fonts, motion } from '../design/tokens';
@@ -116,6 +118,25 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
   onAgain,
   onNew,
 }: CompleteOverlayProps) {
+  // Card-pair entrance: spring from scale 0.86 / opacity 0 → 1 on mount.
+  // The prototype CSS doesn't formally specify an entrance, but the cards
+  // visually pop on phase entry — matching the spec's "session card pair
+  // springs in" line in the spec timing table.
+  const cardScale = useSharedValue(0.86);
+  const cardOp = useSharedValue(0);
+  useEffect(() => {
+    cardScale.value = withSpring(1, { damping: 16, stiffness: 200, mass: 0.8 });
+    cardOp.value = withTiming(1, { duration: 260 });
+    return () => {
+      cancelAnimation(cardScale);
+      cancelAnimation(cardOp);
+    };
+  }, [cardScale, cardOp]);
+  const cardPairStyle = useAnimatedStyle(() => ({
+    opacity: cardOp.value,
+    transform: [{ scale: cardScale.value }],
+  }));
+
   return (
     <View style={styles.container}>
       {/* Eyebrow */}
@@ -124,7 +145,7 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
       </Text>
 
       {/* Card pair */}
-      <View style={styles.cardPair}>
+      <Animated.View style={[styles.cardPair, cardPairStyle]}>
         <CompleteCard
           title="Again"
           sub={`Same banger\nsame hash`}
@@ -135,7 +156,7 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
           sub={`Pick something\ndifferent`}
           onPress={onNew}
         />
-      </View>
+      </Animated.View>
 
       {/* Recap line */}
       <View style={styles.recapRow}>

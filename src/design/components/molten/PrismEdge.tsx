@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import Animated, {
+  cancelAnimation,
   useSharedValue,
   useAnimatedProps,
   withRepeat,
@@ -33,6 +34,7 @@ export function PrismEdge({
       -1,
       false,
     );
+    return () => cancelAnimation(progress);
   }, [durationMs, progress]);
 
   const animatedGradientProps = useAnimatedProps(() => {

@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
@@ -16,7 +18,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
@@ -157,18 +159,26 @@ export type MoltenSurfaceProps = {
 // Inline copy components
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Prototype distinguishes plain `.eyebrow` (bone-40 / gray) from
+// `.eyebrow.h-eyebrow` inside `.copy-stack` (cyan). Default is cyan; pass
+// `colors.bone40` for plain eyebrows (e.g. connecting "Searching").
 function CopyStack({
   eyebrow,
   headline,
   sub,
+  eyebrowColor,
 }: {
   eyebrow: string;
   headline: string;
   sub: string;
+  eyebrowColor?: string;
 }) {
   return (
     <View style={styles.copyStack}>
-      <Text style={styles.eyebrow} allowFontScaling={false}>
+      <Text
+        style={[styles.eyebrow, eyebrowColor !== undefined && { color: eyebrowColor }]}
+        allowFontScaling={false}
+      >
         {eyebrow}
       </Text>
       <Text style={styles.headline} allowFontScaling={false}>
@@ -178,6 +188,32 @@ function CopyStack({
         {sub}
       </Text>
     </View>
+  );
+}
+
+// Chromatic-fringed pip: bone-white center with cyan/magenta ±2px offsets.
+// Mirrors prototype `.tap-hint .pip` styling (HTML lines 264-270) and the
+// `hint-breathe` keyframe (line 271, 2.8s ease-in-out, opacity 0.5↔1).
+function TapHintPip() {
+  const opacity = useSharedValue(0.5);
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(1,   { duration: 1400, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.5, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(opacity);
+  }, [opacity]);
+  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View style={[styles.tapHintPipContainer, animStyle]}>
+      <View style={[styles.tapHintPipDot, styles.tapHintPipCyan]} />
+      <View style={[styles.tapHintPipDot, styles.tapHintPipMagenta]} />
+      <View style={[styles.tapHintPipDot, styles.tapHintPipBone]} />
+    </Animated.View>
   );
 }
 
@@ -200,7 +236,7 @@ function ColdCopy({ onPair }: { onPair: () => void }) {
           sub="Hold the side button until the LED breathes — then tap to pair."
         />
         <View style={styles.tapHintRow}>
-          <View style={styles.tapHintPip} />
+          <TapHintPip />
           <Text style={styles.tapHintLabel} allowFontScaling={false}>
             Tap to pair
           </Text>
@@ -210,11 +246,63 @@ function ColdCopy({ onPair }: { onPair: () => void }) {
   );
 }
 
+// 44 px chromatic scan ring shown above the "Searching…" copy. Mirrors the
+// prototype's `.scan-ring` (HTML lines 1067–1080): rotating partial arc
+// stroked with a cyan→magenta→gold gradient. RN can't render conic gradients
+// or `mask-composite: exclude`, so we approximate with a linear-gradient
+// stroke + dasharray gap and rotate the whole canvas.
+function ScanRing() {
+  const rot = useSharedValue(0);
+  useEffect(() => {
+    rot.value = withRepeat(
+      withTiming(360, { duration: 1100, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(rot);
+  }, [rot]);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rot.value}deg` }],
+  }));
+  // Visible arc ≈ 210° of the 360° circumference, gap ≈ 150°.
+  // Dasharray "${arcLen} ${circ - arcLen}" makes one full dash+gap cycle
+  // exactly cover the circumference, so only the single arc renders.
+  const r = 18;
+  const circ = 2 * Math.PI * r;
+  const arcLen = circ * (210 / 360);
+  return (
+    <Animated.View style={[styles.scanRing, animStyle]}>
+      <Svg width={44} height={44} viewBox="0 0 44 44">
+        <Defs>
+          <LinearGradient id="scan-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%"   stopColor={colors.prismCyan}    stopOpacity={0}    />
+            <Stop offset="40%"  stopColor={colors.prismCyan}    stopOpacity={0.85} />
+            <Stop offset="70%"  stopColor={colors.prismMagenta} stopOpacity={0.85} />
+            <Stop offset="100%" stopColor={colors.prismGold}    stopOpacity={0}    />
+          </LinearGradient>
+        </Defs>
+        <Circle
+          cx={22}
+          cy={22}
+          r={r}
+          fill="none"
+          stroke="url(#scan-grad)"
+          strokeWidth={2}
+          strokeDasharray={`${arcLen} ${circ - arcLen}`}
+          strokeLinecap="round"
+        />
+      </Svg>
+    </Animated.View>
+  );
+}
+
 function ConnectingCopy() {
   return (
     <View style={styles.copyOuter}>
+      <ScanRing />
       <CopyStack
         eyebrow="Searching"
+        eyebrowColor={colors.bone40}
         headline="Looking for a Dabrite nearby…"
         sub="If nothing happens, hold the Dabrite's side button until its LED breathes."
       />
@@ -234,46 +322,107 @@ function ConnectedCopy({ batteryPct }: { batteryPct: number }) {
   );
 }
 
-// 5-bar mic-pad indicator with staggered scaleY animations
-function MicPadIndicator() {
+// PickerEnter — DIAGNOSTIC PASSTHROUGH. Re-enable spring entry once the
+// invisible-picker bug is isolated.
+function PickerEnter({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+// DIAGNOSTIC error boundary — catches render errors from picker phase children
+// and renders the error message inline so we can see what (if anything) blew up.
+class PhaseErrorBoundary extends React.Component<
+  { label: string; children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  componentDidCatch(error: Error) {
+    // eslint-disable-next-line no-console
+    console.log('[PhaseErrorBoundary]', this.props.label, 'caught:', error.message, error.stack);
+  }
+  render() {
+    if (this.state.error !== null) {
+      return (
+        <View
+          style={{
+            backgroundColor: 'rgba(255,0,0,0.4)',
+            borderColor: 'red',
+            borderWidth: 2,
+            padding: 8,
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 11 }}>
+            {`[${this.props.label}] ${this.state.error.message}`}
+          </Text>
+        </View>
+      );
+    }
+    return <>{this.props.children}</>;
+  }
+}
+
+// 5-bar mic-pad indicator. Idle (`live=false`) uses bone-25 for all bars
+// (HTML line 642). Live (`live=true`, heating phase) colorizes per index:
+// cyan / cyan / bone-100 / magenta / magenta (HTML lines 648–652).
+// Per-bar heights mirror prototype 30/70/100/60/40 % of container.
+// Animation is opacity 0.4 ↔ 1 over 1.4 s (HTML lines 642, 653) with 150 ms
+// stagger between bars.
+const MIC_BAR_HEIGHT_PCT = [0.30, 0.70, 1.00, 0.60, 0.40] as const;
+const MIC_BAR_LIVE_COLORS = [
+  colors.prismCyan,
+  colors.prismCyan,
+  colors.bone100,
+  colors.prismMagenta,
+  colors.prismMagenta,
+] as const;
+
+function MicPadIndicator({ live = false }: { live?: boolean }) {
   return (
     <View style={styles.micPadRow}>
       {[0, 1, 2, 3, 4].map((i) => (
-        <MicBar key={i} index={i} />
+        <MicBar key={i} index={i} live={live} />
       ))}
     </View>
   );
 }
 
-function MicBar({ index }: { index: number }) {
-  const scale = useSharedValue(0.4);
-  const initialDelay = index * 90;
+function MicBar({ index, live }: { index: number; live: boolean }) {
+  const opacity = useSharedValue(0.4);
+  const initialDelay = index * 150;
 
   useEffect(() => {
     const t = setTimeout(() => {
-      scale.value = withRepeat(
+      opacity.value = withRepeat(
         withSequence(
-          withTiming(1, {
-            duration: 420,
-            easing: Easing.inOut(Easing.quad),
-          }),
-          withTiming(0.4, {
-            duration: 420,
-            easing: Easing.inOut(Easing.quad),
-          }),
+          withTiming(1,   { duration: 700, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.4, { duration: 700, easing: Easing.inOut(Easing.quad) }),
         ),
         -1,
         false,
       );
     }, initialDelay);
-    return () => clearTimeout(t);
-  }, [initialDelay, scale]);
+    return () => {
+      clearTimeout(t);
+      cancelAnimation(opacity);
+    };
+  }, [initialDelay, opacity]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: scale.value }],
-  }));
+  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
-  return <Animated.View style={[styles.micBar, animStyle]} />;
+  return (
+    <Animated.View
+      style={[
+        styles.micBar,
+        {
+          height: 14 * MIC_BAR_HEIGHT_PCT[index],
+          backgroundColor: live ? MIC_BAR_LIVE_COLORS[index] : colors.bone25,
+        },
+        animStyle,
+      ]}
+    />
+  );
 }
 
 function ReadyCopy({
@@ -376,6 +525,13 @@ function Header({
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+function formatMmSs(ms: number): string {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 function whenLabelFromTimestamp(ts: number | undefined, now: number): string {
   if (ts === undefined) return 'SAVED';
   const delta = now - ts;
@@ -450,6 +606,7 @@ export function MoltenSurface({
     clearSelections,
     tempF,
     peakF,
+    windowDurationMs,
   } = useMoltenPhase();
 
   // Resolve current banger/concentrate once for downstream consumers
@@ -673,15 +830,36 @@ export function MoltenSurface({
     tempF,
   ]);
 
-  // Window label: best-guess "0:24" — pulled from session length when peak was hit.
-  // Without per-session window timestamps in scope, derive from default copy.
-  const windowLabel = '0:24';
+  // Window-phase duration: captured by useMoltenPhase on the window→dabbing
+  // transition. Falls back to the prototype's "0:24" placeholder until a real
+  // window has happened in this session.
+  const windowLabel = windowDurationMs !== null
+    ? formatMmSs(windowDurationMs)
+    : '0:24';
 
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <MoltenBackground intensity={1}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
+        {/* DIAGNOSTIC strip OUTSIDE contentWell — survives even if contentWell
+            is unmounted. If THIS goes away on phase change, the whole
+            MoltenSurface is being remounted/replaced. */}
+        <View
+          style={{
+            backgroundColor: 'rgba(0,200,0,0.3)',
+            borderColor: 'lime',
+            borderWidth: 1,
+            padding: 6,
+            marginHorizontal: 24,
+            marginTop: 4,
+          }}
+          pointerEvents="none"
+        >
+          <Text style={{ color: 'white', fontSize: 11, fontFamily: 'GeistMono_400Regular' }}>
+            {`[OUTER] phase=${phase} bId=${selections.bangerId ?? '∅'} cId=${selections.concentrateId ?? '∅'}`}
+          </Text>
+        </View>
         <Header
           connectionState={connectionState}
           onLongPressSettings={handleLongPressSettings}
@@ -699,6 +877,21 @@ export function MoltenSurface({
 
         {/* Phase-driven copy / overlay content (sits at bottom half of canvas) */}
         <View style={styles.contentWell} pointerEvents="box-none">
+          {/* DEBUG STRIP — remove once invisible-picker bug is isolated */}
+          <View
+            style={{
+              backgroundColor: 'rgba(255,0,255,0.2)',
+              borderColor: 'magenta',
+              borderWidth: 1,
+              padding: 6,
+              marginBottom: 6,
+            }}
+            pointerEvents="none"
+          >
+            <Text style={{ color: 'white', fontSize: 11, fontFamily: 'GeistMono_400Regular' }}>
+              {`phase=${phase} bangerId=${selections.bangerId ?? '∅'} concId=${selections.concentrateId ?? '∅'} presetId=${selections.presetId ?? '∅'}`}
+            </Text>
+          </View>
           {phase === 'cold' && <ColdCopy onPair={handlePairTap} />}
           {phase === 'connecting' && (
             <Pressable
@@ -718,25 +911,37 @@ export function MoltenSurface({
             <ConnectedCopy batteryPct={liveBatteryPct} />
           )}
           {phase === 'presets' && (
-            <RecentsRow
-              recents={recentEntries}
-              onSelect={handleRecentSelect}
-              onBuildFresh={handleBuildFresh}
-            />
+            <PickerEnter>
+              <RecentsRow
+                recents={recentEntries}
+                onSelect={handleRecentSelect}
+                onBuildFresh={handleBuildFresh}
+              />
+            </PickerEnter>
           )}
           {phase === 'banger' && (
-            <BangerCarousel
-              bangers={BANGERS}
-              selectedId={selections.bangerId}
-              onSelect={selectBanger}
-            />
+            <PhaseErrorBoundary label="banger">
+              <BangerCarousel
+                bangers={BANGERS}
+                selectedId={selections.bangerId}
+                onSelect={selectBanger}
+              />
+            </PhaseErrorBoundary>
           )}
           {phase === 'concentrate' && (
-            <ConcentrateGrid
-              concentrates={CONCENTRATES}
-              selectedId={selections.concentrateId}
-              onSelect={selectConcentrate}
-            />
+            <PhaseErrorBoundary label="concentrate">
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <ConcentrateGrid
+                  concentrates={CONCENTRATES}
+                  selectedId={selections.concentrateId}
+                  onSelect={selectConcentrate}
+                />
+              </ScrollView>
+            </PhaseErrorBoundary>
           )}
           {phase === 'ready' && (
             <ReadyCopy
@@ -754,7 +959,7 @@ export function MoltenSurface({
               {/* Bottom mic-pad: matches prototype line 1921-1925 — active
                   mic-bars + chromatic "Torch detected · heating" copy. */}
               <View style={styles.heatingMicPad}>
-                <MicPadIndicator />
+                <MicPadIndicator live />
                 <Text
                   style={styles.heatingMicPadText}
                   allowFontScaling={false}
@@ -843,11 +1048,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Content well — bottom half of screen for copy / pickers / overlays
+  // Content well — explicit top + bottom bounds so tall pickers (e.g. the
+  // 20-tile concentrate grid) scroll inside the view instead of overflowing
+  // upward off-screen. `top: 240` clears the parked picker-phase orb (which
+  // sits at y≈100-200), `bottom: 80` leaves room for the status chip.
   contentWell: {
     position: 'absolute',
     left: 0,
     right: 0,
+    top: 240,
     bottom: 80,
     paddingBottom: 12,
   },
@@ -893,31 +1102,57 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  tapHintPip: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  tapHintPipContainer: {
+    // 5 px center dot + 2 px chromatic offset on each side.
+    width: 9,
+    height: 5,
+  },
+  tapHintPipDot: {
+    position: 'absolute',
+    top: 0,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  tapHintPipCyan: {
+    left: 0,
     backgroundColor: colors.prismCyan,
+    opacity: 0.65,
+  },
+  tapHintPipMagenta: {
+    right: 0,
+    backgroundColor: colors.prismMagenta,
+    opacity: 0.65,
+  },
+  tapHintPipBone: {
+    left: 2,
+    backgroundColor: colors.bone100,
   },
   tapHintLabel: {
     ...fonts.monoEyebrow,
     color: colors.bone60,
   },
 
-  // Mic-pad indicator (5 vertical bars)
+  // Scan ring (connecting phase, above "Searching…")
+  scanRing: {
+    width: 44,
+    height: 44,
+    marginBottom: 14,
+  },
+
+  // Mic-pad indicator (5 vertical bars).
+  // Heights follow prototype `.mic-bars span:nth-child(N)` — 30/70/100/60/40 %
+  // of the 14 px container height (HTML lines 643–647).
   micPadRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'flex-end',
+    gap: 2.5,
     marginTop: 6,
-    height: 22,
+    height: 14,
   },
   micBar: {
-    width: 3,
-    height: 18,
+    width: 2.5,
     borderRadius: 2,
-    backgroundColor: colors.prismCyan,
-    opacity: 0.85,
   },
 
   // Manual fallback chip — appears in 'ready' after 4s of mic silence.

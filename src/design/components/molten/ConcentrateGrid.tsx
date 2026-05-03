@@ -52,10 +52,11 @@ type TileCardProps = {
   concentrate: Concentrate & { surface_temp_optimal_f: number };
   isActive: boolean;
   tileWidth: number;
+  tileHeight: number;
   onSelect: (id: string) => void;
 };
 
-function TileCard({ concentrate, isActive, tileWidth, onSelect }: TileCardProps) {
+function TileCard({ concentrate, isActive, tileWidth, tileHeight, onSelect }: TileCardProps) {
   const firstLetter = concentrate.name.charAt(0).toUpperCase();
 
   return (
@@ -65,6 +66,7 @@ function TileCard({ concentrate, isActive, tileWidth, onSelect }: TileCardProps)
         styles.tile,
         {
           width: tileWidth,
+          height: tileHeight,
           borderColor: isActive ? 'transparent' : glass.edge,
         },
       ]}
@@ -141,6 +143,10 @@ export function ConcentrateGrid({
 
   // Tile width: (parentWidth - 2*PADDING - 2*GAP) / 3
   const tileWidth = (windowWidth - 2 * PADDING - 2 * GAP) / 3;
+  // Explicit height — Yoga's `aspectRatio` doesn't reliably compute height
+  // for items inside `flex-direction: row` + `flexWrap: wrap` containers,
+  // collapsing tiles to ~0pt. Mirrors the prototype `.tile-card` 1:1.18 ratio.
+  const tileHeight = tileWidth * 1.18;
 
   return (
     <View style={styles.wrapper}>
@@ -158,6 +164,7 @@ export function ConcentrateGrid({
             concentrate={concentrate}
             isActive={selectedId === concentrate.id}
             tileWidth={tileWidth}
+            tileHeight={tileHeight}
             onSelect={onSelect}
           />
         ))}
@@ -191,7 +198,7 @@ const styles = StyleSheet.create({
     gap: GAP,
   },
   tile: {
-    aspectRatio: 1 / 1.18,
+    // height set inline per-instance — see TileCardProps.tileHeight
     borderRadius: 14,
     overflow: 'hidden',
     position: 'relative',

@@ -39,6 +39,12 @@ export interface UseMoltenPhaseResult {
   // Live temp passthrough
   tempF: number;
   peakF: number;
+  /**
+   * Duration of the most recent window phase (window-entry → dabbing-entry),
+   * captured at the moment the user starts the dab. Null until the first
+   * window→dabbing transition of the current session; reset on cold / presets.
+   */
+  windowDurationMs: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +119,10 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
 
   // Velocity tracking for window → dabbing
   const velocityRef = useRef<{ lastT: number; lastF: number } | null>(null);
+
+  // Window-phase duration capture: timestamp on window entry, snapshot on dabbing entry.
+  const windowEntryTsRef = useRef<number | null>(null);
+  const [windowDurationMs, setWindowDurationMs] = useState<number | null>(null);
 
   // Timers that need cleanup
   const connectedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -244,6 +254,30 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
       ringRef.current = [];
     }
   }, [phase]);
+
+  // Window-duration capture: stamp on window entry (also resetting the
+  // captured duration so the next dabbing transition writes a fresh value),
+  // snapshot on dabbing entry, clear on cold/presets. The `windowDurationMs
+  // === null` guard inside the dabbing branch makes the snapshot idempotent
+  // across StrictMode double-invokes; the window-entry reset means it works
+  // correctly across "Again" sessions (complete → ready → heating → window
+  // → dabbing) without bouncing through cold or presets.
+  useEffect(() => {
+    if (phase === 'window') {
+      windowEntryTsRef.current = Date.now();
+      setWindowDurationMs(null);
+    } else if (
+      phase === 'dabbing' &&
+      windowEntryTsRef.current !== null &&
+      windowDurationMs === null
+    ) {
+      setWindowDurationMs(Date.now() - windowEntryTsRef.current);
+      windowEntryTsRef.current = null;
+    } else if (phase === 'cold' || phase === 'presets') {
+      windowEntryTsRef.current = null;
+      setWindowDurationMs(null);
+    }
+  }, [phase, windowDurationMs]);
 
   // ---------------------------------------------------------------------------
   // 5. window → dabbing (velocity < -50°F/s)
@@ -452,5 +486,6 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
     isSessionPhase,
     tempF,
     peakF,
+    windowDurationMs,
   };
 }

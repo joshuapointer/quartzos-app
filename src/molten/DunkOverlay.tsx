@@ -1,6 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import Animated, {
+  cancelAnimation,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { colors, fonts } from '../design/tokens';
 import { PrismEdge } from '../design/components/molten/PrismEdge';
 
@@ -21,6 +30,33 @@ function ChromaDot() {
       <View style={styles.dotMagenta} />
       <View style={styles.dotCore} />
     </View>
+  );
+}
+
+// ─── PrismDriftBorder ────────────────────────────────────────────────────────
+// Wraps PrismEdge in a slow opacity drift, mirroring the prototype
+// `.dunk-stamp::before` rule (HTML lines 880-889): `prism-drift 5s
+// ease-in-out infinite`. RN can't drift a CSS background-position, so we
+// breathe the chromatic edge between 0.55 ↔ 1.0 over the same 5 s window.
+
+function PrismDriftBorder() {
+  const op = useSharedValue(0.55);
+  useEffect(() => {
+    op.value = withRepeat(
+      withSequence(
+        withTiming(1,    { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.55, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(op);
+  }, [op]);
+  const animStyle = useAnimatedStyle(() => ({ opacity: op.value }));
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, animStyle]} pointerEvents="none">
+      <PrismEdge radius={100} strokeWidth={0.75} />
+    </Animated.View>
   );
 }
 
@@ -47,7 +83,7 @@ export const DunkOverlay = React.memo(function DunkOverlay({
       <View style={styles.stampWrap}>
         <BlurView intensity={18} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, styles.glassFill]} pointerEvents="none" />
-        <PrismEdge radius={100} strokeWidth={0.75} />
+        <PrismDriftBorder />
 
         <View style={styles.stampInner}>
           <ChromaDot />

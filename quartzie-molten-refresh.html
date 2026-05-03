@@ -1,0 +1,2611 @@
+
+<!doctype html>
+<html lang="en">
+<head><script>(function(){
+  function makeStore(){
+    var data = {};
+    var api = {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+      setItem: function(k, v){ data[k] = String(v); },
+      removeItem: function(k){ delete data[k]; },
+      clear: function(){ data = {}; },
+      key: function(i){ return Object.keys(data)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function(){ return Object.keys(data).length; } });
+    return api;
+  }
+  function tryShim(name){
+    var works = false;
+    try { works = !!window[name] && typeof window[name].getItem === 'function'; void window[name].length; }
+    catch (_) { works = false; }
+    if (works) return;
+    try { Object.defineProperty(window, name, { configurable: true, value: makeStore() }); }
+    catch (_) { try { window[name] = makeStore(); } catch (__) {} }
+  }
+  tryShim('localStorage');
+  tryShim('sessionStorage');
+})();</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quartzie — Molten refresh</title>
+<template id="__bundler_thumbnail" data-bg-color="#06080a">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="t-orb" cx="42%" cy="38%" r="70%">
+        <stop offset="0%"   stop-color="oklch(0.96 0.05 220)"/>
+        <stop offset="38%"  stop-color="oklch(0.74 0.10 215)"/>
+        <stop offset="80%"  stop-color="oklch(0.36 0.10 270)"/>
+        <stop offset="100%" stop-color="oklch(0.16 0.06 250)"/>
+      </radialGradient>
+      <radialGradient id="t-glow" cx="50%" cy="50%" r="60%">
+        <stop offset="0%"   stop-color="oklch(0.78 0.14 240 / 0.55)"/>
+        <stop offset="100%" stop-color="oklch(0.55 0.18 270 / 0)"/>
+      </radialGradient>
+      <linearGradient id="t-iris" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="oklch(0.86 0.16 200 / 0)"/>
+        <stop offset="50%"  stop-color="oklch(0.78 0.18 290 / 0.40)"/>
+        <stop offset="100%" stop-color="oklch(0.74 0.20 330 / 0)"/>
+      </linearGradient>
+    </defs>
+    <rect width="1200" height="800" fill="#06080a"/>
+    <circle cx="600" cy="430" r="320" fill="url(#t-glow)"/>
+    <ellipse cx="600" cy="430" rx="220" ry="208" fill="url(#t-orb)"/>
+    <ellipse cx="600" cy="430" rx="220" ry="208" fill="url(#t-iris)" opacity="0.7"/>
+    <text x="600" y="190" font-family="serif" font-size="56" font-style="italic" fill="#e6ecf2" text-anchor="middle">Quartzie</text>
+    <text x="600" y="710" font-family="ui-monospace,monospace" font-size="22" fill="#7a8a9c" letter-spacing="6" text-anchor="middle">CHROMATIC · 480°F · WINDOW</text>
+  </svg>
+</template>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:        oklch(0.08 0.012 250);
+    --bg-haze:   oklch(0.14 0.020 245);
+    --surface:   oklch(0.13 0.018 245);
+    --surface-2: oklch(0.18 0.022 245);
+    --border:    oklch(0.28 0.022 240);
+    --border-soft: oklch(0.22 0.020 240);
+
+    --bone-100: oklch(0.97 0.012 230);
+    --bone-80:  oklch(0.88 0.012 230);
+    --bone-60:  oklch(0.78 0.010 230);
+    --bone-40:  oklch(0.64 0.010 235);
+    --bone-25:  oklch(0.48 0.010 240);
+
+    /* Chromatic / glass palette — UI accent (orb keeps the warmth, chrome goes prismatic) */
+    --prism-c:       oklch(0.84 0.12 200);   /* cyan */
+    --prism-m:       oklch(0.78 0.18 320);   /* magenta */
+    --prism-y:       oklch(0.90 0.14 95);    /* gold-yellow (carrier of warmth without orange) */
+    --prism-c-soft:  oklch(0.84 0.12 200 / 0.55);
+    --prism-m-soft:  oklch(0.78 0.18 320 / 0.55);
+    --prism-y-soft:  oklch(0.90 0.14 95 / 0.55);
+
+    --glass-thin:        oklch(0.99 0.005 240 / 0.04);
+    --glass-thick:       oklch(0.99 0.005 240 / 0.08);
+    --glass-pane:        oklch(0.99 0.005 240 / 0.05);
+    --glass-edge:        oklch(0.99 0.005 240 / 0.16);
+    --glass-edge-strong: oklch(0.99 0.005 240 / 0.32);
+
+    --cool: oklch(0.62 0.10 220);
+
+    --serif: 'Instrument Serif', 'Iowan Old Style', 'Charter', Georgia, serif;
+    --sans:  'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --mono:  'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+    --ease-spring:   cubic-bezier(0.22, 1.4, 0.36, 1);
+    --ease-quartz:   cubic-bezier(0.16, 0.84, 0.24, 1);
+    --ease-mercury:  cubic-bezier(0.7, 0, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { background: #050403; }
+  body {
+    min-height: 100vh;
+    color: var(--bone-100);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background:
+      radial-gradient(ellipse at 28% 18%, oklch(0.14 0.05 220 / 0.40), transparent 55%),
+      radial-gradient(ellipse at 78% 85%, oklch(0.13 0.06 320 / 0.35), transparent 60%),
+      radial-gradient(ellipse at 52% 50%, oklch(0.10 0.020 270 / 0.32), transparent 70%),
+      #060507;
+    display: grid;
+    grid-template-columns: 1fr;
+    place-items: center;
+    padding: 48px 16px 96px;
+    gap: 32px;
+    overflow-x: hidden;
+  }
+
+  button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; padding: 0; }
+  button:focus-visible { outline: 1px solid var(--prism-c); outline-offset: 3px; }
+
+  /* Chromatic + glass utilities */
+  @keyframes prism-drift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .prism-edge {
+    position: relative;
+  }
+  .prism-edge::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit;
+    padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    animation: prism-drift 9s ease-in-out infinite;
+  }
+  .glass {
+    background: var(--glass-pane);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 0.5px solid var(--glass-edge);
+  }
+  .chromatic-text {
+    text-shadow:
+      -0.6px 0 0 var(--prism-c-soft),
+       0.6px 0 0 var(--prism-m-soft);
+  }
+
+  .mast { text-align: center; color: var(--bone-60); max-width: 560px; line-height: 1.45; }
+  .mast h1 { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--bone-100); font-size: 40px; letter-spacing: -0.01em; margin: 0 0 8px; }
+  .mast .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--prism-c); margin-bottom: 18px; }
+  .mast .eyebrow .pm { color: var(--prism-m); }
+  .mast p { font-size: 13.5px; margin: 0; }
+
+  .iphone {
+    width: 390px; height: 844px; border-radius: 56px;
+    background: linear-gradient(155deg, #1c1916 0%, #0a0908 50%, #1a1714 100%);
+    padding: 9px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 0 0 2px oklch(0.36 0.018 240 / 0.5),
+      0 0 0 3px rgba(0,0,0,0.8),
+      0 60px 120px -30px rgba(0,0,0,0.8),
+      0 0 160px oklch(0.84 0.10 200 / 0.07),
+      0 0 220px oklch(0.78 0.14 320 / 0.07);
+    position: relative; flex-shrink: 0;
+  }
+  .iphone::before {
+    content: ''; position: absolute; inset: -1px; border-radius: 57px;
+    background: linear-gradient(155deg, oklch(0.60 0.018 230) 0%, transparent 30%, transparent 70%, oklch(0.45 0.018 245) 100%);
+    opacity: 0.30; pointer-events: none; z-index: -1;
+  }
+  .screen { width: 100%; height: 100%; border-radius: 48px; background: var(--bg); overflow: hidden; position: relative; isolation: isolate; }
+  /* Static iPhone notch — never expands, never carries app data (the OS owns the island, not the app) */
+  .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 126px; height: 37px; background: #000; border-radius: 19px; z-index: 50; pointer-events: none; }
+
+  /* Status chip — app-owned status sits at the bottom, above the home indicator. Glass + chromatic gem. */
+  .status-chip {
+    position: absolute;
+    left: 50%; bottom: 26px;
+    transform: translateX(-50%);
+    z-index: 45;
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 7px 14px 7px 12px;
+    border-radius: 16px;
+    background: oklch(0.99 0.005 240 / 0.05);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 0.5px solid var(--glass-edge);
+    box-shadow: 0 8px 28px oklch(0% 0 0 / 0.35);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.20em;
+    text-transform: uppercase; color: var(--bone-60);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+    transition: opacity 380ms var(--ease-quartz), transform 380ms var(--ease-quartz);
+    pointer-events: none;
+    max-width: calc(100% - 32px);
+  }
+  .status-chip[data-show="true"] { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .status-chip .gem {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--bone-100);
+    box-shadow:
+      -1.5px 0 0 oklch(0.84 0.12 200 / 0.85),
+       1.5px 0 0 oklch(0.78 0.18 320 / 0.85),
+       0 0 8px oklch(0.99 0.005 240 / 0.4);
+    animation: chip-gem-pulse 1.8s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .status-chip .em { color: var(--bone-100); letter-spacing: 0.18em; }
+  .status-chip .sep { color: var(--bone-25); margin: 0 1px; }
+  @keyframes chip-gem-pulse { 0%,100%{ opacity:0.85; } 50%{ opacity:1; } }
+
+  .status-bar { position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 18px 32px 0; z-index: 40; pointer-events: none; font-family: var(--sans); font-weight: 600; font-size: 16px; color: var(--bone-100); letter-spacing: -0.01em; }
+  .status-right { display: flex; align-items: center; gap: 6px; }
+  .status-icon { width: 16px; height: 11px; }
+
+  .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--bone-100); opacity: 0.92; z-index: 50; }
+
+  .orb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+
+  .overlay { position: absolute; inset: 0; z-index: 20; display: grid; grid-template-rows: 60px 1fr 80px; pointer-events: none; }
+  .overlay button, .overlay .picker, .overlay .carousel-track, .overlay .banger-card,
+  .overlay .tile-grid, .overlay .tile-card, .overlay .carousel-dot,
+  .overlay .preset-row, .overlay .preset-card,
+  .overlay .drag-zone, .overlay .recap, .overlay .orb-grab,
+  .overlay .copy-stack, .overlay .mic-pad, .overlay .profile-chip, .overlay .tap-hint,
+  .overlay .complete-pair, .overlay .complete-card, .overlay .swab-stage, .overlay .dunk-stage { pointer-events: auto; }
+
+  .top-region, .center-region, .bottom-region { pointer-events: none; }
+  .top-region { grid-row: 1; padding: 10px 28px 0; display: flex; align-items: center; justify-content: center; }
+  .center-region { grid-row: 2; position: relative; padding: 0 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  /* bottom region rides above the status chip + home indicator (chip lives at bottom: 26px, height ~28px) */
+  .bottom-region { grid-row: 3; padding: 0 24px 76px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 10px; }
+  .bottom-region.no-chip { padding-bottom: 44px; }
+
+  .eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bone-40); line-height: 1; }
+  .display { font-family: var(--serif); font-style: italic; font-weight: 400; font-variant-numeric: lining-nums; letter-spacing: -0.015em; color: var(--bone-100); }
+  .micro { font-family: var(--mono); font-size: 10px; letter-spacing: 0.10em; color: var(--bone-60); text-transform: uppercase; }
+  .body { font-family: var(--sans); color: var(--bone-80); font-size: 14px; line-height: 1.5; }
+
+  .fx-fade { transition: opacity 420ms var(--ease-quartz), transform 420ms var(--ease-quartz); }
+  .fx-fade[data-show="false"] { opacity: 0; transform: translateY(8px); pointer-events: none; }
+
+  /* Tap-to-wake hint (replaces the connect pill button) */
+  .tap-hint {
+    margin-top: 26px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--bone-60);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+    user-select: none;
+    animation: hint-breathe 2.8s ease-in-out infinite;
+  }
+  .tap-hint .pip {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--bone-100);
+    box-shadow:
+      -2px 0 0 oklch(0.84 0.12 200 / 0.65),
+       2px 0 0 oklch(0.78 0.18 320 / 0.65);
+  }
+  @keyframes hint-breathe { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  .copy-stack { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 18px; max-width: 280px; }
+  .copy-stack .h-eyebrow { color: var(--prism-c); }
+  .copy-stack .h-line { font-family: var(--serif); font-style: italic; font-size: 26px; line-height: 1.18; color: var(--bone-100); letter-spacing: -0.01em; }
+  .copy-stack .h-sub { font-family: var(--sans); font-size: 13px; line-height: 1.45; color: var(--bone-60); }
+  .eyebrow .em { color: var(--prism-c); }
+
+  /* Picker shell — shared by carousel + tile grid + presets */
+  .picker {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 60%;
+    display: flex; flex-direction: column;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      oklch(0.07 0.014 250 / 0.30) 4%,
+      oklch(0.06 0.012 250 / 0.55) 24%,
+      oklch(0.05 0.010 248 / 0.78) 100%);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    box-shadow: 0 -0.5px 0 var(--glass-edge);
+  }
+  .picker-bottom-fade {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 24px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, oklch(0.05 0.010 248 / 0.85));
+  }
+  .picker-head { padding: 16px 26px 8px; display: flex; align-items: baseline; justify-content: space-between; }
+  .picker-head .head-title { font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--bone-100); letter-spacing: -0.01em; }
+  .picker-head .head-meta { font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--bone-40); }
+
+  /* Banger horizontal carousel */
+  .carousel-frame { position: relative; flex: 1; min-height: 0; }
+  .carousel-frame::before, .carousel-frame::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 28px; z-index: 2; pointer-events: none;
+  }
+  .carousel-frame::before { left: 0;  background: linear-gradient(90deg, oklch(0.06 0.012 248 / 0.85), transparent); }
+  .carousel-frame::after  { right: 0; background: linear-gradient(270deg, oklch(0.06 0.012 248 / 0.85), transparent); }
+
+  .carousel-track {
+    display: flex; gap: 12px;
+    padding: 8px 24px 6px;
+    height: 100%;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+  .carousel-track::-webkit-scrollbar { display: none; }
+
+  .banger-card {
+    flex: 0 0 184px;
+    scroll-snap-align: center;
+    background: var(--glass-pane);
+    border: 0.5px solid var(--glass-edge);
+    border-radius: 18px;
+    padding: 10px 12px 14px;
+    display: flex; flex-direction: column;
+    text-align: center;
+    cursor: pointer; color: inherit;
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    transition: transform 320ms var(--ease-spring), border-color 220ms, background 220ms, box-shadow 320ms;
+    position: relative;
+  }
+  .banger-card:hover { border-color: var(--glass-edge-strong); transform: translateY(-2px); background: var(--glass-thick); }
+  .banger-card[data-active="true"] {
+    background: oklch(0.99 0.005 240 / 0.10);
+    border-color: transparent;
+    box-shadow:
+      0 0 0 0.5px oklch(0.84 0.12 200 / 0.50),
+      0 0 28px oklch(0.84 0.12 200 / 0.18),
+      0 0 28px oklch(0.78 0.18 320 / 0.18);
+  }
+  .banger-card[data-active="true"]::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    animation: prism-drift 9s ease-in-out infinite;
+  }
+  .banger-photo {
+    width: 100%; aspect-ratio: 1 / 1.02;
+    background:
+      radial-gradient(ellipse at 50% 60%, oklch(0.20 0.012 240 / 0.45) 0%, transparent 62%),
+      radial-gradient(ellipse at 50% 30%, oklch(0.16 0.012 240 / 0.30) 0%, transparent 70%);
+    border-radius: 12px;
+    display: grid; place-items: center;
+    margin-bottom: 10px;
+    position: relative; overflow: hidden;
+  }
+  .banger-photo::after {
+    content: ''; position: absolute; left: 14%; right: 14%; bottom: 6%; height: 6px;
+    background: radial-gradient(ellipse at center, oklch(0% 0 0 / 0.65) 0%, transparent 70%);
+    filter: blur(2px);
+  }
+  .banger-photo img {
+    max-width: 86%; max-height: 86%; object-fit: contain;
+    filter:
+      drop-shadow(0 8px 14px oklch(0% 0 0 / 0.55))
+      drop-shadow(0 0 14px oklch(0.84 0.10 240 / 0.12));
+    transition: transform 360ms var(--ease-spring), filter 360ms;
+    -webkit-user-drag: none; user-select: none; pointer-events: none;
+  }
+  .banger-card[data-active="true"] .banger-photo img {
+    transform: scale(1.06);
+    filter:
+      drop-shadow(0 10px 18px oklch(0% 0 0 / 0.6))
+      drop-shadow(0 0 18px oklch(0.84 0.12 200 / 0.45))
+      drop-shadow(0 0 24px oklch(0.78 0.18 320 / 0.35));
+  }
+  .banger-card .b-name {
+    font-family: var(--serif); font-style: italic; font-size: 18px;
+    color: var(--bone-100); letter-spacing: -0.01em; line-height: 1.05; margin-bottom: 5px;
+  }
+  .banger-card .b-sub {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--bone-40); margin-bottom: 8px; line-height: 1.3;
+    min-height: 22px;
+  }
+  .banger-card .b-temp {
+    font-family: var(--serif); font-style: italic; font-size: 16px;
+    color: var(--bone-80); letter-spacing: -0.01em;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+  .banger-card[data-active="true"] .b-temp { color: var(--bone-100); }
+  .banger-card .b-temp .deg { font-size: 10px; color: var(--bone-40); margin-left: 1px; }
+
+  /* Pip indicator (replaces the pill-on-active dot) — refractive bar */
+  .carousel-dots {
+    display: flex; gap: 7px; justify-content: center; align-items: center;
+    padding: 8px 0 14px;
+    min-height: 14px;
+  }
+  .carousel-dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: oklch(0.99 0.005 240 / 0.18);
+    border: 0; cursor: pointer; padding: 0;
+    transition: width 280ms var(--ease-spring), height 280ms var(--ease-spring), background 220ms, box-shadow 280ms;
+  }
+  .carousel-dot[data-active="true"] {
+    width: 6px; height: 6px;
+    background: var(--bone-100);
+    box-shadow:
+      -2px 0 0 oklch(0.84 0.12 200 / 0.65),
+       2px 0 0 oklch(0.78 0.18 320 / 0.65);
+  }
+
+  /* Concentrate tile grid */
+  .tile-grid {
+    flex: 1; min-height: 0;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 6px 18px 18px;
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .tile-grid::-webkit-scrollbar { display: none; }
+  .tile-card {
+    position: relative;
+    aspect-ratio: 1 / 1.18;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer; padding: 0;
+    background: var(--surface);
+    border: 0.5px solid var(--glass-edge);
+    transition: transform 280ms var(--ease-spring), border-color 220ms, box-shadow 280ms;
+    color: inherit; text-align: left;
+  }
+  .tile-card:hover { border-color: var(--glass-edge-strong); transform: translateY(-2px); }
+  .tile-card[data-active="true"] {
+    border-color: transparent;
+    box-shadow:
+      0 0 0 0.5px oklch(0.84 0.12 200 / 0.55),
+      0 0 22px oklch(0.84 0.12 200 / 0.20),
+      0 0 22px oklch(0.78 0.18 320 / 0.20);
+  }
+  .tile-card[data-active="true"]::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    z-index: 3;
+    animation: prism-drift 9s ease-in-out infinite;
+  }
+  .tile-photo {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    transition: transform 360ms var(--ease-spring), filter 360ms;
+    filter: saturate(0.96) contrast(1.02);
+  }
+  .tile-card[data-active="true"] .tile-photo { transform: scale(1.06); filter: saturate(1.08) contrast(1.04); }
+  .tile-shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, oklch(0% 0 0 / 0) 32%, oklch(0% 0 0 / 0.78) 100%);
+    pointer-events: none;
+  }
+  .tile-meta {
+    position: absolute; left: 8px; right: 8px; bottom: 7px;
+    display: flex; flex-direction: column; gap: 2px;
+    pointer-events: none;
+  }
+  .tile-name {
+    font-family: var(--serif); font-style: italic; font-size: 13.5px;
+    color: var(--bone-100); line-height: 1.05; letter-spacing: -0.01em;
+    text-shadow: 0 1px 4px oklch(0% 0 0 / 0.7);
+  }
+  .tile-temp {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--bone-60);
+    text-shadow: 0 1px 3px oklch(0% 0 0 / 0.7);
+  }
+  .tile-temp .em { color: var(--prism-c); text-shadow: 0 1px 3px oklch(0% 0 0 / 0.7); }
+  /* Active glyph: chromatic chevron tucked top-right */
+  .tile-check {
+    position: absolute; top: 7px; right: 7px;
+    width: 14px; height: 14px;
+    opacity: 0; transform: scale(0.5);
+    transition: opacity 220ms, transform 280ms var(--ease-spring);
+    pointer-events: none;
+    z-index: 4;
+  }
+  .tile-check::before, .tile-check::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--prism-c), var(--prism-m), var(--prism-y));
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M2.5 7.6 L6 11 L11.5 4.5' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M2.5 7.6 L6 11 L11.5 4.5' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+  }
+  .tile-check::after { filter: blur(2px); opacity: 0.85; }
+  .tile-card[data-active="true"] .tile-check { opacity: 1; transform: scale(1); }
+
+  /* Preset row — saved sessions returned to the user. Glass capsules with chromatic edges, no pills. */
+  .preset-row {
+    flex: 0 0 auto;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px 18px 4px;
+  }
+  .preset-card {
+    position: relative;
+    aspect-ratio: 1 / 1.32;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--glass-pane);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 0.5px solid var(--glass-edge);
+    cursor: pointer; padding: 0; color: inherit;
+    transition: transform 280ms var(--ease-spring), border-color 220ms, box-shadow 280ms;
+    text-align: center;
+  }
+  .preset-card:hover { transform: translateY(-2px); border-color: var(--glass-edge-strong); }
+  .preset-card[data-active="true"]::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    animation: prism-drift 9s ease-in-out infinite;
+  }
+  .preset-bg {
+    position: absolute; left: 0; right: 0; top: 0; height: 60%;
+    background-size: cover; background-position: center;
+    filter: saturate(0.92) contrast(1.02);
+  }
+  .preset-bg::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, oklch(0% 0 0 / 0.10) 0%, oklch(0.06 0.010 240 / 0.95) 100%);
+  }
+  .preset-meta {
+    position: absolute; left: 6px; right: 6px; bottom: 6px;
+    display: flex; flex-direction: column; gap: 2px;
+    text-align: left;
+  }
+  .preset-name {
+    font-family: var(--serif); font-style: italic; font-size: 12.5px;
+    color: var(--bone-100); line-height: 1.05; letter-spacing: -0.01em;
+  }
+  .preset-banger {
+    font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--bone-40); line-height: 1.2;
+  }
+  .preset-temp {
+    font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.10em;
+    color: var(--prism-c);
+  }
+
+  /* Build-fresh card — a glass tile with a chromatic plus mark instead of a button */
+  .preset-fresh {
+    background: oklch(0.99 0.005 240 / 0.02);
+    display: grid; place-items: center;
+    align-content: center; gap: 6px;
+    color: var(--bone-60);
+    padding: 8px 6px;
+  }
+  .preset-fresh .plus {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--prism-c), var(--prism-m), var(--prism-y));
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><line x1='11' y1='4' x2='11' y2='18' stroke='black' stroke-width='1.4' stroke-linecap='round'/><line x1='4' y1='11' x2='18' y2='11' stroke='black' stroke-width='1.4' stroke-linecap='round'/></svg>") center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><line x1='11' y1='4' x2='11' y2='18' stroke='black' stroke-width='1.4' stroke-linecap='round'/><line x1='4' y1='11' x2='18' y2='11' stroke='black' stroke-width='1.4' stroke-linecap='round'/></svg>") center / contain no-repeat;
+  }
+  .preset-fresh .lbl {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* Recents header lets the eye land before scanning chips */
+  .preset-hint {
+    margin: 0 24px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.20em;
+    text-transform: uppercase; color: var(--bone-40);
+  }
+  .preset-hint .em { color: var(--bone-60); }
+
+  .heat-readout { position: absolute; top: 88px; left: 0; right: 0; text-align: center; pointer-events: none; }
+  .heat-readout .num { font-family: var(--serif); font-style: italic; font-size: 96px; line-height: 1; letter-spacing: -0.04em; color: var(--bone-100); font-feature-settings: 'tnum' 1, 'lnum' 1; }
+  .heat-readout .deg { font-family: var(--serif); font-style: italic; font-size: 36px; color: var(--bone-60); margin-left: 4px; vertical-align: top; line-height: 1; margin-top: 12px; display: inline-block; }
+
+  /* Torch countdown — circular ring around the temp readout that drains from full to empty over the recommended torch duration.
+     The ring is a thin chromatic stroke; the timer numerals sit beneath the temp.
+     When the ring hits 0:00, it rests quietly (no overrun) and waits for cooldown. */
+  .torch-frame {
+    position: absolute; top: 88px; left: 50%;
+    transform: translateX(-50%);
+    width: 320px; height: 200px;
+    pointer-events: none;
+  }
+  .torch-frame svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .torch-frame .torch-readout {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .torch-frame .torch-num {
+    font-family: var(--serif); font-style: italic;
+    font-size: 96px; line-height: 1; letter-spacing: -0.04em;
+    color: var(--bone-100); font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+  .torch-frame .torch-deg {
+    font-family: var(--serif); font-style: italic;
+    font-size: 32px; color: var(--bone-60); line-height: 1;
+    position: absolute; top: 16px; left: 65%;
+  }
+  .torch-frame .torch-timer {
+    margin-top: 6px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--bone-40);
+    font-variant-numeric: tabular-nums;
+  }
+  .torch-frame .torch-timer .em {
+    color: var(--bone-100);
+    text-shadow:
+      -0.5px 0 0 oklch(0.84 0.12 200 / 0.55),
+       0.5px 0 0 oklch(0.78 0.18 320 / 0.55);
+  }
+  .torch-frame .torch-timer.done .em { color: var(--bone-40); text-shadow: none; }
+
+  .mic-pad { display: flex; align-items: center; gap: 9px; color: var(--bone-60); font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .mic-bars { display: flex; align-items: end; gap: 2.5px; height: 14px; }
+  .mic-bars span { width: 2.5px; background: var(--bone-25); border-radius: 2px; animation: mic-flick 1.4s ease-in-out infinite; }
+  .mic-bars span:nth-child(1){ height: 30%; animation-delay: 0s; }
+  .mic-bars span:nth-child(2){ height: 70%; animation-delay: 0.15s; }
+  .mic-bars span:nth-child(3){ height: 100%; animation-delay: 0.30s; }
+  .mic-bars span:nth-child(4){ height: 60%; animation-delay: 0.45s; }
+  .mic-bars span:nth-child(5){ height: 40%; animation-delay: 0.60s; }
+  .mic-bars.live span:nth-child(1){ background: var(--prism-c); }
+  .mic-bars.live span:nth-child(2){ background: var(--prism-c); }
+  .mic-bars.live span:nth-child(3){ background: var(--bone-100); }
+  .mic-bars.live span:nth-child(4){ background: var(--prism-m); }
+  .mic-bars.live span:nth-child(5){ background: var(--prism-m); }
+  @keyframes mic-flick { 0%,100%{ opacity:0.4;} 50%{ opacity:1;} }
+
+  .session-stack { position: absolute; top: 78px; left: 0; right: 0; text-align: center; pointer-events: none; }
+  .session-numbers { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin-bottom: 8px; }
+  .session-numbers .now { font-family: var(--serif); font-style: italic; font-size: 96px; line-height: 1; letter-spacing: -0.04em; color: var(--bone-100); font-variant-numeric: tabular-nums; }
+  .session-numbers .now-deg { font-family: var(--serif); font-style: italic; font-size: 36px; color: var(--bone-60); line-height: 1; margin-top: 12px; align-self: flex-start; }
+  .session-meta { display: flex; gap: 14px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; color: var(--bone-40); text-transform: uppercase; justify-content: center; }
+  .session-meta .bar { color: var(--bone-25); }
+  .session-meta .em { color: var(--prism-c); }
+
+  /* Spectrum bar — celebrates the window-open moment with a flowing prism band */
+  .spectrum {
+    width: 220px; height: 2px; margin: 14px auto 0;
+    border-radius: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--prism-c) 18%,
+      var(--prism-m) 50%,
+      var(--prism-y) 82%,
+      transparent 100%);
+    background-size: 240% 100%;
+    animation: prism-drift 4s ease-in-out infinite;
+    box-shadow:
+      0 0 8px oklch(0.84 0.12 200 / 0.45),
+      0 0 12px oklch(0.78 0.18 320 / 0.30);
+  }
+
+  /* Orb-grab — invisible hit-region around the orb for the complete-phase gesture */
+  .orb-grab {
+    position: absolute; left: 50%; top: 320px; transform: translate(-50%, -50%);
+    width: 240px; height: 240px; border-radius: 50%;
+    background: transparent; cursor: grab;
+    touch-action: none;
+  }
+  .orb-grab:active { cursor: grabbing; }
+
+  /* Gesture-rails for complete phase — a glass arc above the orb (UP = again) and a glass arc below (DOWN = save) */
+  .gesture-rail {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 240px; padding: 9px 16px;
+    border-radius: 18px;
+    background: var(--glass-thin);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 0.5px solid var(--glass-edge);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.20em; text-transform: uppercase;
+    color: var(--bone-60);
+    pointer-events: none;
+    transition: opacity 240ms, transform 320ms var(--ease-spring), border-color 240ms;
+  }
+  .gesture-rail.up   { top: 110px; }
+  .gesture-rail.down { top: 540px; }
+  .gesture-rail .arrow { font-size: 12px; line-height: 1; }
+  .gesture-rail.up .arrow   { color: var(--prism-m); }
+  .gesture-rail.down .arrow { color: var(--prism-c); }
+  .gesture-rail[data-armed="true"] {
+    border-color: var(--glass-edge-strong);
+    color: var(--bone-100);
+    transform: translateX(-50%) scale(1.04);
+  }
+
+  /* Drag-zone — replaced from a pill-shaped border with a hairline glass plate.
+     Not a button: a sustained-press surface with a ribbon hint and a chromatic spectrum bar that fills as you pull. */
+  .drag-zone {
+    position: absolute; bottom: 18px; left: 22px; right: 22px; height: 56px;
+    border-radius: 18px;
+    background: var(--glass-thin);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 0.5px solid var(--glass-edge);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bone-60);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.20em; text-transform: uppercase;
+    transition: border-color 240ms, color 240ms, background 240ms;
+    user-select: none; touch-action: none;
+    overflow: hidden;
+  }
+  .drag-zone::before {
+    content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1.5px;
+    background: linear-gradient(90deg, var(--prism-c), var(--prism-m), var(--prism-y));
+    background-size: 200% 100%;
+    transform: scaleX(var(--armed, 0)); transform-origin: left;
+    transition: transform 240ms var(--ease-quartz);
+    animation: prism-drift 6s ease-in-out infinite;
+  }
+  .drag-zone[data-armed="true"] {
+    --armed: 1;
+    color: var(--bone-100);
+    border-color: var(--glass-edge-strong);
+    background: var(--glass-thick);
+  }
+  .drag-zone .arrow { margin-right: 10px; display: inline-block; transform: translateY(-1px); color: var(--prism-c); }
+  .drag-zone[data-armed="true"] .arrow { color: var(--bone-100); }
+  .drag-zone .arrow.pulse { animation: arrow-pulse 1.6s ease-in-out infinite; }
+  @keyframes arrow-pulse { 0%,100%{ transform:translateY(-1px); opacity:0.7;} 50%{ transform:translateY(-5px); opacity:1;} }
+
+  /* Recap — single-line stat strip. Glanceable, no clipping. Gesture rails handle save/again. */
+  .recap {
+    display: inline-flex; align-items: baseline; gap: 0;
+    padding: 0;
+    color: var(--bone-60);
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .recap .val { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--bone-100); letter-spacing: -0.01em; text-transform: none; }
+  .recap .sep { color: var(--glass-edge-strong); margin: 0 10px; }
+  .recap .lbl { color: var(--bone-40); margin-right: 8px; }
+
+  /* Swab stage — Q-tip moment when banger has cooled to the safe-swab range (250–300°F) */
+  .swab-stage {
+    position: absolute; top: 88px; left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    pointer-events: none;
+  }
+  .swab-stage .s-row, .dunk-stage .d-row {
+    display: inline-flex; align-items: baseline; gap: 4px;
+    line-height: 1;
+  }
+  .swab-stage .s-num {
+    font-family: var(--serif); font-style: italic;
+    font-size: 88px; line-height: 1; letter-spacing: -0.04em;
+    color: var(--bone-100); font-variant-numeric: tabular-nums;
+  }
+  .swab-stage .s-row .deg, .dunk-stage .d-row .deg {
+    font-family: var(--serif); font-style: italic;
+    font-size: 32px; color: var(--bone-60); line-height: 1;
+    align-self: flex-start; margin-top: 12px;
+  }
+  .swab-stage .s-meta {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--bone-40);
+  }
+  .swab-stage .s-meta .em { color: var(--bone-100); }
+
+  .qtip-callout {
+    margin-top: 6px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 22px 14px 18px;
+    border-radius: 22px;
+    background: oklch(0.99 0.005 240 / 0.06);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    position: relative;
+    box-shadow:
+      0 10px 30px oklch(0% 0 0 / 0.35),
+      inset 0 0 0 0.5px var(--glass-edge-strong);
+    transition: opacity 240ms, transform 240ms var(--ease-spring);
+  }
+  .qtip-callout::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    animation: prism-drift 7s ease-in-out infinite;
+  }
+  .qtip-callout .qtip-anim {
+    width: 56px; height: 64px;
+    position: relative; flex-shrink: 0;
+  }
+  .qtip-callout .qtip-anim svg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    overflow: visible;
+  }
+  .qtip-callout .qtip-swing {
+    transform-origin: 28px 6px;
+    animation: qtip-twirl 2.4s ease-in-out infinite;
+  }
+  .qtip-callout .q-puddle {
+    position: absolute; left: 50%; bottom: 4px;
+    width: 30px; height: 2px;
+    background: linear-gradient(90deg, var(--prism-c-soft), var(--prism-m-soft), var(--prism-y-soft));
+    background-size: 200% 100%;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    animation: prism-drift 3s ease-in-out infinite;
+    opacity: 0.75;
+    z-index: 0;
+  }
+  @keyframes qtip-twirl {
+    0%, 100% { transform: rotate(-14deg); }
+    50%      { transform: rotate(14deg); }
+  }
+  .qtip-callout .q-copy {
+    display: flex; flex-direction: column; gap: 4px; text-align: left;
+  }
+  .qtip-callout .q-line {
+    font-family: var(--serif); font-style: italic; font-size: 24px;
+    color: var(--bone-100); letter-spacing: -0.01em; line-height: 1;
+  }
+  .qtip-callout .q-sub {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--bone-60);
+  }
+  .qtip-callout .q-sub .em { color: var(--prism-c); }
+
+  /* Dunk-safe stage — chromatic confirmation that the banger has cooled below the iso-dunk threshold */
+  .dunk-stage {
+    position: absolute; top: 88px; left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    pointer-events: none;
+  }
+  .dunk-stage .d-num {
+    font-family: var(--serif); font-style: italic;
+    font-size: 88px; line-height: 1; letter-spacing: -0.04em;
+    color: var(--bone-100); font-variant-numeric: tabular-nums;
+  }
+  .dunk-stamp {
+    margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 10px 18px;
+    border-radius: 100px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--bone-100);
+    background: oklch(0.99 0.005 240 / 0.05);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    position: relative;
+    text-shadow:
+      -0.6px 0 0 oklch(0.84 0.12 200 / 0.55),
+       0.6px 0 0 oklch(0.78 0.18 320 / 0.55);
+  }
+  .dunk-stamp::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 240% 240%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    animation: prism-drift 5s ease-in-out infinite;
+  }
+  .dunk-stamp .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--bone-100);
+    box-shadow:
+      -1.5px 0 0 oklch(0.84 0.12 200 / 0.85),
+       1.5px 0 0 oklch(0.78 0.18 320 / 0.85);
+  }
+
+  /* Complete pair — two glass cards beneath the orb. Subtle gesture hint above each card.
+     No pill outlines, no fill colours — just glass + chromatic edge on hover. */
+  .complete-pair {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%; max-width: 320px;
+  }
+  .complete-card {
+    position: relative;
+    padding: 16px 14px 18px;
+    border-radius: 18px;
+    background: oklch(0.99 0.005 240 / 0.04);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 0.5px solid var(--glass-edge);
+    text-align: left; cursor: pointer; color: inherit;
+    transition: transform 280ms var(--ease-spring), border-color 240ms, background 240ms, box-shadow 320ms;
+    overflow: hidden;
+  }
+  .complete-card:hover {
+    transform: translateY(-3px);
+    background: oklch(0.99 0.005 240 / 0.07);
+    border-color: var(--glass-edge-strong);
+    box-shadow:
+      0 14px 40px oklch(0% 0 0 / 0.45),
+      0 0 22px oklch(0.84 0.12 200 / 0.18),
+      0 0 22px oklch(0.78 0.18 320 / 0.18);
+  }
+  .complete-card:hover::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 0.75px;
+    background: linear-gradient(135deg, var(--prism-c) 0%, var(--prism-m) 50%, var(--prism-y) 100%);
+    background-size: 220% 220%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    animation: prism-drift 7s ease-in-out infinite;
+  }
+  .complete-card .c-name {
+    font-family: var(--serif); font-style: italic;
+    font-size: 22px; line-height: 1.05; letter-spacing: -0.01em;
+    color: var(--bone-100); margin-bottom: 6px;
+  }
+  .complete-card .c-sub {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.20em;
+    text-transform: uppercase; color: var(--bone-40); line-height: 1.4;
+  }
+  .complete-card .c-arrow {
+    position: absolute; right: 14px; bottom: 14px;
+    width: 14px; height: 14px;
+    color: var(--bone-60);
+    transition: color 240ms, transform 280ms var(--ease-spring);
+  }
+  .complete-card:hover .c-arrow {
+    color: var(--bone-100);
+    transform: translate(2px, -2px);
+  }
+
+  .complete-recap {
+    display: inline-flex; align-items: baseline; gap: 0;
+    color: var(--bone-60);
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .complete-recap .val { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--bone-100); letter-spacing: -0.01em; text-transform: none; }
+  .complete-recap .sep { color: var(--glass-edge-strong); margin: 0 9px; }
+  .complete-recap .lbl { color: var(--bone-40); margin-right: 7px; }
+
+  /* Profile chip — flat glass label, no pill */
+  .profile-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 0;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--bone-60);
+  }
+  .profile-chip .em { color: var(--bone-100); letter-spacing: 0.18em; }
+  .profile-chip .sep { color: var(--bone-25); }
+  .profile-chip .gem {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--bone-100);
+    box-shadow:
+      -1.5px 0 0 oklch(0.84 0.12 200 / 0.7),
+       1.5px 0 0 oklch(0.78 0.18 320 / 0.7);
+  }
+
+  .tweaks { width: 320px; flex-shrink: 0; background: linear-gradient(180deg, oklch(0.10 0.018 245 / 0.96), oklch(0.08 0.014 250 / 0.96)); border: 0.5px solid var(--border-soft); border-radius: 22px; padding: 18px; color: var(--bone-80); box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6); backdrop-filter: blur(12px); }
+  .tweaks-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .tweaks-head .t { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--bone-100); }
+  .tweaks-head .m { font-family: var(--mono); font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bone-40); }
+  .tweak-section { margin-bottom: 14px; }
+  .tweak-section + .tweak-section { padding-top: 14px; border-top: 0.5px solid var(--border-soft); }
+  .tweak-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--bone-40); margin-bottom: 9px; }
+  .tweak-segmented { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; background: var(--glass-thin); padding: 3px; border-radius: 10px; border: 0.5px solid var(--glass-edge); }
+  .tweak-seg-btn { padding: 9px 4px; border-radius: 8px; color: var(--bone-60); font-family: var(--sans); font-weight: 500; font-size: 11.5px; letter-spacing: 0.02em; transition: background 220ms, color 220ms; }
+  .tweak-seg-btn[data-active="true"] { background: var(--glass-thick); color: var(--bone-100); box-shadow: inset 0 0 0 0.5px var(--glass-edge-strong); }
+
+  /* Horizontal speed scrubber — replaces pills */
+  .speed-scrub {
+    position: relative; height: 38px;
+    user-select: none; touch-action: none;
+  }
+  .speed-track {
+    position: absolute; left: 8px; right: 8px; top: 50%; transform: translateY(-50%);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-edge-strong), transparent);
+  }
+  .speed-tick {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 1px; height: 8px; background: var(--bone-25);
+    cursor: pointer;
+  }
+  .speed-tick .lbl {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 9px; color: var(--bone-40); letter-spacing: 0.06em;
+    transition: color 220ms;
+    white-space: nowrap;
+  }
+  .speed-tick[data-active="true"] .lbl { color: var(--bone-100); }
+  .speed-tick[data-active="true"] { background: var(--bone-100); }
+  .speed-thumb {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--bone-100);
+    box-shadow:
+      -3px 0 0 var(--prism-c-soft),
+       3px 0 0 var(--prism-m-soft),
+      0 0 14px oklch(0.99 0.005 240 / 0.5);
+    transition: left 320ms var(--ease-spring);
+    pointer-events: none;
+  }
+
+  .play-row { display: flex; gap: 14px; align-items: center; }
+  .play-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--glass-thin);
+    border: 0.5px solid var(--glass-edge);
+    display: grid; place-items: center;
+    color: var(--bone-100);
+    transition: background 220ms, border-color 220ms, transform 200ms var(--ease-spring);
+    cursor: pointer; padding: 0;
+  }
+  .play-icon:hover { background: var(--glass-thick); border-color: var(--glass-edge-strong); transform: scale(1.05); }
+  .play-icon.primary { background: var(--glass-thick); border-color: var(--glass-edge-strong); }
+  .play-icon.primary:hover { box-shadow: 0 0 18px oklch(0.84 0.12 200 / 0.30), 0 0 18px oklch(0.78 0.18 320 / 0.30); }
+  .play-label {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--bone-60); cursor: pointer;
+    transition: color 220ms;
+  }
+  .play-label:hover { color: var(--bone-100); }
+
+  .tweak-scrub { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .scrub-step { height: 28px; border-radius: 6px; background: var(--glass-thin); border: 0.5px solid var(--glass-edge); color: var(--bone-40); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; display: grid; place-items: center; transition: background 200ms, color 200ms, border-color 200ms; }
+  .scrub-step[data-active="true"] { background: var(--glass-thick); color: var(--bone-100); border-color: var(--glass-edge-strong); }
+  .scrub-step:hover { background: var(--glass-thick); color: var(--bone-80); }
+
+  .personality-blurb { margin-top: 10px; font-family: var(--sans); font-size: 11.5px; line-height: 1.45; color: var(--bone-60); min-height: 50px; }
+
+  .footer-cap { font-family: var(--mono); font-size: 10px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--bone-25); text-align: center; }
+
+  .stage { display: grid; grid-template-columns: auto auto; gap: 56px; align-items: start; max-width: 1100px; }
+
+  @media (max-width: 900px) {
+    .stage { grid-template-columns: 1fr; gap: 32px; }
+    .iphone { transform: scale(0.95); transform-origin: top center; }
+  }
+
+  .scan-ring {
+    width: 44px; height: 44px; border-radius: 50%;
+    margin-bottom: 14px;
+    background: conic-gradient(from 0deg,
+      transparent 0deg, transparent 200deg,
+      var(--prism-c) 240deg,
+      var(--prism-m) 300deg,
+      var(--prism-y) 350deg,
+      transparent 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 16px, #000 16.5px, #000 21px, transparent 21.5px);
+            mask: radial-gradient(circle, transparent 16px, #000 16.5px, #000 21px, transparent 21.5px);
+    animation: scan 1.1s linear infinite;
+  }
+  @keyframes scan { to { transform: rotate(1turn); } }
+
+  .tap-shield { position: absolute; inset: 0; z-index: 5; cursor: pointer; }
+  .tap-shield:focus-visible { outline: none; }
+</style>
+</head>
+<body>
+
+<div class="mast">
+  <div class="eyebrow">Refresh · <span class="pm">Chromatic glass</span></div>
+  <h1>Quartzie, alive in your hand.</h1>
+  <p>One single surface. The orb is a glass marble — chromatic, refractive, alive in your hand. Heat is read as brightness and dispersion, never as colour temperature.<br/>No tabs. No modals. No pill buttons.</p>
+</div>
+
+<div class="stage">
+
+  <div class="iphone">
+    <div class="screen" id="screen">
+
+      <div class="status-bar">
+        <div class="status-time" id="status-time">9:41</div>
+        <div class="status-right">
+          <svg class="status-icon" viewBox="0 0 18 12" fill="currentColor">
+            <rect x="0"  y="8" width="3" height="4" rx="0.5"/>
+            <rect x="5"  y="6" width="3" height="6" rx="0.5"/>
+            <rect x="10" y="3" width="3" height="9" rx="0.5"/>
+            <rect x="15" y="0" width="3" height="12" rx="0.5"/>
+          </svg>
+          <svg class="status-icon" viewBox="0 0 16 12" fill="currentColor">
+            <path d="M8 11.2a1.4 1.4 0 110-2.8 1.4 1.4 0 010 2.8zM4.6 8a4.8 4.8 0 016.8 0l-1.1 1.1a3.2 3.2 0 00-4.6 0L4.6 8zM1.5 4.9a9.2 9.2 0 0113 0l-1.1 1.1a7.6 7.6 0 00-10.8 0L1.5 4.9z"/>
+          </svg>
+          <svg class="status-icon" viewBox="0 0 24 12" fill="none" stroke="currentColor" stroke-width="0.8">
+            <rect x="0.5" y="0.5" width="20" height="11" rx="2.5"/>
+            <rect x="2.5" y="2.5" width="14" height="7" rx="1" fill="currentColor"/>
+            <rect x="21" y="4" width="2" height="4" rx="0.6" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="island" id="island"></div>
+      <div class="status-chip" id="status-chip" data-show="false" aria-live="polite">
+        <span class="gem"></span>
+        <span id="status-chip-text">Quartzie</span>
+      </div>
+
+      <svg class="orb-canvas" id="orb-canvas" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="orb-grad" cx="42%" cy="38%" r="68%">
+            <stop offset="0%"   stop-color="oklch(0.96 0.05 220)" id="g-stop-0"/>
+            <stop offset="38%"  stop-color="oklch(0.74 0.10 215)" id="g-stop-1"/>
+            <stop offset="80%"  stop-color="oklch(0.36 0.10 270)" id="g-stop-2"/>
+            <stop offset="100%" stop-color="oklch(0.16 0.06 250)" id="g-stop-3"/>
+          </radialGradient>
+          <radialGradient id="halo-grad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%"   stop-color="oklch(0.78 0.14 240 / 0.55)" id="halo-stop-0"/>
+            <stop offset="60%"  stop-color="oklch(0.55 0.18 270 / 0.22)" id="halo-stop-1"/>
+            <stop offset="100%" stop-color="oklch(0.55 0.18 270 / 0)"    id="halo-stop-2"/>
+          </radialGradient>
+          <radialGradient id="hi-grad" cx="38%" cy="30%" r="22%">
+            <stop offset="0%"   stop-color="oklch(0.99 0.02 220 / 0.95)"/>
+            <stop offset="55%"  stop-color="oklch(0.94 0.06 300 / 0.40)"/>
+            <stop offset="100%" stop-color="oklch(0.94 0.06 300 / 0)"/>
+          </radialGradient>
+          <radialGradient id="caustic-grad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="oklch(0.96 0.10 200 / 0.85)"/>
+            <stop offset="35%"  stop-color="oklch(0.84 0.16 320 / 0.45)"/>
+            <stop offset="100%" stop-color="oklch(0.84 0.16 320 / 0)"/>
+          </radialGradient>
+          <linearGradient id="iris-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="oklch(0.86 0.16 200 / 0)"/>
+            <stop offset="35%"  stop-color="oklch(0.86 0.14 220 / 0.32)"/>
+            <stop offset="55%"  stop-color="oklch(0.78 0.18 290 / 0.30)"/>
+            <stop offset="78%"  stop-color="oklch(0.74 0.20 330 / 0.24)"/>
+            <stop offset="100%" stop-color="oklch(0.74 0.20 330 / 0)"/>
+          </linearGradient>
+          <filter id="grain" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+            <feColorMatrix values="0 0 0 0 0.95
+                                   0 0 0 0 0.85
+                                   0 0 0 0 0.75
+                                   0 0 0 0.06 0"/>
+            <feComposite in2="SourceGraphic" operator="in"/>
+          </filter>
+          <filter id="halo-blur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="14"/>
+          </filter>
+          <filter id="glass-blur" x="-25%" y="-25%" width="150%" height="150%">
+            <feGaussianBlur stdDeviation="6"/>
+          </filter>
+          <linearGradient id="prism-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="oklch(0.84 0.12 200 / 0.85)"/>
+            <stop offset="50%"  stop-color="oklch(0.78 0.18 320 / 0.85)"/>
+            <stop offset="100%" stop-color="oklch(0.90 0.14 95 / 0.85)"/>
+          </linearGradient>
+          <linearGradient id="prism-grad-soft" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="oklch(0.84 0.12 200 / 0)"/>
+            <stop offset="50%"  stop-color="oklch(0.78 0.18 320 / 0.55)"/>
+            <stop offset="100%" stop-color="oklch(0.90 0.14 95 / 0)"/>
+          </linearGradient>
+        </defs>
+
+        <circle id="halo" cx="195" cy="430" r="260" fill="url(#halo-grad)" filter="url(#halo-blur)"/>
+        <circle id="halo-prism" cx="195" cy="430" r="0" fill="url(#prism-grad-soft)" filter="url(#halo-blur)" opacity="0"/>
+        <circle id="pulse-1" cx="195" cy="430" r="0" fill="none" stroke="oklch(0.84 0.12 200 / 0)" stroke-width="0.5"/>
+        <circle id="pulse-2" cx="195" cy="430" r="0" fill="none" stroke="oklch(0.78 0.18 320 / 0)" stroke-width="0.5"/>
+        <circle id="pulse-3" cx="195" cy="430" r="0" fill="none" stroke="oklch(0.90 0.14 95 / 0)"  stroke-width="0.5"/>
+        <path id="curve-trace" d="" fill="none" stroke="oklch(0.62 0.10 240 / 0.50)" stroke-width="1" stroke-linecap="round"/>
+        <path id="curve-window" d="" fill="none" stroke="oklch(0.84 0.16 220 / 0.85)" stroke-width="1.5" stroke-linecap="round"/>
+        <path id="orb" d="" fill="url(#orb-grad)"/>
+        <path id="orb-iris" d="" fill="url(#iris-grad)" opacity="0.55"/>
+        <path id="orb-fringe-c" d="" fill="none" stroke="oklch(0.84 0.16 200 / 0)" stroke-width="2"/>
+        <path id="orb-fringe-m" d="" fill="none" stroke="oklch(0.78 0.20 320 / 0)" stroke-width="2"/>
+        <ellipse id="orb-hi" cx="170" cy="410" rx="36" ry="22" fill="url(#hi-grad)"/>
+        <ellipse id="orb-caustic" cx="195" cy="470" rx="28" ry="10" fill="url(#caustic-grad)" opacity="0.7"/>
+        <path id="orb-grain" d="" fill="url(#orb-grad)" filter="url(#grain)" opacity="0.4"/>
+        <g id="sparks"></g>
+      </svg>
+
+      <div class="overlay" id="overlay">
+        <div class="top-region" id="top-region"></div>
+        <div class="center-region" id="center-region"></div>
+        <div class="bottom-region" id="bottom-region"></div>
+      </div>
+
+      <div class="home-indicator"></div>
+      <div class="tap-shield" id="tap-shield" tabindex="0" aria-label="Advance demo"></div>
+    </div>
+  </div>
+
+  <div class="tweaks">
+    <div class="tweaks-head">
+      <span class="t">Tweaks</span>
+      <span class="m">design controls</span>
+    </div>
+
+    <div class="tweak-section">
+      <div class="tweak-label">Orb personality</div>
+      <div class="tweak-segmented" id="seg-personality">
+        <button class="tweak-seg-btn" data-personality="quicksilver" data-active="false">Quicksilver</button>
+        <button class="tweak-seg-btn" data-personality="lavalamp"    data-active="true">Iridescent</button>
+        <button class="tweak-seg-btn" data-personality="hearth"      data-active="false">Prism</button>
+      </div>
+      <div class="personality-blurb" id="personality-blurb">
+        <strong style="color:var(--bone-100);font-weight:500">Iridescent.</strong>
+        Oil-on-water glass — slow chromatic morph, generous halo, hue drifts cyan → purple → magenta as it breathes. Default.
+      </div>
+    </div>
+
+    <div class="tweak-section">
+      <div class="tweak-label">Phase</div>
+      <div class="tweak-scrub" id="scrub" style="grid-template-columns:repeat(7,1fr);margin-bottom:4px">
+        <button class="scrub-step" data-phase="cold"       data-active="true">01</button>
+        <button class="scrub-step" data-phase="connecting" data-active="false">02</button>
+        <button class="scrub-step" data-phase="connected"  data-active="false">03</button>
+        <button class="scrub-step" data-phase="presets"    data-active="false">04</button>
+        <button class="scrub-step" data-phase="banger"     data-active="false">05</button>
+        <button class="scrub-step" data-phase="concentrate" data-active="false">06</button>
+        <button class="scrub-step" data-phase="ready"    data-active="false">07</button>
+      </div>
+      <div class="tweak-scrub" id="scrub-2" style="grid-template-columns:repeat(6,1fr)">
+        <button class="scrub-step" data-phase="heating"  data-active="false">08</button>
+        <button class="scrub-step" data-phase="window"   data-active="false">09</button>
+        <button class="scrub-step" data-phase="dabbing"  data-active="false">10</button>
+        <button class="scrub-step" data-phase="swab"     data-active="false">11</button>
+        <button class="scrub-step" data-phase="dunk"     data-active="false">12</button>
+        <button class="scrub-step" data-phase="complete" data-active="false">13</button>
+      </div>
+      <div class="play-row" style="margin-top:14px">
+        <button class="play-icon primary" id="play-demo" aria-label="Play full flow" title="Play full flow">
+          <svg viewBox="0 0 14 14" width="13" height="13" fill="currentColor"><path d="M3.5 2.2 L11 7 L3.5 11.8 Z"/></svg>
+        </button>
+        <span class="play-label" id="play-demo-label">Play full flow</span>
+        <button class="play-icon" id="reset-demo" aria-label="Reset" title="Reset" style="margin-left:auto">
+          <svg viewBox="0 0 14 14" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 7 a4.5 4.5 0 1 1 1.4 3.2"/>
+            <polyline points="2.5,4 2.5,7 5.5,7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="tweak-section">
+      <div class="tweak-label">Demo speed</div>
+      <div class="speed-scrub" id="speed-scrub">
+        <div class="speed-track"></div>
+        <button class="speed-tick" data-speed="0.6" style="left:6.25%"  aria-label="0.6×"><span class="lbl">0.6×</span></button>
+        <button class="speed-tick" data-speed="1"   style="left:37.5%" aria-label="1×"  ><span class="lbl">1×</span></button>
+        <button class="speed-tick" data-speed="1.6" style="left:62.5%" aria-label="1.6×"><span class="lbl">1.6×</span></button>
+        <button class="speed-tick" data-speed="2.5" style="left:93.75%" aria-label="2.5×"><span class="lbl">2.5×</span></button>
+        <span class="speed-thumb" id="speed-thumb" style="left:37.5%" aria-hidden="true"></span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer-cap">single surface · 13 phases · pickup-detected · auto-save</div>
+
+<script>
+const BANGERS = [
+  { id:'flat-top',     name:'Flat Top',     sub:'Classic · ~80% market',  tempLow:500, tempHigh:600, image:'mop1ohcm-input_r1_c1.png' },
+  { id:'beveled',      name:'Beveled Edge', sub:'Better seal',            tempLow:480, tempHigh:580, image:'mop1ohdu-input_r10_c3.png' },
+  { id:'opaque',       name:'Opaque Bottom',sub:'Sandblasted floor',      tempLow:480, tempHigh:560, image:'mop1ohdr-input_r10_c1.png' },
+  { id:'slurper',      name:'Slurper',      sub:'Marble in motion',       tempLow:520, tempHigh:600, image:'mop1ohcn-input_r1_c3.png' },
+  { id:'cold-cup',     name:'Cold Cup',     sub:'Sub-rim airflow',        tempLow:450, tempHigh:540, image:'mop1ohe2-input_r12_c3.png' },
+  { id:'thermal',      name:'Thermal',      sub:'Double wall · slow',     tempLow:540, tempHigh:620, image:'mop1ohe4-input_r14_c1.png' },
+  { id:'terp-slurp',   name:'Terp Slurp',   sub:'Anchor · 4-port',        tempLow:500, tempHigh:580, image:'mop1ohdz-input_r12_c1.png' },
+  { id:'core-reactor', name:'Core Reactor', sub:'Insert · radiant',       tempLow:470, tempHigh:550, image:'mop1ohd4-input_r6_c1.png' },
+];
+const CONCENTRATES = [
+  { id:'live-rosin',  name:'Live Rosin',   sub:'Solventless',         optimal:480, image:'mop1p9gy-tile_4.png' },
+  { id:'cold-cure',   name:'Cold Cure',    sub:'2026 dominant',       optimal:460, image:'mop1p9g4-tile_0.png' },
+  { id:'fresh-press', name:'Fresh Press',  sub:'Un-cured · volatile', optimal:470, image:'mop1p9gl-tile_2.png' },
+  { id:'rosin-jam',   name:'Rosin Jam',    sub:'THCa in sauce',       optimal:510, image:'mop1p9hk-tile_9.png' },
+  { id:'badder',      name:'Badder',       sub:'Whipped · airy',      optimal:520, image:'mop1p9he-tile_7.png' },
+  { id:'live-resin',  name:'Live Resin',   sub:'Hydrocarbon · terpy', optimal:510, image:'mop1p9hg-tile_8.png' },
+  { id:'sauce',       name:'Sauce',        sub:'High terpene',        optimal:500, image:'mop1p9gr-tile_3.png' },
+  { id:'shatter',     name:'Shatter',      sub:'Stable · brittle',    optimal:545, image:'mop1p9ho-tile_10.png' },
+  { id:'distillate',  name:'Distillate',   sub:'High THC · low terp', optimal:600, image:'mop1p9hq-tile_11.png' },
+];
+
+// Recent sessions — auto-saved on every completed dab, newest first, capped at 4.
+// There is no manual save UI anywhere; finishing a session is the save.
+const PRESETS = [
+  { id:'r1', concentrateId:'live-rosin', bangerId:'beveled',  when:'JUST NOW' },
+  { id:'r2', concentrateId:'cold-cure',  bangerId:'opaque',   when:'YESTERDAY' },
+  { id:'r3', concentrateId:'rosin-jam',  bangerId:'flat-top', when:'SAT NIGHT' },
+  { id:'r4', concentrateId:'sauce',      bangerId:'slurper',  when:'WED' },
+];
+const PRESETS_MAX = 4;
+function autoSavePreset() {
+  if (!state.banger || !state.concentrate) return;
+  // Drop any existing recent for this banger+concentrate combo, then push to the front.
+  const matchIx = PRESETS.findIndex(p => p.bangerId === state.banger.id && p.concentrateId === state.concentrate.id);
+  if (matchIx >= 0) PRESETS.splice(matchIx, 1);
+  PRESETS.unshift({
+    id: 'auto-' + Date.now().toString(36),
+    concentrateId: state.concentrate.id,
+    bangerId: state.banger.id,
+    when: 'JUST NOW',
+  });
+  if (PRESETS.length > PRESETS_MAX) PRESETS.length = PRESETS_MAX;
+  // Age existing entries one notch
+  for (let i = 1; i < PRESETS.length; i++) {
+    if (PRESETS[i].when === 'JUST NOW') PRESETS[i].when = 'EARLIER';
+  }
+}
+
+const PERSONALITIES = {
+  quicksilver: {
+    label:'Quicksilver',
+    blurb:'<strong style="color:var(--bone-100);font-weight:500">Quicksilver.</strong> Liquid-mercury body. Cool silver-blue with sharp morph and a tight prismatic edge. Disciplined — the chrome stays mostly contained.',
+    speed: 1.0, roilMul: 0.55, breathMul: 0.6, sparkRate: 0.4, sparkLife: 0.8, haloMul: 0.7, grainOp: 0.16, hiOp: 1.0,
+    palette: { g0: 'oklch(0.97 0.03 220)', g1: 'oklch(0.78 0.07 230)', g2: 'oklch(0.40 0.07 240)', g3: 'oklch(0.16 0.05 250)' },
+    sparkHueRange: [200, 240], sparkChroma: 0.10,
+  },
+  lavalamp: {
+    label:'Iridescent',
+    blurb:'<strong style="color:var(--bone-100);font-weight:500">Iridescent.</strong> Oil-on-water glass — slow chromatic morph, generous halo, hue drifts cyan → purple → magenta as it breathes. Default.',
+    speed: 0.85, roilMul: 1.0, breathMul: 1.0, sparkRate: 1.0, sparkLife: 1.0, haloMul: 1.0, grainOp: 0.28, hiOp: 0.85,
+    palette: { g0: 'oklch(0.94 0.06 260)', g1: 'oklch(0.74 0.12 200)', g2: 'oklch(0.40 0.14 290)', g3: 'oklch(0.16 0.08 230)' },
+    sparkHueRange: [200, 340], sparkChroma: 0.18,
+  },
+  hearth: {
+    label:'Prism',
+    blurb:'<strong style="color:var(--bone-100);font-weight:500">Prism.</strong> Saturated dispersion — vivid cyan core, magenta rim, vigorous swirl. Every breath rings with chromatic split. Ritual feels charged.',
+    speed: 1.15, roilMul: 1.45, breathMul: 1.2, sparkRate: 1.6, sparkLife: 1.4, haloMul: 1.25, grainOp: 0.40, hiOp: 0.7,
+    palette: { g0: 'oklch(0.94 0.10 320)', g1: 'oklch(0.72 0.16 220)', g2: 'oklch(0.36 0.18 295)', g3: 'oklch(0.12 0.08 260)' },
+    sparkHueRange: [180, 360], sparkChroma: 0.22,
+  },
+};
+
+// Phase list mirrors the actual user journey.
+// `window` here is the active dab session (temp post-peak, falling through optimal — window opens immediately).
+// `dabbing` is detected by a >50°F/sec velocity drop (user picked up the rig — banger off the IR sensor).
+// `swab` fires when temp climbs back above ~200°F (rig replaced) and the banger is in the safe q-tip range.
+// `dunk` fires when temp drops below 250°F (safe to submerge in iso).
+const PHASES = ['cold','connecting','connected','presets','banger','concentrate','ready','heating','window','dabbing','swab','dunk','complete'];
+const STATES = {
+  cold:        { pos:[195,300], r: 42, roil:0.10, breathHz:0.18, complexity:0.20, tempK:0.05, haloR:120, haloA:0.18, sparks:0,    pulse:0, curve:0,   chrom:0.08 },
+  connecting:  { pos:[195,300], r: 60, roil:0.18, breathHz:0.35, complexity:0.30, tempK:0.20, haloR:165, haloA:0.32, sparks:0.10, pulse:0, curve:0,   chrom:0.12 },
+  connected:   { pos:[195,300], r: 74, roil:0.22, breathHz:0.30, complexity:0.40, tempK:0.30, haloR:195, haloA:0.38, sparks:0.16, pulse:0, curve:0,   chrom:0.16 },
+  presets:     { pos:[195,150], r: 50, roil:0.16, breathHz:0.28, complexity:0.30, tempK:0.30, haloR:130, haloA:0.30, sparks:0.10, pulse:0, curve:0,   chrom:0.18 },
+  banger:      { pos:[195,150], r: 50, roil:0.14, breathHz:0.28, complexity:0.30, tempK:0.32, haloR:130, haloA:0.28, sparks:0.08, pulse:0, curve:0,   chrom:0.10 },
+  concentrate: { pos:[195,150], r: 50, roil:0.16, breathHz:0.32, complexity:0.34, tempK:0.40, haloR:140, haloA:0.32, sparks:0.12, pulse:0, curve:0,   chrom:0.10 },
+  ready:       { pos:[195,360], r: 92, roil:0.20, breathHz:0.42, complexity:0.40, tempK:0.45, haloR:225, haloA:0.42, sparks:0.16, pulse:0, curve:0,   chrom:0.18 },
+  heating:     { pos:[195,605], r: 78, roil:0.85, breathHz:1.20, complexity:0.95, tempK:1.00, haloR:235, haloA:0.65, sparks:0.95, pulse:0, curve:0,   chrom:0.05 },
+  window:      { pos:[195,400], r:110, roil:0.32, breathHz:0.55, complexity:0.55, tempK:0.62, haloR:295, haloA:0.78, sparks:0.30, pulse:1, curve:0.9, chrom:0.70 },
+  dabbing:     { pos:[195,420], r: 56, roil:0.10, breathHz:0.16, complexity:0.20, tempK:0.10, haloR:120, haloA:0.18, sparks:0.04, pulse:0, curve:0.0, chrom:0.16 },
+  swab:        { pos:[195,400], r: 92, roil:0.22, breathHz:0.36, complexity:0.40, tempK:0.34, haloR:210, haloA:0.40, sparks:0.18, pulse:0, curve:0.3, chrom:0.55 },
+  dunk:        { pos:[195,400], r: 86, roil:0.16, breathHz:0.30, complexity:0.32, tempK:0.22, haloR:190, haloA:0.34, sparks:0.10, pulse:0, curve:0.2, chrom:0.45 },
+  complete:    { pos:[195,300], r: 78, roil:0.18, breathHz:0.22, complexity:0.30, tempK:0.30, haloR:200, haloA:0.32, sparks:0.06, pulse:0, curve:0.4, chrom:0.30 },
+};
+
+const state = {
+  current: 'cold', target: 'cold', prev: 'cold',
+  e: { ...STATES.cold },
+  morphProgress: 1, morphDuration: 800, morphStart: 0,
+  banger: null, concentrate: null, preset: null,
+  personality: 'lavalamp',
+  speed: 1, demoTimer: null,
+  t0: performance.now(),
+  liveTemp: 70, tempStart: 70, tempPeak: 0, tempTarget: 0,
+  dragArmed: false, sparks: [], curveSamples: [],
+  // Live drag offset (for the complete-phase orb-grab gesture)
+  orbDragX: 0, orbDragY: 0,
+};
+
+function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpArr(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t)]; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function blobPath(cx, cy, r, t, opts) {
+  const points = 64;
+  const { roil = 0.5, complexity = 0.5, speed = 1, personalityRoilMul = 1 } = opts;
+  const amp = r * 0.16 * roil * personalityRoilMul;
+  let path = '';
+  const pts = [];
+  for (let i = 0; i < points; i++) {
+    const a = (i / points) * Math.PI * 2;
+    const n1 = Math.sin(t * speed * 0.7 + a * 2.0) * amp * 0.55;
+    const n2 = Math.sin(t * speed * 1.1 + a * 3.0 + 1.3) * amp * 0.30 * complexity;
+    const n3 = Math.sin(t * speed * 1.7 + a * 5.0 + 0.7) * amp * 0.18 * complexity;
+    const n4 = Math.sin(t * speed * 0.4 + a * 1.0) * amp * 0.10;
+    const rr = r + n1 + n2 + n3 + n4;
+    pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
+  }
+  for (let i = 0; i < points; i++) {
+    const p0 = pts[i];
+    const p1 = pts[(i+1) % points];
+    const mid = [(p0[0]+p1[0])/2, (p0[1]+p1[1])/2];
+    if (i === 0) path += `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)} `;
+    path += `Q ${p0[0].toFixed(1)} ${p0[1].toFixed(1)} ${mid[0].toFixed(1)} ${mid[1].toFixed(1)} `;
+  }
+  return path + 'Z';
+}
+
+function parseOklch(str) {
+  // accepts 'oklch(L C H)' or 'oklch(L C H / A)'
+  const m = str.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\s*\)/);
+  if (!m) return [0.5, 0, 0, 1];
+  return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3]), m[4] ? parseFloat(m[4]) : 1];
+}
+
+function applyOrbPalette(t) {
+  const personality = PERSONALITIES[state.personality];
+  const p = personality.palette;
+  const heat = state.e.tempK;          // 0–1, drives chromatic intensity (no warm hue shift)
+  const breath = (Math.sin(t * 0.4) + 1) / 2;   // slow 0–1 wave for hue drift
+
+  // Heat increases chroma and luminance, never shifts toward orange.
+  // Hue drifts slowly around the personality's center as the orb breathes.
+  const driftFor = (base) => {
+    const [L, C, H, A] = parseOklch(base);
+    const drift = (breath - 0.5) * 28 * (0.4 + 0.6 * heat); // ±14° drift, more when hot
+    const heatChroma = C * (1 + 0.55 * heat);
+    const heatL = Math.min(0.99, L + 0.08 * heat);
+    return `oklch(${heatL.toFixed(3)} ${heatChroma.toFixed(3)} ${(H + drift).toFixed(1)}${A < 1 ? ` / ${A}` : ''})`;
+  };
+
+  document.getElementById('g-stop-0').setAttribute('stop-color', driftFor(p.g0));
+  document.getElementById('g-stop-1').setAttribute('stop-color', driftFor(p.g1));
+  document.getElementById('g-stop-2').setAttribute('stop-color', driftFor(p.g2));
+  document.getElementById('g-stop-3').setAttribute('stop-color', p.g3);
+
+  // Halo stays cool — purple/violet that brightens with heat. Never warm.
+  const haloHue = 250 + (breath - 0.5) * 30;
+  const haloL = 0.55 + 0.22 * heat;
+  const haloC = 0.16 + 0.06 * heat;
+  const haloA = 0.55 * state.e.haloA * personality.haloMul;
+  document.getElementById('halo-stop-0').setAttribute('stop-color',
+    `oklch(${haloL.toFixed(3)} ${haloC.toFixed(3)} ${haloHue.toFixed(1)} / ${haloA.toFixed(3)})`);
+}
+
+function spawnSparks(dt) {
+  const personality = PERSONALITIES[state.personality];
+  const rate = state.e.sparks * 80 * personality.sparkRate;
+  const expected = rate * dt;
+  let count = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
+  const [hueLo, hueHi] = personality.sparkHueRange || [200, 320];
+  const chroma = personality.sparkChroma || 0.16;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = state.e.r * (0.85 + Math.random()*0.25);
+    const x = state.e.pos[0] + Math.cos(angle) * r;
+    const y = state.e.pos[1] + Math.sin(angle) * r;
+    state.sparks.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 30,
+      vy: -40 - Math.random() * 80,
+      life: 1.0,
+      lifeMul: 1 / (0.9 + Math.random()*1.1) * (1 / personality.sparkLife),
+      size: 0.8 + Math.random()*1.5,
+      hue: hueLo + Math.random() * (hueHi - hueLo),
+      chroma,
+    });
+  }
+}
+
+function updateSparks(dt) {
+  for (const s of state.sparks) {
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    s.vy += 60 * dt; s.vx *= 0.99;
+    s.life -= s.lifeMul * dt;
+  }
+  state.sparks = state.sparks.filter(s => s.life > 0 && s.y > -20 && s.y < 900);
+}
+
+function renderSparks() {
+  const g = document.getElementById('sparks');
+  const N = state.sparks.length;
+  while (g.childElementCount < N) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('r', '1.2');
+    g.appendChild(c);
+  }
+  while (g.childElementCount > N) g.removeChild(g.lastChild);
+  for (let i = 0; i < N; i++) {
+    const s = state.sparks[i];
+    const c = g.children[i];
+    c.setAttribute('cx', s.x.toFixed(1));
+    c.setAttribute('cy', s.y.toFixed(1));
+    c.setAttribute('r', (s.size * Math.max(0.2, s.life)).toFixed(2));
+    c.setAttribute('fill', `oklch(${(0.72 + 0.22 * s.life).toFixed(3)} ${(s.chroma || 0.16).toFixed(3)} ${s.hue.toFixed(1)})`);
+    c.setAttribute('opacity', (Math.max(0, s.life) * 0.95).toFixed(2));
+  }
+}
+
+let pulseTime = 0;
+function updatePulse(dt) {
+  pulseTime += dt * state.e.pulse * 0.55;
+  const ring = (offset, baseR, hue) => ({
+    fract: (pulseTime + offset) % 1,
+    r: baseR + ((pulseTime + offset) % 1) * 230,
+    hue,
+  });
+  const cx = state.e.pos[0] + state.orbDragX;
+  const cy = state.e.pos[1] + state.orbDragY;
+
+  const a = ring(0,    50, 'cyan');
+  const b = ring(0.33, 50, 'magenta');
+  const c = ring(0.66, 50, 'gold');
+
+  const p1 = document.getElementById('pulse-1');
+  const p2 = document.getElementById('pulse-2');
+  const p3 = document.getElementById('pulse-3');
+  const set = (el, ring, color) => {
+    if (!el) return;
+    el.setAttribute('cx', cx); el.setAttribute('cy', cy);
+    el.setAttribute('r', ring.r.toFixed(1));
+    const alpha = (1 - ring.fract) * 0.7 * state.e.pulse;
+    el.setAttribute('stroke', `${color} / ${alpha.toFixed(2)})`);
+  };
+  set(p1, a, 'oklch(0.84 0.16 200');
+  set(p2, b, 'oklch(0.78 0.20 320');
+  set(p3, c, 'oklch(0.90 0.14 95');
+}
+
+function buildCurveSamples() {
+  const N = 60;
+  const arr = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N-1);
+    const temp = 750 * Math.exp(-2.2 * t) + 200;
+    arr.push({ t, temp });
+  }
+  state.curveSamples = arr;
+}
+function drawCurve() {
+  if (state.e.curve <= 0.001) {
+    document.getElementById('curve-trace').setAttribute('d','');
+    document.getElementById('curve-window').setAttribute('d','');
+    return;
+  }
+  const x0 = 24, x1 = 366;
+  const y0 = 760, y1 = 700;
+  const tempMin = 200, tempMax = 750;
+  const samples = state.curveSamples;
+  if (!samples.length) return;
+  const trace = [];
+  const winRange = state.concentrate ? [state.concentrate.optimal - 25, state.concentrate.optimal + 15] : [470, 510];
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i];
+    const x = lerp(x0, x1, s.t);
+    const norm = (s.temp - tempMin) / (tempMax - tempMin);
+    const y = lerp(y0, y1, norm);
+    trace.push([x, y]);
+  }
+  const visN = Math.floor(samples.length * state.e.curve);
+  let d = '';
+  for (let i = 0; i < visN; i++) {
+    d += (i === 0 ? 'M ' : 'L ') + trace[i][0].toFixed(1) + ' ' + trace[i][1].toFixed(1) + ' ';
+  }
+  document.getElementById('curve-trace').setAttribute('d', d);
+  let dw = '';
+  let started = false;
+  for (let i = 0; i < visN; i++) {
+    const s = samples[i];
+    const inWin = s.temp >= winRange[0] && s.temp <= winRange[1];
+    if (inWin) {
+      dw += (started ? 'L ' : 'M ') + trace[i][0].toFixed(1) + ' ' + trace[i][1].toFixed(1) + ' ';
+      started = true;
+    } else if (started) { started = false; }
+  }
+  document.getElementById('curve-window').setAttribute('d', dw);
+}
+
+let lastT = performance.now();
+function tick(now) {
+  const dt = clamp((now - lastT) / 1000, 0, 0.06);
+  lastT = now;
+  if (state.morphProgress < 1) {
+    state.morphProgress = clamp((now - state.morphStart) / state.morphDuration, 0, 1);
+    const k = easeInOutCubic(state.morphProgress);
+    const a = STATES[state.prev];
+    const b = STATES[state.target];
+    state.e = {
+      pos: lerpArr(a.pos, b.pos, k),
+      r: lerp(a.r, b.r, k),
+      roil: lerp(a.roil, b.roil, k),
+      breathHz: lerp(a.breathHz, b.breathHz, k),
+      complexity: lerp(a.complexity, b.complexity, k),
+      tempK: lerp(a.tempK, b.tempK, k),
+      haloR: lerp(a.haloR, b.haloR, k),
+      haloA: lerp(a.haloA, b.haloA, k),
+      sparks: lerp(a.sparks, b.sparks, k),
+      pulse: lerp(a.pulse, b.pulse, k),
+      curve: lerp(a.curve, b.curve, k),
+      chrom: lerp(a.chrom ?? 0.1, b.chrom ?? 0.1, k),
+    };
+    if (state.morphProgress >= 1) state.current = state.target;
+  }
+
+  const t = (now - state.t0) / 1000;
+  const personality = PERSONALITIES[state.personality];
+  const breathAmp = state.e.r * 0.04 * personality.breathMul;
+  const breath = Math.sin(t * state.e.breathHz * 2 * Math.PI * personality.breathMul) * breathAmp;
+  const blobOpts = { roil: state.e.roil, complexity: state.e.complexity, speed: personality.speed, personalityRoilMul: personality.roilMul };
+
+  const cx = state.e.pos[0] + state.orbDragX;
+  const cy = state.e.pos[1] + state.orbDragY;
+  const path = blobPath(cx, cy, state.e.r + breath, t, blobOpts);
+  const orb = document.getElementById('orb');
+  orb.setAttribute('d', path);
+  document.getElementById('orb-grain').setAttribute('d', path);
+  document.getElementById('orb-grain').setAttribute('opacity', personality.grainOp);
+
+  // Iridescent sweep — the orb-iris path traces the same blob shape but its gradient rotates slowly,
+  // giving a "light bending through glass" shimmer that drifts independently of the breathing.
+  const orbIris = document.getElementById('orb-iris');
+  const irisGrad = document.getElementById('iris-grad');
+  if (orbIris && irisGrad) {
+    orbIris.setAttribute('d', path);
+    const sweepAngle = (t * 18 * personality.speed) % 360;
+    irisGrad.setAttribute('gradientTransform', `rotate(${sweepAngle.toFixed(1)} 0.5 0.5)`);
+    orbIris.setAttribute('opacity', (0.45 + 0.30 * (state.e.tempK || 0)).toFixed(3));
+  }
+
+  // Chromatic split rings — cyan on the left, magenta on the right, intensity scaled by state.chrom
+  const chrom = state.e.chrom ?? 0.1;
+  const fringeOffset = chrom * 6;
+  const fringeOpacity = chrom;
+  const fringeC = blobPath(cx - fringeOffset, cy, state.e.r + breath, t, blobOpts);
+  const fringeM = blobPath(cx + fringeOffset, cy, state.e.r + breath, t, blobOpts);
+  const fc = document.getElementById('orb-fringe-c');
+  const fm = document.getElementById('orb-fringe-m');
+  fc.setAttribute('d', fringeC);
+  fc.setAttribute('stroke', `oklch(0.84 0.16 200 / ${fringeOpacity.toFixed(3)})`);
+  fm.setAttribute('d', fringeM);
+  fm.setAttribute('stroke', `oklch(0.78 0.20 320 / ${fringeOpacity.toFixed(3)})`);
+
+  const hi = document.getElementById('orb-hi');
+  hi.setAttribute('cx', cx - state.e.r * 0.30);
+  hi.setAttribute('cy', cy - state.e.r * 0.32);
+  hi.setAttribute('rx', state.e.r * 0.36);
+  hi.setAttribute('ry', state.e.r * 0.22);
+  hi.setAttribute('opacity', personality.hiOp);
+
+  // Caustic — bright crescent at the orb's bottom where light focuses through the glass sphere.
+  // Wobbles with breath, brightens with heat + chromatic intensity.
+  const caustic = document.getElementById('orb-caustic');
+  if (caustic) {
+    const causticWobble = Math.sin(t * 0.9) * state.e.r * 0.04;
+    caustic.setAttribute('cx', (cx + causticWobble).toFixed(1));
+    caustic.setAttribute('cy', (cy + state.e.r * 0.62).toFixed(1));
+    caustic.setAttribute('rx', (state.e.r * 0.42).toFixed(1));
+    caustic.setAttribute('ry', (state.e.r * 0.10).toFixed(1));
+    const causticOp = clamp(0.45 + 0.35 * (state.e.tempK || 0) + 0.25 * chrom, 0, 0.95);
+    caustic.setAttribute('opacity', causticOp.toFixed(3));
+  }
+
+  const halo = document.getElementById('halo');
+  halo.setAttribute('cx', cx);
+  halo.setAttribute('cy', cy);
+  halo.setAttribute('r', state.e.haloR * personality.haloMul);
+
+  // Chromatic halo overlays — only visible when chrom > 0.4 (window phase)
+  const haloPrism = document.getElementById('halo-prism');
+  if (haloPrism) {
+    const prismIntensity = clamp((chrom - 0.3) / 0.7, 0, 1);
+    haloPrism.setAttribute('cx', cx);
+    haloPrism.setAttribute('cy', cy);
+    haloPrism.setAttribute('r', state.e.haloR * personality.haloMul * 1.2);
+    haloPrism.setAttribute('opacity', (prismIntensity * 0.55).toFixed(3));
+  }
+
+  applyOrbPalette(t);
+  spawnSparks(dt);
+  updateSparks(dt);
+  renderSparks();
+  updatePulse(dt);
+  drawCurve();
+
+  requestAnimationFrame(tick);
+}
+buildCurveSamples();
+requestAnimationFrame((n) => { lastT = n; tick(n); });
+
+function gotoPhase(phase, duration = 800) {
+  if (!STATES[phase]) return;
+  STATES.__snap__ = {
+    pos: [state.e.pos[0], state.e.pos[1]],
+    r: state.e.r, roil: state.e.roil, breathHz: state.e.breathHz,
+    complexity: state.e.complexity, tempK: state.e.tempK,
+    haloR: state.e.haloR, haloA: state.e.haloA,
+    sparks: state.e.sparks, pulse: state.e.pulse, curve: state.e.curve,
+  };
+  state.prev = '__snap__';
+  state.target = phase;
+  state.morphStart = performance.now();
+  state.morphDuration = duration;
+  state.morphProgress = 0;
+
+  renderOverlay(phase);
+  renderPhaseTag(phase);
+  updateScrubUI(phase);
+  updateStatusChip(phase);
+
+  if (phase === 'heating')  startHeating();
+  if (phase === 'window')   startWindow();
+  if (phase === 'dabbing')  startDabbing();
+  if (phase === 'swab')     startSwab();
+  if (phase === 'dunk')     startDunk();
+  if (phase === 'complete') startComplete();
+}
+
+const topRegion = document.getElementById('top-region');
+const ctrRegion = document.getElementById('center-region');
+const botRegion = document.getElementById('bottom-region');
+
+function profileChip() {
+  if (!state.banger && !state.concentrate) return '';
+  const b = state.banger ? state.banger.name.toUpperCase() : '—';
+  const c = state.concentrate ? state.concentrate.name.toUpperCase() : '—';
+  return `<div class="profile-chip"><span class="gem"></span><span class="em">${c}</span><span class="sep">·</span><span>${b}</span></div>`;
+}
+
+function renderOverlay(phase) {
+  topRegion.innerHTML = ''; ctrRegion.innerHTML = ''; botRegion.innerHTML = '';
+  // Re-apply chip-aware bottom padding fresh each render — phases opt-out by adding 'no-chip'
+  botRegion.classList.remove('no-chip');
+  state.orbDragX = 0; state.orbDragY = 0;
+  switch (phase) {
+    case 'cold':
+      ctrRegion.innerHTML = `
+        <div style="margin-top:140px"></div>
+        <div class="copy-stack">
+          <div class="eyebrow h-eyebrow">Step 01</div>
+          <div class="h-line">Power on your Dabrite.</div>
+          <div class="h-sub">Hold the side button until the LED breathes — then tap to pair.</div>
+        </div>`;
+      botRegion.innerHTML = `
+        <div class="tap-hint">
+          <span class="pip"></span>
+          <span>Tap to pair</span>
+        </div>`;
+      botRegion.classList.add('no-chip');
+      break;
+    case 'connecting':
+      ctrRegion.innerHTML = `
+        <div style="margin-top:140px"></div>
+        <div class="copy-stack">
+          <div class="scan-ring"></div>
+          <div class="eyebrow">Searching</div>
+          <div class="h-line">Looking for a Dabrite nearby…</div>
+          <div class="h-sub">If nothing happens, hold the Dabrite's side button until its LED breathes.</div>
+        </div>`;
+      botRegion.classList.add('no-chip');
+      scheduleAuto(2400, () => gotoPhase('connected', 700));
+      break;
+    case 'connected':
+      ctrRegion.innerHTML = `
+        <div style="margin-top:140px"></div>
+        <div class="copy-stack">
+          <div class="eyebrow h-eyebrow">Linked</div>
+          <div class="h-line">Dabrite Pro · 92%</div>
+          <div class="h-sub">Calibrated for opaque-bottom emissivity.</div>
+        </div>`;
+      scheduleAuto(1500, () => gotoPhase('presets', 800));
+      break;
+    case 'presets': {
+      topRegion.innerHTML = '';
+      const lookup = (id, list) => list.find(x => x.id === id);
+      botRegion.innerHTML = `
+        <div class="picker" id="picker">
+          <div class="picker-head">
+            <div class="head-title">Pick up where you left off</div>
+            <div class="head-meta">${PRESETS.length} saved</div>
+          </div>
+          <div class="preset-hint">
+            <span>Recents</span>
+            <span class="em">tap one · or build fresh</span>
+          </div>
+          <div class="preset-row" id="preset-row">
+            ${PRESETS.map(p => {
+              const c = lookup(p.concentrateId, CONCENTRATES);
+              const b = lookup(p.bangerId, BANGERS);
+              return `<button class="preset-card" data-id="${p.id}" type="button">
+                <div class="preset-bg" style="background-image:url('${c.image}')"></div>
+                <div class="preset-meta">
+                  <div class="preset-name">${c.name}</div>
+                  <div class="preset-banger">${b.name}</div>
+                  <div class="preset-temp">${c.optimal}°F · ${p.when}</div>
+                </div>
+              </button>`;
+            }).join('')}
+            <button class="preset-card preset-fresh" id="preset-fresh" type="button">
+              <span class="plus" aria-hidden="true"></span>
+              <span class="lbl">Build fresh</span>
+            </button>
+          </div>
+        </div>`;
+      setupPresetRow();
+      break;
+    }
+    case 'banger': {
+      topRegion.innerHTML = '';
+      botRegion.innerHTML = `
+        <div class="picker" id="picker">
+          <div class="picker-head">
+            <div class="head-title">Your banger</div>
+            <div class="head-meta">${BANGERS.length} styles · swipe</div>
+          </div>
+          <div class="carousel-frame">
+            <div class="carousel-track" id="banger-track">
+              ${BANGERS.map((b, i) => `
+                <button class="banger-card" data-id="${b.id}" data-i="${i}" data-active="${state.banger?.id === b.id ? 'true' : 'false'}" type="button">
+                  <div class="banger-photo"><img src="${b.image}" alt="${b.name} banger" draggable="false" /></div>
+                  <div class="b-name">${b.name}</div>
+                  <div class="b-sub">${b.sub}</div>
+                  <div class="b-temp">${b.tempLow}–${b.tempHigh}<span class="deg">°F</span></div>
+                </button>`).join('')}
+            </div>
+          </div>
+          <div class="carousel-dots" id="banger-dots">
+            ${BANGERS.map((_, i) => `<button class="carousel-dot" data-i="${i}" data-active="${i === 0 ? 'true' : 'false'}" type="button" aria-label="Banger ${i + 1}"></button>`).join('')}
+          </div>
+        </div>`;
+      setupBangerCarousel();
+      break;
+    }
+    case 'concentrate': {
+      topRegion.innerHTML = '';
+      botRegion.innerHTML = `
+        <div class="picker" id="picker">
+          <div class="picker-head">
+            <div class="head-title">Your hash</div>
+            <div class="head-meta">${CONCENTRATES.length} textures</div>
+          </div>
+          <div class="tile-grid" id="tile-grid">
+            ${CONCENTRATES.map(c => `
+              <button class="tile-card" data-id="${c.id}" data-active="${state.concentrate?.id === c.id ? 'true' : 'false'}" type="button">
+                <div class="tile-photo" style="background-image:url('${c.image}')"></div>
+                <div class="tile-shade"></div>
+                <div class="tile-check">✓</div>
+                <div class="tile-meta">
+                  <div class="tile-name">${c.name}</div>
+                  <div class="tile-temp">OPTIMAL <span class="em">${c.optimal}°F</span></div>
+                </div>
+              </button>`).join('')}
+          </div>
+        </div>`;
+      setupTileGrid();
+      break;
+    }
+    case 'ready':
+      ctrRegion.innerHTML = `
+        <div class="ready-copy">
+          <div class="copy-stack">
+            <div class="eyebrow h-eyebrow">Profile loaded</div>
+            <div class="h-line">Ready when you are.</div>
+            <div class="h-sub">Spark your torch — the mic will hear it.</div>
+          </div>
+        </div>`;
+      // Pull the copy below the orb so they don't fight for the same vertical
+      const readyCopy = ctrRegion.querySelector('.ready-copy');
+      if (readyCopy) {
+        readyCopy.style.position = 'absolute';
+        readyCopy.style.left = '0'; readyCopy.style.right = '0';
+        readyCopy.style.bottom = '40px';
+        readyCopy.style.display = 'flex'; readyCopy.style.justifyContent = 'center';
+      }
+      botRegion.innerHTML = `
+        <div class="mic-pad">
+          <div class="mic-bars"><span></span><span></span><span></span><span></span><span></span></div>
+          <span>Listening for ignition</span>
+        </div>`;
+      scheduleAuto(2400, () => gotoPhase('heating', 600));
+      break;
+    case 'heating': {
+      // Torch countdown ring + temp readout. Ring drains over the recommended torch duration (90s avg, scaled by banger).
+      // When the ring hits 0, it stays quietly at zero — no overrun shame, no block. Cooldown begins when temp peaks (mic-detected
+      // torch-off in production; simulated peak here).
+      const torchDur = torchDurationFor(state.banger);
+      ctrRegion.innerHTML = `
+        <div class="torch-frame" id="torch-frame" data-dur="${torchDur}">
+          <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+              <linearGradient id="torch-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stop-color="oklch(0.84 0.12 200)"/>
+                <stop offset="50%"  stop-color="oklch(0.78 0.18 320)"/>
+                <stop offset="100%" stop-color="oklch(0.90 0.14 95)"/>
+              </linearGradient>
+            </defs>
+            <circle cx="160" cy="100" r="92" fill="none"
+                    stroke="oklch(0.99 0.005 240 / 0.10)" stroke-width="1"/>
+            <circle id="torch-ring" cx="160" cy="100" r="92" fill="none"
+                    stroke="url(#torch-ring-grad)" stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-dasharray="${(2 * Math.PI * 92).toFixed(2)}"
+                    stroke-dashoffset="0"
+                    transform="rotate(-90 160 100)"/>
+          </svg>
+          <div class="torch-readout">
+            <span class="torch-num" id="heat-num">${Math.round(state.liveTemp)}</span>
+            <span class="torch-deg">°F</span>
+            <span class="torch-timer" id="torch-timer">Torch · <span class="em" id="torch-time">${formatMMSS(torchDur)}</span> left</span>
+          </div>
+        </div>`;
+      botRegion.innerHTML = `
+        <div class="mic-pad">
+          <div class="mic-bars live"><span></span><span></span><span></span><span></span><span></span></div>
+          <span class="chromatic-text" style="color:var(--bone-100)">Torch detected · heating</span>
+        </div>`;
+      break;
+    }
+    case 'window': {
+      // Active dab session — window is open the moment temp peaks. Banger cools through it.
+      // No drag-zone (the dab is detected from a >50°F/sec velocity drop, not a button).
+      const opt = state.concentrate?.optimal || 480;
+      ctrRegion.innerHTML = `
+        <div class="session-stack">
+          <div class="session-numbers">
+            <span class="now" id="session-now">${Math.round(state.liveTemp)}</span><span class="now-deg" id="session-deg">°F</span>
+          </div>
+          <div class="session-meta">
+            <span id="session-state">Window open</span><span class="bar">·</span>
+            <span>Optimal <span class="em">${opt}°F</span></span>
+          </div>
+          <div class="spectrum"></div>
+        </div>`;
+      botRegion.innerHTML = `
+        <div class="copy-stack" style="margin-top:0">
+          <div class="h-sub" id="session-coach" style="color:var(--bone-60); max-width:240px">
+            Lift the rig to your lips when it feels right. Quartzie watches the temperature drop.
+          </div>
+        </div>`;
+      break;
+    }
+    case 'dabbing':
+      // Minimal — just the orb. No copy. Be present.
+      botRegion.classList.add('no-chip');
+      break;
+    case 'swab': {
+      // Banger replaced on the IR sensor — temp climbing back above 200, in the safe q-tip range (250–300°F).
+      ctrRegion.innerHTML = `
+        <div class="swab-stage">
+          <div class="s-row">
+            <span class="s-num" id="swab-num">${Math.round(state.liveTemp || 280)}</span><span class="deg">°F</span>
+          </div>
+          <div class="qtip-callout" id="qtip-callout">
+            <div class="qtip-anim" aria-hidden="true">
+              <svg viewBox="0 0 56 64">
+                <defs>
+                  <linearGradient id="qtip-stick-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%"  stop-color="oklch(0.92 0.01 80)"/>
+                    <stop offset="100%" stop-color="oklch(0.78 0.01 80)"/>
+                  </linearGradient>
+                  <radialGradient id="qtip-bud-grad" cx="40%" cy="35%" r="65%">
+                    <stop offset="0%"  stop-color="oklch(0.99 0.004 80)"/>
+                    <stop offset="100%" stop-color="oklch(0.90 0.005 80)"/>
+                  </radialGradient>
+                </defs>
+                <g class="qtip-swing">
+                  <rect x="26.5" y="6" width="3" height="42" rx="1.5" fill="url(#qtip-stick-grad)"/>
+                  <ellipse cx="28" cy="50" rx="7.5" ry="9" fill="url(#qtip-bud-grad)"/>
+                  <ellipse cx="25.5" cy="46.5" rx="2.2" ry="2.6" fill="oklch(1 0 0 / 0.55)"/>
+                </g>
+              </svg>
+              <span class="q-puddle"></span>
+            </div>
+            <div class="q-copy">
+              <div class="q-line">Q-tip now</div>
+              <div class="q-sub"><span class="em" id="swab-band">250–300°F</span> · safe to swab</div>
+            </div>
+          </div>
+        </div>`;
+      break;
+    }
+    case 'dunk': {
+      // Below 250°F — quartz is cool enough for an iso dunk without thermal shock.
+      ctrRegion.innerHTML = `
+        <div class="dunk-stage">
+          <div class="d-row">
+            <span class="d-num" id="dunk-num">${Math.round(state.liveTemp || 230)}</span><span class="deg">°F</span>
+          </div>
+          <div class="dunk-stamp">
+            <span class="dot"></span>
+            <span>Dunk safe</span>
+          </div>
+          <div class="copy-stack" style="margin-top:6px">
+            <div class="h-sub" style="max-width:220px">Cool enough to submerge in iso. Cap, drop, swirl.</div>
+          </div>
+        </div>`;
+      break;
+    }
+    case 'complete': {
+      // Orb stays centred; two glass cards float beneath. Subtle gesture-hint copy above the cards.
+      // Auto-save handled in startComplete; the cards just route to next phase.
+      ctrRegion.innerHTML = '';
+      botRegion.innerHTML = `
+        <div class="copy-stack" style="margin-top:0; gap:4px">
+          <div class="eyebrow" style="letter-spacing:0.32em">Saved · auto</div>
+        </div>
+        <div class="complete-pair">
+          <button class="complete-card" data-action="again" type="button">
+            <div class="c-name">Again</div>
+            <div class="c-sub">Same banger<br/>same hash</div>
+            <svg class="c-arrow" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 L11 3"/><polyline points="5,3 11,3 11,9"/></svg>
+          </button>
+          <button class="complete-card" data-action="new" type="button">
+            <div class="c-name">New</div>
+            <div class="c-sub">Pick something<br/>different</div>
+            <svg class="c-arrow" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 L11 3"/><polyline points="5,3 11,3 11,9"/></svg>
+          </button>
+        </div>
+        <div class="complete-recap" style="margin-top:6px">
+          <span class="lbl">Peak</span>
+          <span class="val">${state.tempPeak ? Math.round(state.tempPeak) : 760}°F</span>
+          <span class="sep">·</span>
+          <span class="lbl">Window</span>
+          <span class="val">0:24</span>
+          <span class="sep">·</span>
+          <span class="val">${state.banger?.name || 'Beveled Edge'}</span>
+        </div>`;
+      attachCompletePair();
+      break;
+    }
+  }
+}
+
+// Recommended torch duration in seconds — scaled by banger style (thermals torch slower, cold-cups torch shorter).
+function torchDurationFor(banger) {
+  if (!banger) return 90;
+  const map = {
+    'flat-top': 90, 'beveled': 85, 'opaque': 90, 'slurper': 75,
+    'cold-cup': 60, 'thermal': 110, 'terp-slurp': 85, 'core-reactor': 95,
+  };
+  return map[banger.id] || 90;
+}
+function formatMMSS(s) {
+  const m = Math.floor(s / 60);
+  const r = Math.max(0, Math.round(s % 60));
+  return `${m}:${r.toString().padStart(2, '0')}`;
+}
+
+function setupBangerCarousel() {
+  const track = document.getElementById('banger-track');
+  if (!track) return;
+  const cards = Array.from(track.querySelectorAll('.banger-card'));
+  const dots  = Array.from(document.querySelectorAll('#banger-dots .carousel-dot'));
+
+  const centerCard = (card, smooth) => {
+    const targetLeft = card.offsetLeft - (track.clientWidth / 2) + (card.offsetWidth / 2);
+    track.scrollTo({ left: Math.max(0, targetLeft), behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  const initialIx = state.banger ? Math.max(0, BANGERS.findIndex(b => b.id === state.banger.id)) : 0;
+  requestAnimationFrame(() => {
+    if (cards[initialIx]) centerCard(cards[initialIx], false);
+    dots.forEach((d, i) => d.dataset.active = (i === initialIx ? 'true' : 'false'));
+  });
+
+  let scrollRaf = null;
+  const updateDots = () => {
+    const trackCenter = track.scrollLeft + track.clientWidth / 2;
+    let nearestI = 0, nearestD = Infinity;
+    cards.forEach((c, i) => {
+      const cardCenter = c.offsetLeft + c.offsetWidth / 2;
+      const d = Math.abs(cardCenter - trackCenter);
+      if (d < nearestD) { nearestD = d; nearestI = i; }
+    });
+    dots.forEach((d, i) => d.dataset.active = (i === nearestI ? 'true' : 'false'));
+  };
+  track.addEventListener('scroll', () => {
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
+    scrollRaf = requestAnimationFrame(updateDots);
+  });
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      state.banger = BANGERS.find(b => b.id === id);
+      cards.forEach(c => c.dataset.active = (c === card ? 'true' : 'false'));
+      centerCard(card, true);
+      const orbEl = document.getElementById('orb');
+      orbEl.style.filter = 'brightness(1.4) saturate(1.2)';
+      setTimeout(() => { orbEl.style.filter = ''; }, 280);
+      scheduleAuto(750, () => gotoPhase('concentrate', 700));
+    });
+  });
+
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      if (cards[i]) centerCard(cards[i], true);
+    });
+  });
+}
+
+function setupTileGrid() {
+  const grid = document.getElementById('tile-grid');
+  if (!grid) return;
+  const cards = Array.from(grid.querySelectorAll('.tile-card'));
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      state.concentrate = CONCENTRATES.find(c => c.id === id);
+      cards.forEach(c => c.dataset.active = (c === card ? 'true' : 'false'));
+      const orbEl = document.getElementById('orb');
+      orbEl.style.filter = 'brightness(1.5) saturate(1.3)';
+      setTimeout(() => { orbEl.style.filter = ''; }, 320);
+      scheduleAuto(750, () => gotoPhase('ready', 700));
+    });
+  });
+}
+
+function setupPresetRow() {
+  const row = document.getElementById('preset-row');
+  if (!row) return;
+  row.querySelectorAll('.preset-card').forEach(card => {
+    card.addEventListener('click', () => {
+      if (card.id === 'preset-fresh') {
+        gotoPhase('banger', 700);
+        return;
+      }
+      const id = card.dataset.id;
+      const preset = PRESETS.find(p => p.id === id);
+      if (!preset) return;
+      state.preset = preset;
+      state.banger = BANGERS.find(b => b.id === preset.bangerId);
+      state.concentrate = CONCENTRATES.find(c => c.id === preset.concentrateId);
+      // visual confirmation: orb absorbs the preset's brightness
+      const orbEl = document.getElementById('orb');
+      orbEl.style.filter = 'brightness(1.6) saturate(1.4)';
+      card.style.transform = 'translateY(-6px) scale(0.96)';
+      card.style.opacity = '0.55';
+      setTimeout(() => { orbEl.style.filter = ''; }, 380);
+      scheduleAuto(700, () => gotoPhase('ready', 800));
+    });
+  });
+}
+
+// Complete-pair: two glass cards beneath the orb. "Again" reuses the saved profile, "New" wipes and goes to presets.
+function attachCompletePair() {
+  const cards = document.querySelectorAll('.complete-card');
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const action = card.dataset.action;
+      // Tactile feedback — a quick chromatic flash on the orb so the action feels physical.
+      const orbEl = document.getElementById('orb');
+      if (orbEl) {
+        orbEl.style.filter = 'brightness(1.4) saturate(1.4)';
+        setTimeout(() => { orbEl.style.filter = ''; }, 320);
+      }
+      if (action === 'again') {
+        state.liveTemp = 70; state.tempPeak = 0;
+        scheduleAuto(220, () => gotoPhase('ready', 800));
+      } else {
+        // New session — keep the device link, wipe the chosen profile.
+        state.banger = null; state.concentrate = null; state.preset = null;
+        state.liveTemp = 70; state.tempPeak = 0;
+        scheduleAuto(220, () => gotoPhase('presets', 800));
+      }
+    });
+  });
+}
+
+// Orb-grab gesture for the complete phase — kept as a back-compat stub (no longer wired by default).
+function attachOrbGrab() {
+  const grab = document.getElementById('orb-grab');
+  const railUp = document.getElementById('rail-up');
+  const railDown = document.getElementById('rail-down');
+  if (!grab) return;
+
+  let pid = null;
+  let startY = 0;
+  let active = false;
+  const THRESHOLD = 90;
+
+  const reset = () => {
+    state.orbDragX = 0; state.orbDragY = 0;
+    if (railUp) railUp.dataset.armed = 'false';
+    if (railDown) railDown.dataset.armed = 'false';
+  };
+
+  const onDown = (e) => {
+    pid = e.pointerId; startY = e.clientY; active = true;
+    try { grab.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onMove = (e) => {
+    if (!active || e.pointerId !== pid) return;
+    const dy = e.clientY - startY;
+    state.orbDragY = clamp(dy * 0.55, -110, 110);
+    if (railUp) railUp.dataset.armed = (dy < -THRESHOLD * 0.6 ? 'true' : 'false');
+    if (railDown) railDown.dataset.armed = (dy >  THRESHOLD * 0.6 ? 'true' : 'false');
+    if (Math.abs(dy) > THRESHOLD) {
+      active = false;
+      if (dy > 0) commitSave();
+      else commitAgain();
+    }
+  };
+  const onUp = () => {
+    if (!active) return;
+    active = false; pid = null;
+    // spring back
+    const start = state.orbDragY;
+    const t0 = performance.now();
+    const dur = 320;
+    const animate = (n) => {
+      const k = clamp((n - t0) / dur, 0, 1);
+      const ease = 1 - Math.pow(1 - k, 3);
+      state.orbDragY = start * (1 - ease);
+      if (railUp) railUp.dataset.armed = 'false';
+      if (railDown) railDown.dataset.armed = 'false';
+      if (k < 1) requestAnimationFrame(animate);
+      else state.orbDragY = 0;
+    };
+    requestAnimationFrame(animate);
+  };
+
+  const commitSave = () => {
+    // Visual: orb shrinks down off-screen, leaving a saved-pip
+    const t0 = performance.now();
+    const dur = 480;
+    const animate = (n) => {
+      const k = clamp((n - t0) / dur, 0, 1);
+      state.orbDragY = lerp(state.orbDragY, 200, easeInOutCubic(k));
+      if (k < 1) requestAnimationFrame(animate);
+      else {
+        reset();
+        gotoPhase('cold', 700);
+      }
+    };
+    requestAnimationFrame(animate);
+  };
+
+  const commitAgain = () => {
+    state.liveTemp = 70; state.tempPeak = 0;
+    const t0 = performance.now();
+    const dur = 380;
+    const animate = (n) => {
+      const k = clamp((n - t0) / dur, 0, 1);
+      state.orbDragY = lerp(state.orbDragY, -60, easeInOutCubic(k));
+      if (k < 1) requestAnimationFrame(animate);
+      else {
+        reset();
+        gotoPhase('ready', 700);
+      }
+    };
+    requestAnimationFrame(animate);
+  };
+
+  grab.addEventListener('pointerdown', onDown);
+  grab.addEventListener('pointermove', onMove);
+  grab.addEventListener('pointerup', onUp);
+  grab.addEventListener('pointercancel', onUp);
+}
+
+let heatTimer, coolTimer, torchTimer, dabTimer, swabTimer, dunkTimer, autoTimer;
+function clearAllSim() {
+  [heatTimer, coolTimer, torchTimer, dabTimer, swabTimer, dunkTimer].forEach(t => { if (t) clearInterval(t); });
+  heatTimer = coolTimer = torchTimer = dabTimer = swabTimer = dunkTimer = null;
+}
+function clearAuto() { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; } }
+function scheduleAuto(ms, fn) { clearAuto(); autoTimer = setTimeout(fn, ms / state.speed); }
+
+function startHeating() {
+  clearAllSim();
+  state.tempStart = Math.max(70, state.liveTemp);
+  state.tempPeak = (state.banger?.tempHigh || 600) + 100 + Math.random() * 40;
+
+  // Compress the torch duration in the demo (the ring still visualises the recommended 90s window).
+  const torchDur = torchDurationFor(state.banger);
+  const compressedRealMs = 9000 / state.speed;
+  const startT = performance.now();
+
+  // Temp climbs to peak.
+  heatTimer = setInterval(() => {
+    const k = Math.min(1, (performance.now() - startT) / compressedRealMs);
+    state.liveTemp = lerp(state.tempStart, state.tempPeak, easeInOutCubic(k));
+    const node = document.getElementById('heat-num');
+    if (node) node.textContent = Math.round(state.liveTemp);
+    if (k >= 1) {
+      clearInterval(heatTimer); heatTimer = null;
+      // Torch ends; window opens immediately at peak.
+      if (torchTimer) { clearInterval(torchTimer); torchTimer = null; }
+      gotoPhase('window', 900);
+    }
+  }, 60);
+
+  // Torch ring drains from full to empty over the simulated torchDur (mapped to the same compressed window).
+  const ringEl = () => document.getElementById('torch-ring');
+  const timerEl = () => document.getElementById('torch-time');
+  const timerWrapEl = () => document.getElementById('torch-timer');
+  const C = 2 * Math.PI * 92;
+  torchTimer = setInterval(() => {
+    const elapsed = performance.now() - startT;
+    const compressedFrac = clamp(elapsed / compressedRealMs, 0, 1);
+    // Ring drains over the recommended duration; in demo we map full duration to compressed window.
+    const r = ringEl();
+    if (r) r.setAttribute('stroke-dashoffset', (C * compressedFrac).toFixed(2));
+    const t = timerEl();
+    const wrap = timerWrapEl();
+    if (t) {
+      const remaining = Math.max(0, Math.round(torchDur * (1 - compressedFrac)));
+      t.textContent = formatMMSS(remaining);
+      if (wrap) {
+        if (remaining <= 0) wrap.classList.add('done');
+        else wrap.classList.remove('done');
+      }
+    }
+  }, 80);
+}
+
+// Active dab session: temp post-peak, falling continuously through the window.
+// Window is open the moment we enter this phase (no separate "cooling toward window" pause).
+// Pickup detection: a velocity drop > 50°F/sec triggers a transition to 'dabbing'.
+function startWindow() {
+  clearAllSim();
+  const opt = state.concentrate?.optimal || 480;
+  const start = state.liveTemp || (state.tempPeak || (opt + 220));
+  const target = opt - 60;
+  const winLow = opt - 25, winHigh = opt + 15;
+  const dur = 9500 / state.speed; // banger cools naturally over ~9.5s of demo time
+  const startT = performance.now();
+  state.lastTemp = start;
+  state.lastTempT = startT;
+
+  // After ~6.2s of session, simulate the user picking up the rig — temp will drop fast (>50°F/sec).
+  const pickupAt = startT + 6200 / state.speed;
+  let pickupTriggered = false;
+  let pickupStartTemp = 0, pickupT0 = 0;
+
+  coolTimer = setInterval(() => {
+    const now = performance.now();
+    if (!pickupTriggered && now < pickupAt) {
+      const k = Math.min(1, (now - startT) / dur);
+      state.liveTemp = lerp(start, target, k);
+    } else {
+      if (!pickupTriggered) {
+        pickupTriggered = true;
+        pickupStartTemp = state.liveTemp;
+        pickupT0 = now;
+      }
+      // Aggressive drop to ~0°F over 350ms — well above 50°F/sec
+      const k = Math.min(1, (now - pickupT0) / 350);
+      state.liveTemp = lerp(pickupStartTemp, 0, easeInOutCubic(k));
+    }
+
+    // Velocity-based pickup detection (matches production logic).
+    const dt = (now - state.lastTempT) / 1000;
+    if (dt > 0.04) {
+      const dT = (state.liveTemp - state.lastTemp) / dt;
+      state.lastTemp = state.liveTemp;
+      state.lastTempT = now;
+      if (dT < -50 && state.current === 'window') {
+        clearInterval(coolTimer); coolTimer = null;
+        gotoPhase('dabbing', 700);
+        return;
+      }
+    }
+
+    // Update readout + chromatic intensity based on live temp band.
+    const node = document.getElementById('session-now');
+    if (node) node.textContent = Math.round(Math.max(0, state.liveTemp));
+    const ss = document.getElementById('session-state');
+    if (ss) {
+      if (state.liveTemp <= winHigh && state.liveTemp >= winLow) ss.textContent = 'In window';
+      else if (state.liveTemp > winHigh) ss.textContent = 'Window open';
+      else ss.textContent = 'Past optimal';
+    }
+    // Push live chromatic intensity into orb state so it celebrates only when in optimal band.
+    const inWin = (state.liveTemp <= winHigh && state.liveTemp >= winLow);
+    state.targetChrom = inWin ? 0.85 : 0.45;
+  }, 60);
+}
+
+// Dabbing — the user has lifted the rig. No copy. Orb shrinks to a quiet pulse.
+// In production: stays here until the IR sensor sees the banger again (temp jumps from low → 200+).
+// In the demo: auto-advance after a beat.
+function startDabbing() {
+  clearAllSim();
+  state.liveTemp = 0;
+  scheduleAuto(2400, () => gotoPhase('swab', 800));
+}
+
+// Swab — banger is back on the IR sensor. Temp climbs back into the safe q-tip range (250–300°F).
+// We jump to ~290°F and let it cool toward the dunk threshold.
+function startSwab() {
+  clearAllSim();
+  // Simulate the temp jump from ~0 → 290°F that fires when the banger is replaced on the sensor.
+  state.liveTemp = 290;
+  const startT = performance.now();
+  const start = state.liveTemp;
+  const target = 245;
+  const dur = 6000 / state.speed;
+  swabTimer = setInterval(() => {
+    const k = Math.min(1, (performance.now() - startT) / dur);
+    state.liveTemp = lerp(start, target, k);
+    const node = document.getElementById('swab-num');
+    if (node) node.textContent = Math.round(state.liveTemp);
+    if (state.liveTemp <= 250 && state.current === 'swab') {
+      clearInterval(swabTimer); swabTimer = null;
+      gotoPhase('dunk', 800);
+    } else if (k >= 1) { clearInterval(swabTimer); swabTimer = null; }
+  }, 100);
+}
+
+// Dunk — quartz cool enough for iso. Hold a beat then move to complete.
+function startDunk() {
+  clearAllSim();
+  if (!isNaN(state.liveTemp) && state.liveTemp > 250) state.liveTemp = 240;
+  const startT = performance.now();
+  const start = state.liveTemp || 240;
+  const target = 165;
+  const dur = 5500 / state.speed;
+  dunkTimer = setInterval(() => {
+    const k = Math.min(1, (performance.now() - startT) / dur);
+    state.liveTemp = lerp(start, target, k);
+    const node = document.getElementById('dunk-num');
+    if (node) node.textContent = Math.round(state.liveTemp);
+    if (k >= 1) { clearInterval(dunkTimer); dunkTimer = null; }
+  }, 100);
+  // Auto-advance to recap after a respectful pause.
+  scheduleAuto(4200, () => gotoPhase('complete', 900));
+}
+
+function startComplete() {
+  clearAllSim();
+  // The session is complete — auto-save it as a recent preset (no manual save UI anywhere).
+  autoSavePreset();
+}
+
+// Phase tag is intentionally absent from the screen surface; the bottom status chip carries phase context now.
+function renderPhaseTag(_phase) { /* no-op */ }
+function updateScrubUI(phase) {
+  document.querySelectorAll('.scrub-step').forEach(b => b.dataset.active = (b.dataset.phase === phase));
+}
+
+// Bottom status chip — single source of truth for "what session am I in". Glass + chromatic gem.
+// Hidden during phases that own the full surface (cold, connecting, pickers, dabbing).
+function updateStatusChip(phase) {
+  const chip = document.getElementById('status-chip');
+  const text = document.getElementById('status-chip-text');
+  if (!chip || !text) return;
+
+  const HIDE = ['cold','connecting','presets','banger','concentrate','dabbing'];
+  if (HIDE.includes(phase)) {
+    chip.dataset.show = 'false';
+    return;
+  }
+
+  const c = state.concentrate?.name?.toUpperCase();
+  const b = state.banger?.name?.toUpperCase();
+
+  let html = '';
+  switch (phase) {
+    case 'connected':
+      html = `<span class="em">DABRITE PRO</span><span class="sep">·</span><span>92%</span>`;
+      break;
+    case 'ready':
+      html = c && b
+        ? `<span>READY</span><span class="sep">·</span><span class="em">${c}</span><span class="sep">·</span><span>${b}</span>`
+        : `<span>READY</span><span class="sep">·</span><span>MIC ON</span>`;
+      break;
+    case 'heating':
+      html = c && b
+        ? `<span>HEATING</span><span class="sep">·</span><span class="em">${c}</span><span class="sep">·</span><span>${b}</span>`
+        : `<span>HEATING</span>`;
+      break;
+    case 'window':
+      html = c
+        ? `<span>SESSION</span><span class="sep">·</span><span class="em">${c}</span><span class="sep">·</span><span>${state.concentrate?.optimal || 480}°F OPTIMAL</span>`
+        : `<span>SESSION</span><span class="sep">·</span><span>WINDOW OPEN</span>`;
+      break;
+    case 'swab':
+      html = c
+        ? `<span>POST-DAB</span><span class="sep">·</span><span class="em">${c}</span><span class="sep">·</span><span>SWAB SAFE</span>`
+        : `<span>POST-DAB</span><span class="sep">·</span><span>SWAB SAFE</span>`;
+      break;
+    case 'dunk':
+      html = `<span>POST-DAB</span><span class="sep">·</span><span class="em">DUNK SAFE</span><span class="sep">·</span><span>BELOW 250°F</span>`;
+      break;
+    case 'complete':
+      html = c && b
+        ? `<span>SAVED</span><span class="sep">·</span><span class="em">${c}</span><span class="sep">·</span><span>${b}</span>`
+        : `<span>SESSION COMPLETE</span>`;
+      break;
+    default:
+      chip.dataset.show = 'false';
+      return;
+  }
+  text.innerHTML = html;
+  chip.dataset.show = 'true';
+}
+
+document.querySelectorAll('[data-personality]').forEach(b => {
+  b.addEventListener('click', () => {
+    const p = b.dataset.personality;
+    state.personality = p;
+    document.querySelectorAll('[data-personality]').forEach(x => x.dataset.active = (x === b));
+    document.getElementById('personality-blurb').innerHTML = PERSONALITIES[p].blurb;
+  });
+});
+document.querySelectorAll('[data-phase]').forEach(b => {
+  b.addEventListener('click', () => {
+    clearAuto();
+    clearAllSim();
+    const next = b.dataset.phase;
+    // Backfill banger/concentrate if jumping deep without a profile so the demo phases have data to render.
+    const ix = PHASES.indexOf(next);
+    if (ix >= PHASES.indexOf('ready')) {
+      if (!state.banger) state.banger = BANGERS[1];
+      if (!state.concentrate) state.concentrate = CONCENTRATES[1];
+    }
+    if (next === 'window') { state.liveTemp = 510; state.tempPeak = 740; }
+    if (next === 'heating') state.liveTemp = 620;
+    if (next === 'dabbing') state.liveTemp = 0;
+    if (next === 'swab') state.liveTemp = 285;
+    if (next === 'dunk') state.liveTemp = 230;
+    if (next === 'complete') { state.liveTemp = 220; state.tempPeak = 740; }
+    gotoPhase(next, 700);
+  });
+});
+function updateSpeedScrub(activeBtn) {
+  const thumb = document.getElementById('speed-thumb');
+  const left = activeBtn.style.left;
+  if (thumb) thumb.style.left = left;
+  document.querySelectorAll('[data-speed]').forEach(x => x.dataset.active = (x === activeBtn ? 'true' : 'false'));
+}
+document.querySelectorAll('[data-speed]').forEach(b => {
+  b.addEventListener('click', () => {
+    state.speed = parseFloat(b.dataset.speed);
+    updateSpeedScrub(b);
+  });
+});
+// Initialize the thumb on the active default
+const initialActive = document.querySelector('[data-speed][data-active="true"]');
+if (initialActive) updateSpeedScrub(initialActive);
+
+// Make the play-label clickable too (it's a non-button trigger that calls the icon)
+document.getElementById('play-demo-label')?.addEventListener('click', () => {
+  document.getElementById('play-demo')?.click();
+});
+
+document.getElementById('play-demo').addEventListener('click', () => {
+  state.banger = null; state.concentrate = null; state.preset = null; state.liveTemp = 70;
+  gotoPhase('cold', 400);
+  setTimeout(() => gotoPhase('connecting', 700), 600 / state.speed);
+});
+document.getElementById('reset-demo').addEventListener('click', () => {
+  clearAuto();
+  clearAllSim();
+  state.banger = null; state.concentrate = null; state.preset = null; state.liveTemp = 70;
+  gotoPhase('cold', 600);
+});
+
+document.getElementById('tap-shield').addEventListener('click', (e) => {
+  if (e.target.closest('.banger-card, .tile-card, .preset-card, .carousel-dot, .picker, .complete-card, .complete-pair, .qtip-callout, .dunk-stamp, .tap-hint')) return;
+  // Cold phase: tapping anywhere starts pairing (the user has powered the Dabrite on physically).
+  if (state.current === 'cold') { gotoPhase('connecting', 700); return; }
+  const ix = PHASES.indexOf(state.current);
+  const next = PHASES[Math.min(PHASES.length - 1, ix + 1)];
+  if (next === 'banger' && !state.banger) state.banger = BANGERS[1];
+  if (next === 'concentrate' && !state.concentrate) state.concentrate = CONCENTRATES[1];
+  if (next === 'ready' && !state.banger) { state.banger = BANGERS[1]; state.concentrate = CONCENTRATES[1]; }
+  gotoPhase(next, 700);
+});
+
+document.getElementById('status-time').textContent = '9:41';
+
+const urlParams = new URLSearchParams(location.search);
+const initialPhase = urlParams.get('phase') || 'cold';
+const initialPersonality = urlParams.get('p') || 'lavalamp';
+if (PERSONALITIES[initialPersonality]) {
+  state.personality = initialPersonality;
+  document.querySelectorAll('[data-personality]').forEach(b => b.dataset.active = (b.dataset.personality === initialPersonality));
+  document.getElementById('personality-blurb').innerHTML = PERSONALITIES[initialPersonality].blurb;
+}
+if (PHASES.indexOf(initialPhase) >= PHASES.indexOf('ready') && !state.banger) state.banger = BANGERS[1];
+if (PHASES.indexOf(initialPhase) >= PHASES.indexOf('ready') && !state.concentrate) state.concentrate = CONCENTRATES[1];
+if (initialPhase === 'window') { state.liveTemp = 510; state.tempPeak = 740; }
+if (initialPhase === 'heating') state.liveTemp = 620;
+if (initialPhase === 'dabbing') state.liveTemp = 0;
+if (initialPhase === 'swab') state.liveTemp = 285;
+if (initialPhase === 'dunk') state.liveTemp = 230;
+if (initialPhase === 'complete') { state.liveTemp = 220; state.tempPeak = 740; }
+
+if (initialPhase !== 'cold' && STATES[initialPhase]) {
+  state.e = JSON.parse(JSON.stringify(STATES[initialPhase]));
+  state.morphProgress = 1;
+  gotoPhase(initialPhase, 1);
+} else {
+  renderOverlay('cold');
+  renderPhaseTag('cold');
+  updateStatusChip('cold');
+}
+</script>
+</body>
+</html>
