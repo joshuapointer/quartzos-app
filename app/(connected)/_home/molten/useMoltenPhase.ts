@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBleStore } from '../../../../src/state/bleStore';
 import { useSessionStore } from '../../../../src/state/sessionStore';
 import * as presetsDb from '../../../../src/db/presets';
+import { bleManager } from '../../../../src/ble/BleManager';
+import { toast } from '../../../../src/design/components/Toast';
 import type { MoltenPhase } from '../../../../src/design/components/molten/MoltenOrb/STATES';
 export type { MoltenPhase };
 
@@ -45,6 +47,18 @@ const SESSION_PHASES = new Set<MoltenPhase>([
   'dabbing',
   'swab',
   'dunk',
+]);
+// Disconnect-protection set — mid-flow phases where a BLE drop should
+// abort the session and bounce back to 'cold'. Includes 'complete' so a
+// drop on the celebration screen still resets cleanly.
+const DISCONNECT_GUARD_PHASES = new Set<MoltenPhase>([
+  'ready',
+  'heating',
+  'window',
+  'dabbing',
+  'swab',
+  'dunk',
+  'complete',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -166,6 +180,35 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
       }
     };
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // 1a. Scan timeout — if we sit in SCANNING for >30s, give up + reset.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (connectionState !== 'SCANNING') return;
+    const id = setTimeout(() => {
+      bleManager.stopScan();
+      toast.error('No Dabrite found nearby — try again');
+      setPhase('cold');
+    }, 30000);
+    return () => clearTimeout(id);
+  }, [connectionState, setPhase]);
+
+  // ---------------------------------------------------------------------------
+  // 1b. Mid-session disconnect — if BLE drops while we're in a session phase,
+  //     surface a toast and bounce back to cold so the user can re-pair.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!DISCONNECT_GUARD_PHASES.has(phaseRef.current)) return;
+    if (
+      connectionState === 'IDLE' ||
+      connectionState === 'ERROR' ||
+      connectionState === 'RECONNECTING'
+    ) {
+      toast.error('Lost connection to Dabrite');
+      setPhase('cold');
+    }
+  }, [connectionState, setPhase]);
 
   // ---------------------------------------------------------------------------
   // 4. heating → window (peak detection via ring buffer)

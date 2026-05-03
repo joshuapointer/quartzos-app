@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -8,11 +8,18 @@ import { useSessionStore } from '../../src/state/sessionStore';
 import { bleManager } from '../../src/ble/BleManager';
 import * as presetsDb from '../../src/db/presets';
 import * as sessionsDb from '../../src/db/sessions';
+import * as moltenRecentsDb from '../../src/db/moltenRecents';
 import type { Preset } from '../../src/db/presets';
 import type { SessionRecord } from '../../src/db/sessions';
+import type { MoltenRecent } from '../../src/db/moltenRecents';
+import { BANGERS } from '../../src/data/bangers';
+import { CONCENTRATES } from '../../src/data/concentrates';
 
 import { MoltenSurface } from './_home/molten/MoltenSurface';
-import type { MoltenSurfacePreset } from './_home/molten/MoltenSurface';
+import type {
+  MoltenSurfacePreset,
+  MoltenSurfaceRecent,
+} from './_home/molten/MoltenSurface';
 
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 
@@ -27,16 +34,22 @@ export default function HomeScreen() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const [presets, setPresets] = useState<Preset[]>([]);
   const [, setSessions] = useState<SessionRecord[]>([]);
+  const [moltenRecents, setMoltenRecents] = useState<MoltenRecent[]>([]);
   const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshSessions = useCallback(() => {
     sessionsDb.getAll().then(setSessions).catch(() => {});
   }, []);
 
+  const refreshMoltenRecents = useCallback(() => {
+    moltenRecentsDb.getRecent(4).then(setMoltenRecents).catch(() => {});
+  }, []);
+
   useEffect(() => {
     presetsDb.getAll().then(setPresets).catch(() => {});
     refreshSessions();
-  }, [refreshSessions]);
+    refreshMoltenRecents();
+  }, [refreshSessions, refreshMoltenRecents]);
 
   // Refresh history whenever a session ends. BleManager flips active=false
   // BEFORE its async sessionsDb.end() write completes, so we refresh once
@@ -45,9 +58,13 @@ export default function HomeScreen() {
   useEffect(() => {
     if (sessionActive) return;
     refreshSessions();
-    const t = setTimeout(refreshSessions, 600);
+    refreshMoltenRecents();
+    const t = setTimeout(() => {
+      refreshSessions();
+      refreshMoltenRecents();
+    }, 600);
     return () => clearTimeout(t);
-  }, [sessionActive, refreshSessions]);
+  }, [sessionActive, refreshSessions, refreshMoltenRecents]);
 
   // ── Preset apply ──────────────────────────────────────────────────────────
   const handleApplyPreset = useCallback(
@@ -144,10 +161,44 @@ export default function HomeScreen() {
     }),
   );
 
+  // ── Build the recents row from moltenRecents ──────────────────────────────
+  const moltenRecentEntries: ReadonlyArray<MoltenSurfaceRecent> = useMemo(() => {
+    const now = Date.now();
+    const out: MoltenSurfaceRecent[] = [];
+    for (const recent of moltenRecents) {
+      const banger = BANGERS.find((b) => b.id === recent.bangerId);
+      const concentrate = CONCENTRATES.find(
+        (c) => c.id === recent.concentrateId,
+      );
+      if (!banger || !concentrate) continue; // skip unresolvable rows
+      out.push({
+        id: recent.id,
+        bangerName: banger.name,
+        concentrateName: concentrate.name,
+        optimalF: concentrate.surface_temp_optimal_f ?? 480,
+        whenLabel: whenLabelFromMs(now - recent.completedAt, recent.completedAt),
+      });
+    }
+    return out;
+  }, [moltenRecents]);
+
   return (
     <MoltenSurface
       presets={moltenPresets}
+      recents={moltenRecentEntries}
       onApplyPreset={handleApplyPreset}
     />
   );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function whenLabelFromMs(deltaMs: number, completedAt: number): string {
+  if (deltaMs < 2 * 60 * 1000) return 'JUST NOW';
+  if (deltaMs < 24 * 60 * 60 * 1000) return 'TODAY';
+  if (deltaMs < 48 * 60 * 60 * 1000) return 'YESTERDAY';
+  const date = new Date(completedAt);
+  return new Intl.DateTimeFormat('en', { weekday: 'short' })
+    .format(date)
+    .toUpperCase();
 }

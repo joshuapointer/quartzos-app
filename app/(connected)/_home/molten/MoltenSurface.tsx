@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -18,6 +18,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 
 import { colors, fonts } from '../../../../src/design/tokens';
 import { useBleStore } from '../../../../src/state/bleStore';
@@ -27,6 +28,8 @@ import { BANGERS } from '../../../../src/data/bangers';
 import { CONCENTRATES } from '../../../../src/data/concentrates';
 import type { Banger } from '../../../../src/data/bangers';
 import type { Concentrate } from '../../../../src/data/concentrates';
+import { torchDetector } from '../../../../src/utils/TorchDetector';
+import * as moltenRecents from '../../../../src/db/moltenRecents';
 
 import { MoltenBackground } from '../../../../src/design/components/molten/MoltenBackground';
 import MoltenOrb from '../../../../src/design/components/molten/MoltenOrb';
@@ -99,8 +102,24 @@ export type MoltenSurfacePreset = {
   createdAt?: number;
 };
 
+/**
+ * RecentEntry-compatible shape (id, bangerName, concentrateName, optimalF,
+ * whenLabel) — pre-resolved by the parent so MoltenSurface doesn't need to
+ * juggle banger/concentrate lookups for the recents row.
+ */
+export type MoltenSurfaceRecent = {
+  id: string;
+  bangerName: string;
+  concentrateName: string;
+  optimalF: number;
+  whenLabel: string;
+};
+
 export type MoltenSurfaceProps = {
+  /** Saved presets — kept for `onApplyPreset` callsites. */
   presets: ReadonlyArray<MoltenSurfacePreset>;
+  /** Pre-resolved recent sessions for the picker row. */
+  recents?: ReadonlyArray<MoltenSurfaceRecent>;
   onApplyPreset?: (presetId: string) => Promise<void>;
 };
 
@@ -227,7 +246,13 @@ function MicBar({ index }: { index: number }) {
   return <Animated.View style={[styles.micBar, animStyle]} />;
 }
 
-function ReadyCopy() {
+function ReadyCopy({
+  showFallback,
+  onFallbackPress,
+}: {
+  showFallback: boolean;
+  onFallbackPress: () => void;
+}) {
   return (
     <View style={styles.copyOuter}>
       <CopyStack
@@ -236,6 +261,22 @@ function ReadyCopy() {
         sub="Spark your torch — the mic will hear it."
       />
       <MicPadIndicator />
+      {showFallback ? (
+        <Pressable
+          onPress={onFallbackPress}
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel="Tap when torch sparks"
+          style={({ pressed }) => [
+            styles.torchFallbackChip,
+            pressed && styles.torchFallbackChipPressed,
+          ]}
+        >
+          <Text style={styles.torchFallbackLabel} allowFontScaling={false}>
+            Tap when torch sparks
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -244,30 +285,48 @@ function ReadyCopy() {
 // Header — minimal wordmark row
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Header({ connectionState }: { connectionState: ConnectionState }) {
+function Header({
+  connectionState,
+  onLongPressSettings,
+}: {
+  connectionState: ConnectionState;
+  onLongPressSettings: () => void;
+}) {
   const isConnected = connectionState === 'READY';
 
   return (
     <View style={styles.headerRow}>
-      <Svg width={108} height={28} viewBox="0 0 216 56">
-        <Defs>
-          <LinearGradient id="wordmark-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <Stop offset="0%" stopColor={colors.bone100} stopOpacity={1} />
-            <Stop offset="100%" stopColor="#c8cdd4" stopOpacity={1} />
-          </LinearGradient>
-        </Defs>
-        <SvgText
-          x={108}
-          y={42}
-          fontFamily="InstrumentSerif_400Regular_Italic"
-          fontSize={36}
-          fontStyle="italic"
-          fill="url(#wordmark-grad)"
-          textAnchor="middle"
-        >
-          Quartzie
-        </SvgText>
-      </Svg>
+      <Pressable
+        onLongPress={onLongPressSettings}
+        delayLongPress={600}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Long-press to open settings"
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.7 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        })}
+      >
+        <Svg width={108} height={28} viewBox="0 0 216 56">
+          <Defs>
+            <LinearGradient id="wordmark-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <Stop offset="0%" stopColor={colors.bone100} stopOpacity={1} />
+              <Stop offset="100%" stopColor="#c8cdd4" stopOpacity={1} />
+            </LinearGradient>
+          </Defs>
+          <SvgText
+            x={108}
+            y={42}
+            fontFamily="InstrumentSerif_400Regular_Italic"
+            fontSize={36}
+            fontStyle="italic"
+            fill="url(#wordmark-grad)"
+            textAnchor="middle"
+          >
+            Quartzie
+          </SvgText>
+        </Svg>
+      </Pressable>
       <View style={styles.headerStatusRow}>
         <View
           style={[
@@ -341,10 +400,15 @@ function clamp(value: number, lo: number, hi: number): number {
 // MoltenSurface
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
+export function MoltenSurface({
+  presets,
+  recents,
+  onApplyPreset,
+}: MoltenSurfaceProps) {
   const { height: screenH } = useWindowDimensions();
   const connectionState = useBleStore((s) => s.connectionState);
   const liveBatteryPct = 92; // No battery field on bleStore yet — keep parity with index.html
+  const router = useRouter();
 
   const {
     phase,
@@ -406,8 +470,21 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
     top: orbTopShared.value,
   }));
 
-  // Recent presets adapted from preset rows
-  const recentEntries = useMemo(() => buildRecentEntries(presets), [presets]);
+  // Recent sessions: prefer the pre-resolved `recents` prop (from
+  // moltenRecents), fall back to legacy preset-derived entries so existing
+  // callers don't break during migration.
+  const recentEntries = useMemo<RecentEntry[]>(() => {
+    if (recents && recents.length > 0) {
+      return recents.map((r) => ({
+        id: r.id,
+        bangerName: r.bangerName,
+        concentrateName: r.concentrateName,
+        optimalF: r.optimalF,
+        whenLabel: r.whenLabel,
+      }));
+    }
+    return buildRecentEntries(presets);
+  }, [recents, presets]);
 
   // Heating timer — drains DEFAULT_TORCH_DURATION_S to zero while in 'heating'.
   const [torchSecondsLeftJS, setTorchSecondsLeftJS] = React.useState(
@@ -474,17 +551,67 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
     bleManager.startScan();
   }, []);
 
-  // ready → heating: mirror the demo's scheduleAuto(2400, ...). TorchDetector
-  // is the production trigger; this timer keeps the user moving in mock data.
+  // Cancel an in-flight scan by tapping the connecting screen.
+  const handleCancelScan = useCallback(() => {
+    bleManager.stopScan();
+    setPhase('cold');
+  }, [setPhase]);
+
+  // Wordmark long-press → settings deep link.
+  const handleLongPressSettings = useCallback(() => {
+    void Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Success,
+    ).catch(() => {
+      /* ignore */
+    });
+    router.push('/(connected)/settings');
+  }, [router]);
+
+  // ready → heating: TorchDetector listens for the torch click. After 4s of
+  // silence (or perm denied), surface a manual fallback chip so the user
+  // can still advance.
+  const [torchFallback, setTorchFallback] = useState(false);
+
   useEffect(() => {
-    if (phase !== 'ready') return;
-    const t = setTimeout(() => {
-      // Re-check phase via effect closure; setPhase is a no-op if we've
-      // already moved on, but the guard keeps intent explicit.
+    if (phase !== 'ready') {
+      setTorchFallback(false);
+      return;
+    }
+    let cancelled = false;
+    void torchDetector.startListening(() => {
+      if (cancelled) return;
       setPhase('heating');
-    }, 2400);
-    return () => clearTimeout(t);
+    });
+    const fallbackTimer = setTimeout(() => {
+      if (!cancelled) setTorchFallback(true);
+    }, 4000);
+    return () => {
+      cancelled = true;
+      clearTimeout(fallbackTimer);
+      void torchDetector.stopListening();
+    };
   }, [phase, setPhase]);
+
+  // Auto-save recent on entry to 'complete'.
+  useEffect(() => {
+    if (phase !== 'complete') return;
+    if (!selections.bangerId || !selections.concentrateId) return;
+    void moltenRecents
+      .record({
+        bangerId: selections.bangerId,
+        concentrateId: selections.concentrateId,
+        peakF: peakDisplayF || tempF,
+      })
+      .catch(() => {
+        /* silent — don't block UI */
+      });
+  }, [
+    phase,
+    selections.bangerId,
+    selections.concentrateId,
+    peakDisplayF,
+    tempF,
+  ]);
 
   // Window label: best-guess "0:24" — pulled from session length when peak was hit.
   // Without per-session window timestamps in scope, derive from default copy.
@@ -495,7 +622,10 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
   return (
     <MoltenBackground intensity={1}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        <Header connectionState={connectionState} />
+        <Header
+          connectionState={connectionState}
+          onLongPressSettings={handleLongPressSettings}
+        />
 
         {/* Absolutely positioned orb whose `top` springs across phases */}
         <Animated.View
@@ -510,7 +640,20 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
         {/* Phase-driven copy / overlay content (sits at bottom half of canvas) */}
         <View style={styles.contentWell} pointerEvents="box-none">
           {phase === 'cold' && <ColdCopy onPair={handlePairTap} />}
-          {phase === 'connecting' && <ConnectingCopy />}
+          {phase === 'connecting' && (
+            <Pressable
+              onPress={handleCancelScan}
+              accessibilityRole="button"
+              accessibilityLabel="Tap to cancel scan"
+              hitSlop={16}
+              style={({ pressed }) => [
+                styles.cancelScanPressable,
+                pressed && styles.cancelScanPressed,
+              ]}
+            >
+              <ConnectingCopy />
+            </Pressable>
+          )}
           {phase === 'connected' && (
             <ConnectedCopy batteryPct={liveBatteryPct} />
           )}
@@ -535,7 +678,12 @@ export function MoltenSurface({ presets, onApplyPreset }: MoltenSurfaceProps) {
               onSelect={selectConcentrate}
             />
           )}
-          {phase === 'ready' && <ReadyCopy />}
+          {phase === 'ready' && (
+            <ReadyCopy
+              showFallback={torchFallback}
+              onFallbackPress={() => setPhase('heating')}
+            />
+          )}
           {phase === 'heating' && (
             <HeatingOverlay
               tempF={tempF}
@@ -696,6 +844,31 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 2,
     backgroundColor: colors.prismCyan,
+    opacity: 0.85,
+  },
+
+  // Manual fallback chip — appears in 'ready' after 4s of mic silence.
+  torchFallbackChip: {
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: colors.glassThin,
+    alignSelf: 'center',
+  },
+  torchFallbackChipPressed: {
+    opacity: 0.7,
+  },
+  torchFallbackLabel: {
+    ...fonts.monoEyebrow,
+    color: colors.bone60,
+  },
+
+  // Cancel-scan press surface — wraps ConnectingCopy in 'connecting'.
+  cancelScanPressable: {
+    paddingVertical: 12,
+  },
+  cancelScanPressed: {
     opacity: 0.85,
   },
 });
