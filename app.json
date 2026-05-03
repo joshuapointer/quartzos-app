@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#050403"
-    },
     "ios": {
       "bundleIdentifier": "com.quartzos.app",
       "supportsTablet": false,
@@ -48,6 +43,19 @@
     "plugins": [
       "expo-router",
       "expo-updates",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#050608",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#050608"
+          }
+        }
+      ],
       [
         "react-native-ble-plx",
         {
