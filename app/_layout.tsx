@@ -22,6 +22,10 @@ import {
   GeistMono_400Regular,
   GeistMono_500Medium,
 } from '@expo-google-fonts/geist-mono';
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from '@expo-google-fonts/instrument-serif';
 
 import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
@@ -56,6 +60,8 @@ export default function RootLayout() {
     GeistMono_300Light,
     GeistMono_400Regular,
     GeistMono_500Medium,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
   });
   const [dbReady, setDbReady] = useState(false);
   const fontsLoaded = geistLoaded ?? false;
