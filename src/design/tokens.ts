@@ -1,9 +1,4 @@
-import { Dimensions } from 'react-native';
 import { Easing } from 'react-native-reanimated';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-
-export { SCREEN_W, SCREEN_H };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Quartzie · Molten Refresh — Chromatic Glass (May 2026)
@@ -24,23 +19,14 @@ export const colors = {
   // ── Core backgrounds (cool-purple obsidian) ──
   background:              '#060507', /* oklch(0.08 0.012 250) — page base   */
   surface:                 '#0e1018', /* oklch(0.13 0.018 245) — surface     */
-  surfaceDim:              '#0a0c12', /* oklch(0.10 0.015 248)               */
 
   // ── Surface container ramp ──
-  surfaceContainerLowest:  '#06070b',
-  surfaceContainerLow:     '#0c0e15',
-  surfaceContainer:        '#10131b',
   surfaceContainerHigh:    '#161924',
-  surfaceContainerHighest: '#1c2030',
-  surfaceVariant:          '#1c2030',
 
-  // ── Numeric ramp (legacy aliases — back-compat) ──
+  // ── Numeric ramp (back-compat — consumed via ThemeColors) ──
   bgDeep:        '#060507',
   surface1:      '#0a0c12',
-  surface2:      '#0e1018',
   surface3:      '#10131b',
-  surface4:      '#161924',
-  surface5:      '#1c2030',
   surface6:      '#252a3b',
   surfaceBright: '#252a3b',
 
@@ -66,40 +52,22 @@ export const colors = {
   prismCyan:        '#3acdf0', /* oklch(0.84 0.12 200) */
   prismMagenta:     '#e370d3', /* oklch(0.78 0.18 320) */
   prismGold:        '#f0d670', /* oklch(0.90 0.14 95)  */
-  prismCyanSoft:    'rgba(58,205,240,0.55)',
-  prismMagentaSoft: 'rgba(227,112,211,0.55)',
-  prismGoldSoft:    'rgba(240,214,112,0.55)',
 
   // ── Primary semantic (mapped to prism for back-compat consumers) ──
   primary:                '#3acdf0', /* prismCyan — the most "active" prism stop */
   onPrimary:              '#001520',
   primaryContainer:       '#e370d3', /* prismMagenta */
   onPrimaryContainer:     '#280020',
-  primaryFixed:           '#3acdf0',
-  primaryFixedDim:        '#9bdef2',
-  onPrimaryFixed:         '#001520',
-  onPrimaryFixedVariant:  '#003f56',
-
   // ── Secondary (muted cool grey-blue) ──
   secondary:                '#c1c6d5',
   onSecondary:              '#2b313c',
   secondaryContainer:       '#414753',
   onSecondaryContainer:     '#b0b5c3',
-  secondaryFixed:           '#dde2f1',
-  secondaryFixedDim:        '#c1c6d5',
-  onSecondaryFixed:         '#161c26',
-  onSecondaryFixedVariant:  '#414753',
-
   // ── Tertiary (Quartz cool blue — preserved for non-prism consumers) ──
   tertiary:                '#95ccff',
   onTertiary:              '#003352',
   tertiaryContainer:       '#00a8ff',
   onTertiaryContainer:     '#003a5c',
-  tertiaryFixed:           '#cde5ff',
-  tertiaryFixedDim:        '#95ccff',
-  onTertiaryFixed:         '#001d32',
-  onTertiaryFixedVariant:  '#004a75',
-
   // ── Outlines & error ──
   outline:           '#5e6066',
   outlineVariant:    '#2b2e3a',
@@ -108,34 +76,16 @@ export const colors = {
   errorContainer:    '#5a0a0a',
   onErrorContainer:  '#ffd6d6',
 
-  // ── Ember semantic ramp (kept for back-compat — now points to prism) ──
-  // Heat in the molten refresh is read as brightness + dispersion, not warm hue.
-  // These map onto prism stops so any consumer still rendering "ember" gets a
-  // chromatic stand-in instead of an off-palette orange.
+  // ── Ember semantic ramp (back-compat — emberBright/emberDeep consumed by QWordmark/color-picker) ──
   emberBright:  '#3acdf0', /* prismCyan — peak energy */
-  ember:        '#9bdef2',
   emberDeep:    '#001520',
-  emberMid:     '#5e8aa8',
-  emberCool:    '#3acdf0',
 
-  // ── Quartz semantic ramp ──
+  // ── Quartz semantic ramp (back-compat — quartzBright consumed by QWordmark, quartzDim by color-picker) ──
   quartzBright: '#95ccff',
-  quartz:       '#00a8ff',
-  quartzDeep:   '#004a75',
   quartzDim:    '#3884b8',
 
   // ── Brass (custom preset accent — desaturated olive-gold) ──
   brass: '#C4AC54',
-
-  // ── amberGold rebound to prism gold for chromatic consistency ──
-  amberGold: '#f0d670',
-
-  // ── Inner lens colors (TempDial back-compat) ──
-  lensIdle:    '#0a0c12',
-  lensHeating: '#10131b',
-  lensTarget:  '#161924',
-  lensCooling: '#0a1218',
-  lensDunk:    '#0c2640',
 
   // ── Semantic ──
   warning: '#f0d670', /* prismGold */
@@ -159,29 +109,12 @@ export const colors = {
   // ── Orb outline fallback ──
   orbOutlineDefault: '#ffffff',
 
-  // ── Backward-compat aliases ──
-  inversePrimary:    '#060507',
+  // ── Glass + text aliases (consumed by ThemeColors, settings, color-picker, onboarding) ──
   glassFill:         'rgba(252,252,255,0.05)',
   glassBorder:       'rgba(252,252,255,0.16)',
-  heatIdle:          '#95ccff',
-  heatAmber:         '#3acdf0',
-  heatGlow:          '#e370d3',
-  heatCyan:          '#3acdf0',
-  heatCooling:       '#5fa8d4',
-  ruby:      '#e370d3',
-  amethyst:  '#95ccff',
-  emerald:   '#7EC8A0',
-  sapphire:  '#00a8ff',
-  citrine:   '#f0d670',
-  idleDeep:      '#060507',
   textPrimary:   '#e8ecf2',
   textSecondary: '#adb1b7',
   textDim:       '#88898f',
-  crystalEdge:   'rgba(252,252,255,0.16)',
-  glassDeep:     'rgba(0,0,0,0.6)',
-  activeAmber:   '#3acdf0',
-  activeGlow:    '#e370d3',
-  activeDark:    '#10131b',
 
   // ── Background haze tokens (body radial gradient layers) ──
   // Source: /Downloads/quartzie-molten-refresh.html body background
@@ -191,10 +124,8 @@ export const colors = {
 
   // ── Semantic aliases (camelCase) ──
   voidObsidian:  '#060507',
-  surfaceDeep:   '#060507',
   surfaceMid:    '#0e1018',
   surfaceRaised: '#161924',
-  surfaceMuted:  '#1c2030',
   warmBone:      '#e8ecf2',
   boneMid:       '#c8cdd4',
   boneDim:       '#88898f',
@@ -212,12 +143,12 @@ export const prism = {
   cyan:        colors.prismCyan,
   magenta:     colors.prismMagenta,
   gold:        colors.prismGold,
-  cyanSoft:    colors.prismCyanSoft,
-  magentaSoft: colors.prismMagentaSoft,
-  goldSoft:    colors.prismGoldSoft,
+  cyanSoft:    'rgba(58,205,240,0.55)',
+  magentaSoft: 'rgba(227,112,211,0.55)',
+  goldSoft:    'rgba(240,214,112,0.55)',
   // Linear gradient preset (used by SVG strokes + LinearGradient consumers)
   gradient:     [colors.prismCyan, colors.prismMagenta, colors.prismGold] as const,
-  gradientSoft: [colors.prismCyanSoft, colors.prismMagentaSoft, colors.prismGoldSoft] as const,
+  gradientSoft: ['rgba(58,205,240,0.55)', 'rgba(227,112,211,0.55)', 'rgba(240,214,112,0.55)'] as const,
   // Drift period for animated gradient (matches index.html prism-drift 9s)
   driftDurationMs: 9000,
 } as const;
@@ -234,23 +165,10 @@ export const glass = {
 } as const;
 
 export const gradients = {
-  // Body background — three radial-ish stops layered to fake the index.html bloom
-  background:  ['#060507', '#0a0c12', '#060507'] as const,
-  ember:       [colors.prismCyan, colors.prismMagenta, colors.prismGold] as const,
-  quartz:      ['#95ccff', '#00a8ff', '#004a75'] as const,
   heatCore:    ['rgba(58,205,240,0)', 'rgba(58,205,240,0.18)', 'rgba(58,205,240,0.45)'] as const,
-  cardActive:  [colors.prismCyan, colors.prismMagenta] as const,
-  cardInactive: ['rgba(252,252,255,0.04)', 'rgba(252,252,255,0)'] as const,
   cardNeutral: ['rgba(252,252,255,0.05)', 'rgba(252,252,255,0.02)'] as const,
-  amethyst:    ['#95ccff', '#00a8ff', '#004a75'] as const,
-  primary:     [colors.prismCyan, colors.prismMagenta, colors.prismGold] as const,
   secondary:   ['#95ccff', '#00a8ff', '#004a75'] as const,
-  wordmark:    ['#e8ecf2', '#c8cdd4'] as const,
-  crystal:     ['rgba(252,252,255,0.10)', 'rgba(252,252,255,0.04)', 'rgba(0,0,0,0)'] as const,
   gloss:       ['rgba(252,252,255,0.10)', 'rgba(252,252,255,0)'] as const,
-  // Prism gradient — the chromatic edge ring (cyan→magenta→gold)
-  prism:       [colors.prismCyan, colors.prismMagenta, colors.prismGold] as const,
-  prismSoft:   [colors.prismCyanSoft, colors.prismMagentaSoft, colors.prismGoldSoft] as const,
   // Spectrum bar — celebratory chromatic band shown in the dab window
   spectrum:    ['rgba(58,205,240,0)', colors.prismCyan, colors.prismMagenta, colors.prismGold, 'rgba(240,214,112,0)'] as const,
   // Banger card photo placeholder
@@ -265,15 +183,11 @@ export const gradients = {
 // Spacing rhythm
 // ─────────────────────────────────────────────────────────────────────────────
 export const spacing = {
-  unit: 4,
   xs: 8,
   sm: 16,
   md: 32,
-  elementGap: 24,
-  containerPadding: 40,
   lg: 64,
   xl: 128,
-  xxl: 48,
 } as const;
 
 export const radius = {
@@ -285,20 +199,12 @@ export const radius = {
 const SHADOW_COLOR = '#000000';
 
 export const shadow = {
-  color: SHADOW_COLOR,
   card: {
     shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
     elevation: 8,
-  },
-  orb: {
-    shadowColor: colors.prismCyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 28,
-    elevation: 16,
   },
   button: {
     shadowColor: SHADOW_COLOR,
@@ -343,13 +249,6 @@ export const fonts = {
     lineHeight: 19,
     fontStyle: 'italic' as const,
   },
-  // display-lg: 48px Geist Light · -0.04em tracking · 1.1 line-height
-  display: {
-    fontFamily: 'Geist_300Light',
-    fontSize: 48,
-    letterSpacing: -1.92,
-    lineHeight: 53,
-  },
   // headline-md
   h1: {
     fontFamily: 'Geist_400Regular',
@@ -363,20 +262,10 @@ export const fonts = {
     letterSpacing: -0.48,
     lineHeight: 29,
   },
-  bodyLg: {
-    fontFamily: 'Geist_300Light',
-    fontSize: 18,
-    lineHeight: 26,
-  },
   body: {
     fontFamily: 'Geist_400Regular',
     fontSize: 16,
     lineHeight: 26,
-  },
-  dataValue: {
-    fontFamily: 'GeistMono_400Regular',
-    fontSize: 14,
-    lineHeight: 20,
   },
   caption: {
     fontFamily: 'GeistMono_400Regular',
@@ -420,48 +309,27 @@ export const fonts = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const motion = {
   duration: {
-    tap:        160,
-    tooltip:    180,
-    popover:    220,
-    modal:      240,
-    instant:    150,
-    quick:      200,
-    base:       400,
-    smooth:     600,
-    enter:      480,
-    deliberate: 800,
-    slow:       900,
+    tap:     160,
+    popover: 220,
+    base:    400,
   },
   exit: {
-    tap:        100,
-    tooltip:    140,
-    popover:    160,
-    modal:      180,
+    tap:     100,
+    popover: 160,
   },
   easing: {
-    easeOut:   [0.22, 1, 0.36, 1] as const,
-    easeInOut: [0.77, 0, 0.175, 1] as const,
-    drawer:    [0.32, 0.72, 0, 1] as const,
-    swoop:     [0.22, 1, 0.36, 1] as const,
-    // index.html ease curves
-    spring:    [0.22, 1.4, 0.36, 1] as const,    // --ease-spring
-    quartz:    [0.16, 0.84, 0.24, 1] as const,   // --ease-quartz
-    mercury:   [0.7, 0, 0.3, 1] as const,        // --ease-mercury
+    easeOut: [0.22, 1, 0.36, 1] as const,
+    swoop:   [0.22, 1, 0.36, 1] as const,
+    quartz:  [0.16, 0.84, 0.24, 1] as const,   // --ease-quartz
   },
 } as const;
 
 export const reanimatedEasing = {
-  easeOut:   Easing.bezier(...motion.easing.easeOut),
-  easeInOut: Easing.bezier(...motion.easing.easeInOut),
-  drawer:    Easing.bezier(...motion.easing.drawer),
-  spring:    Easing.bezier(...motion.easing.spring),
-  quartz:    Easing.bezier(...motion.easing.quartz),
-  mercury:   Easing.bezier(...motion.easing.mercury),
+  easeOut: Easing.bezier(...motion.easing.easeOut),
+  quartz:  Easing.bezier(...motion.easing.quartz),
 };
 
 export const animation = {
-  shimmerDurationMs: 4200,
-  pulseDurationMs:   1400,
   prismDriftMs:      9000, // matches index.html prism-drift @ 9s
   pressSpring:  { damping: 14, stiffness: 220, mass: 0.6 },
   toggleSpring: { damping: 15, stiffness: 260, mass: 0.5 },
@@ -469,5 +337,4 @@ export const animation = {
   toastSpring:  { damping: 22, stiffness: 200, mass: 0.9 },
   orbSpring:         { damping: 18, stiffness: 140, mass: 1.0 },
   orbPositionSpring: { damping: 18, stiffness: 110, mass: 1 },
-  orbitDurationMs: 30000,
 };

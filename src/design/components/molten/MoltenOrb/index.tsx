@@ -22,6 +22,7 @@ import { animation, colors, reanimatedEasing } from '../../../tokens';
 import { MOLTEN_STATES, MoltenPhase } from './STATES';
 import Sparks from './Sparks';
 import MoltenOrb3D from './MoltenOrb3D';
+import { MoltenOrb3DBoundary } from './MoltenOrb3DBoundary';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 // Animated SVG primitives
@@ -239,18 +240,20 @@ export default function MoltenOrb({
         </Svg>
       </View>
 
-      {/* Middle R3F Layer: 3D Molten Orb */}
-      {/* Absolute positioned, centered exactly at cx, cy */}
-      <View style={{ position: 'absolute', top: y, left: x, width: size, height: size }} pointerEvents="none">
-        <MoltenOrb3D 
-          orbR={orbR} 
-          breathR={breathR} 
-          roil={roilV} 
-          complexity={complexityV} 
-          chrom={chromV} 
-          tempK={tempKV} 
-          size={size} 
-        />
+      {/* Middle R3F Layer: 3D Molten Orb — wrapped in error boundary so GL
+          init failures on lower-end devices fall back to SVG-only gracefully */}
+      <View style={{ position: 'absolute', top: y, left: x, width: size, height: size, backgroundColor: 'transparent' }} pointerEvents="none">
+        <MoltenOrb3DBoundary>
+          <MoltenOrb3D
+            orbR={orbR}
+            breathR={breathR}
+            roil={roilV}
+            complexity={complexityV}
+            chrom={chromV}
+            tempK={tempKV}
+            size={size}
+          />
+        </MoltenOrb3DBoundary>
       </View>
 
       {/* Foreground SVG: Torch ring and Sparks */}

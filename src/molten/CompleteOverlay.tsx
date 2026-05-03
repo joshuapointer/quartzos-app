@@ -118,7 +118,10 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
   onNew,
 }: CompleteOverlayProps) {
   const peakF = useSessionStore((s) => s.peakF);
-  const displayPeakF = Math.round(peakF || 0);
+  // H4: suppress the Peak segment when no peak was captured (BLE drop, early
+  // exit). 0°F is wrong, not just unknown — show nothing instead.
+  const hasPeak = peakF != null && peakF > 0;
+  const displayPeakF = hasPeak ? Math.round(peakF) : 0;
   // Card-pair entrance: spring from scale 0.86 / opacity 0 → 1 on mount.
   // The prototype CSS doesn't formally specify an entrance, but the cards
   // visually pop on phase entry — matching the spec's "session card pair
@@ -159,19 +162,26 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
         />
       </Animated.View>
 
-      {/* Recap line */}
+      {/* Recap line — segments are conditionally rendered so the row never
+          starts or ends with a separator, and 0°F is never shown. */}
       <View style={styles.recapRow}>
-        <Text style={styles.recapLabel} allowFontScaling={false}>
-          {'Peak'}
-        </Text>
-        <Text style={styles.recapValue} allowFontScaling={false}>
-          {` ${displayPeakF}°F`}
-        </Text>
+        {hasPeak && (
+          <>
+            <Text style={styles.recapLabel} allowFontScaling={false}>
+              {'Peak'}
+            </Text>
+            <Text style={styles.recapValue} allowFontScaling={false}>
+              {` ${displayPeakF}°F`}
+            </Text>
+          </>
+        )}
         {windowLabel !== null && (
           <>
-            <Text style={styles.recapSep} allowFontScaling={false}>
-              {' · '}
-            </Text>
+            {hasPeak && (
+              <Text style={styles.recapSep} allowFontScaling={false}>
+                {' · '}
+              </Text>
+            )}
             <Text style={styles.recapLabel} allowFontScaling={false}>
               {'Window'}
             </Text>
@@ -180,9 +190,11 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
             </Text>
           </>
         )}
-        <Text style={styles.recapSep} allowFontScaling={false}>
-          {' · '}
-        </Text>
+        {(hasPeak || windowLabel !== null) && (
+          <Text style={styles.recapSep} allowFontScaling={false}>
+            {' · '}
+          </Text>
+        )}
         <Text style={styles.recapBanger} allowFontScaling={false}>
           {bangerName}
         </Text>

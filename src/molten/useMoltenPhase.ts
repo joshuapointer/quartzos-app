@@ -26,9 +26,8 @@ export interface UseMoltenPhaseResult {
   selectPreset: (id: string | null) => void;
   /**
    * Resolve a recent session entry directly — sets banger + concentrate from
-   * already-known ids and auto-advances to `ready` after 700ms (mirrors
-   * prototype `setupPresetRow` line 2140-2149). Use this for the molten
-   * recents row whose ids do NOT live in the presets table.
+   * already-known ids and auto-advances to `ready` after 700ms. Use this for
+   * the molten recents row whose ids do NOT live in the presets table.
    */
   selectRecent: (input: { bangerId: string; concentrateId: string; recentId?: string }) => void;
   clearSelections: () => void;

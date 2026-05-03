@@ -147,25 +147,37 @@ export function RecentsRow({ recents, onSelect, onBuildFresh }: RecentsRowProps)
   const { width: screenWidth } = useWindowDimensions();
   const H_PAD = 18;
   const GAP = 8;
-  const tileCount = recents.length + 1;
-  const totalGaps = recents.length * GAP; // gaps between tiles
-  const tileWidth = (screenWidth - 2 * H_PAD - totalGaps) / tileCount;
+
+  // H5: tile-width calculation handles 0-recents cleanly.
+  // 0 recents → BuildFresh alone, capped at 240 and centered.
+  // 1+ recents → evenly split (existing math works for 1 too: 2 tiles, 1 gap).
+  const isEmpty = recents.length === 0;
+  const tileCount = recents.length + 1; // always at least 1 (BuildFresh)
+  const totalGaps = recents.length * GAP;
+  const computedWidth = (screenWidth - 2 * H_PAD - totalGaps) / tileCount;
+  const tileWidth = isEmpty ? Math.min(computedWidth, 240) : computedWidth;
+
+  // Copy variants that reflect actual state without implying prior sessions.
+  const headerTitle = isEmpty ? 'Start a session' : 'Pick up where you left off';
+  const hintSub = isEmpty ? 'Build your first session' : 'tap one · or build fresh';
 
   return (
     <View>
       {/* Header row */}
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Pick up where you left off</Text>
-        <Text style={styles.headerMeta}>{recents.length} saved</Text>
+        <Text style={styles.headerTitle}>{headerTitle}</Text>
+        {!isEmpty && (
+          <Text style={styles.headerMeta}>{recents.length} saved</Text>
+        )}
       </View>
       {/* Eyebrow hint row */}
       <View style={styles.hintRow}>
         <Text style={styles.hintLabel}>Recents</Text>
         <Text style={styles.hintSep}>·</Text>
-        <Text style={styles.hintSub}>tap one · or build fresh</Text>
+        <Text style={styles.hintSub}>{hintSub}</Text>
       </View>
-      {/* Card row */}
-      <View style={styles.cardRow}>
+      {/* Card row — centered when only BuildFresh is shown */}
+      <View style={[styles.cardRow, isEmpty && styles.cardRowCentered]}>
         {recents.map((entry) => (
           <PresetCard
             key={entry.id}
@@ -229,6 +241,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
     gap: 8,
+  },
+  // H5: center the single BuildFresh tile when there are no recents
+  cardRowCentered: {
+    justifyContent: 'center',
   },
   // Shared card
   card: {

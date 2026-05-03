@@ -134,8 +134,10 @@ export const HeatingOverlay = React.memo(function HeatingOverlay({
           justifyContent: 'center',
         }}
       >
-        {/* Temperature number + degree symbol */}
-        <View style={{ position: 'relative', alignItems: 'center' }}>
+        {/* Temperature number + degree symbol — flex row matches WindowOverlay
+            numbersRow pattern. Previous absolute-positioned °F floated to
+            screen edge because the parent had no explicit width. */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <Text
             style={{
               ...fonts.serifDisplay,
@@ -154,9 +156,8 @@ export const HeatingOverlay = React.memo(function HeatingOverlay({
               fontSize: 32,
               lineHeight: 32,
               color: colors.bone60,
-              position: 'absolute',
-              top: 16,
-              left: '65%',
+              marginTop: 16,
+              marginLeft: 4,
             }}
           >
             {'°F'}

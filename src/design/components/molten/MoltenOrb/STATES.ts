@@ -1,4 +1,4 @@
-// Mirror of STATES table from quartzie-molten-refresh.html lines 1360-1372.
+// Mirror of STATES table from quartzie-molten-refresh.html.
 // `pos` is dropped — parent container handles positioning.
 //
 // Fields:
@@ -15,9 +15,9 @@
 //                Prototype lights this only in 'window' to celebrate the peak.
 //   breathHz   — orb breathing frequency in cycles per second. Drives the
 //                period of the radius-modulating sin oscillator. Cold = 0.18 Hz
-//                (~5.5 s period); heating = 1.20 Hz (~833 ms). Prototype line
-//                1618: breath = sin(t · breathHz · 2π · breathMul) · breathAmp,
-//                with default lavalamp breathMul = 1.0 (line 1340).
+//                (~5.5 s period); heating = 1.20 Hz (~833 ms).
+//                breath = sin(t · breathHz · 2π · breathMul) · breathAmp,
+//                with default lavalamp breathMul = 1.0.
 //   roil       — surface displacement amplitude (0-1). Drives the 3D layer's
 //                noise modulation; cold = 0.10 (still), heating = 0.85 (lava).
 //   complexity — surface detail / harmonic count (0-1). Drives octave depth on

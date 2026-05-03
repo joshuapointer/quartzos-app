@@ -150,10 +150,13 @@ export function StatusChip({
         {segments.map((seg, i) => (
           <Text
             key={i}
+            numberOfLines={1}
             style={[
               styles.chipText,
               seg.sep && styles.sepText,
               seg.em && styles.emText,
+              // H6: only em segments (names) flex-shrink; static labels hold width
+              seg.em && styles.emSegment,
             ]}
           >
             {seg.text}
@@ -213,5 +216,10 @@ const styles = StyleSheet.create({
   emText: {
     color: colors.bone100,
     letterSpacing: 1.8,
+  },
+  // H6: em segments (names) shrink first so static labels like READY/SESSION
+  // are never crushed. Static segments have no flexShrink, so they hold size.
+  emSegment: {
+    flexShrink: 1,
   },
 });

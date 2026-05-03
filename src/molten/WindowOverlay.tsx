@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,6 +17,10 @@ export type WindowOverlayProps = {
   windowLowF?: number;
   windowHighF?: number;
   coachingText?: string;
+  /** H3: show manual-advance chip after 30s in window with no dab detected */
+  showStuckFallback?: boolean;
+  /** H3: called when user taps the stuck-fallback chip */
+  onForceAdvance?: () => void;
 };
 
 type WindowState = 'Window open' | 'In window' | 'Past optimal';
@@ -72,6 +76,8 @@ export const WindowOverlay = React.memo(function WindowOverlay({
   windowLowF,
   windowHighF,
   coachingText,
+  showStuckFallback = false,
+  onForceAdvance,
 }: WindowOverlayProps) {
   const low = windowLowF ?? optimalF - 25;
   const high = windowHighF ?? optimalF + 15;
@@ -113,6 +119,24 @@ export const WindowOverlay = React.memo(function WindowOverlay({
       <Text style={styles.coachingText}>
         {coachingText ?? DEFAULT_COACHING}
       </Text>
+
+      {/* H3: manual-advance chip after 30s if dab-lift velocity detection missed */}
+      {showStuckFallback ? (
+        <Pressable
+          onPress={onForceAdvance}
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel="Tap when you've dabbed"
+          style={({ pressed }) => [
+            styles.stuckFallbackChip,
+            pressed && styles.stuckFallbackChipPressed,
+          ]}
+        >
+          <Text style={styles.stuckFallbackLabel} allowFontScaling={false}>
+            Tap when you've dabbed
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 });
@@ -190,5 +214,24 @@ const styles = StyleSheet.create({
     maxWidth: 240,
     alignSelf: 'center',
     marginTop: 16,
+  },
+  // H3: stuck-fallback chip — mirrors torchFallbackChip from MoltenSurface
+  stuckFallbackChip: {
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: colors.glassThin,
+    alignSelf: 'center',
+  },
+  stuckFallbackChipPressed: {
+    opacity: 0.7,
+  },
+  stuckFallbackLabel: {
+    fontFamily: 'GeistMono_500Medium',
+    fontSize: 9,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: colors.bone60,
   },
 });

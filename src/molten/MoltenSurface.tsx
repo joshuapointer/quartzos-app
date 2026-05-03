@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,8 +27,10 @@ import { colors, fonts, animation } from '../design/tokens';
 import { useReducedMotion } from '../design/hooks/useReducedMotion';
 import { useBleStore } from '../state/bleStore';
 import { useSessionStore } from '../state/sessionStore';
-import type { ConnectionState } from '../ble/types';
+import { useSettingsStore } from '../state/settingsStore';
+import type { ConnectionState, DeviceSettings } from '../ble/types';
 import { bleManager } from '../ble/BleManager';
+import { toast } from '../design/components/Toast';
 import { BANGERS } from '../data/bangers';
 import { CONCENTRATES } from '../data/concentrates';
 import type { Banger } from '../data/bangers';
@@ -37,6 +40,7 @@ import * as moltenRecents from '../db/moltenRecents';
 
 import { MoltenBackground } from '../design/components/molten/MoltenBackground';
 import MoltenOrb from '../design/components/molten/MoltenOrb';
+import { MOLTEN_STATES } from '../design/components/molten/MoltenOrb/STATES';
 import { StatusChip } from '../design/components/molten/StatusChip';
 import { BangerCarousel } from '../design/components/molten/BangerCarousel';
 import { ConcentrateGrid } from '../design/components/molten/ConcentrateGrid';
@@ -52,9 +56,9 @@ import { DunkOverlay } from './DunkOverlay';
 import { CompleteOverlay } from './CompleteOverlay';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Phase → orb size and Y position. Y values are taken from STATES.pos[1]
-// (index.html lines 1359-1373) interpreted against the original 390×844
-// reference canvas; we proportion against the current viewport height.
+// Phase → orb size and Y position. Y values are taken from STATES.pos[1],
+// interpreted against the original 390×844 reference canvas; we proportion
+// against the current viewport height.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const REF_HEIGHT = 844;
@@ -194,8 +198,8 @@ function CopyStack({
 }
 
 // Chromatic-fringed pip: bone-white center with cyan/magenta ±2px offsets.
-// Mirrors prototype `.tap-hint .pip` styling (HTML lines 264-270) and the
-// `hint-breathe` keyframe (line 271, 2.8s ease-in-out, opacity 0.5↔1).
+// Mirrors prototype `.tap-hint .pip` styling and the `hint-breathe` keyframe
+// (2.8s ease-in-out, opacity 0.5↔1).
 function TapHintPip() {
   const opacity = useSharedValue(0.5);
   useEffect(() => {
@@ -249,8 +253,8 @@ function ColdCopy({ onPair }: { onPair: () => void }) {
 }
 
 // 44 px chromatic scan ring shown above the "Searching…" copy. Mirrors the
-// prototype's `.scan-ring` (HTML lines 1067–1080): rotating partial arc
-// stroked with a cyan→magenta→gold gradient. RN can't render conic gradients
+// prototype's `.scan-ring`: rotating partial arc stroked with a
+// cyan→magenta→gold gradient. RN can't render conic gradients
 // or `mask-composite: exclude`, so we approximate with a linear-gradient
 // stroke + dasharray gap and rotate the whole canvas.
 function ScanRing() {
@@ -324,12 +328,11 @@ function ConnectedCopy({ batteryPct }: { batteryPct?: number }) {
   );
 }
 
-// 5-bar mic-pad indicator. Idle (`live=false`) uses bone-25 for all bars
-// (HTML line 642). Live (`live=true`, heating phase) colorizes per index:
-// cyan / cyan / bone-100 / magenta / magenta (HTML lines 648–652).
+// 5-bar mic-pad indicator. Idle (`live=false`) uses bone-25 for all bars.
+// Live (`live=true`, heating phase) colorizes per index:
+// cyan / cyan / bone-100 / magenta / magenta.
 // Per-bar heights mirror prototype 30/70/100/60/40 % of container.
-// Animation is opacity 0.4 ↔ 1 over 1.4 s (HTML lines 642, 653) with 150 ms
-// stagger between bars.
+// Animation is opacity 0.4 ↔ 1 over 1.4 s with 150 ms stagger between bars.
 const MIC_BAR_HEIGHT_PCT = [0.30, 0.70, 1.00, 0.60, 0.40] as const;
 const MIC_BAR_LIVE_COLORS = [
   colors.prismCyan,
@@ -604,6 +607,33 @@ export function MoltenSurface({
     transform: [{ translateY: orbTopShared.value }],
   }));
 
+  // Phase-aware contentWell top. For phases where the orb sits ABOVE the
+  // copy stack (cold/connecting/connected/ready/swab/dunk/complete), drop
+  // the content well below the orb's visible bottom + 28pt breathing room.
+  // Picker phases keep the constant 240 (existing layout works for them);
+  // window/dabbing keep 240 as well — window is intentionally theatrical
+  // (orb glow behind temp readout), dabbing has no copy. Heating's orb
+  // sits LOW so the content goes high (80).
+  const contentWellTop = useMemo<number>(() => {
+    const orbAbovePhases: ReadonlyArray<MoltenPhase> = [
+      'cold',
+      'connecting',
+      'connected',
+      'ready',
+      'swab',
+      'dunk',
+      'complete',
+    ];
+    if (orbAbovePhases.includes(phase)) {
+      const orbCenterY = (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH;
+      const r = MOLTEN_STATES[phase].r;
+      return orbCenterY + r + 28;
+    }
+    if (phase === 'heating') return 80;
+    // presets / banger / concentrate / window / dabbing
+    return 240;
+  }, [phase, screenH]);
+
   // Recent sessions: prefer the pre-resolved `recents` prop (from
   // moltenRecents), fall back to legacy preset-derived entries so existing
   // callers don't break during migration.
@@ -621,8 +651,13 @@ export function MoltenSurface({
   }, [recents, presets]);
 
   // Heating timer — drains the per-banger torch duration to zero while in
-  // 'heating'. Duration is `torchDurationFor(banger.id)` (prototype line
-  // 2044-2050); falls back to DEFAULT_TORCH_DURATION_S when no banger is set.
+  // 'heating'. Duration is `torchDurationFor(banger.id)`; falls back to
+  // DEFAULT_TORCH_DURATION_S when no banger is set.
+  //
+  // H1: Use Date.now() as source of truth so background/foreground transitions
+  // don't accumulate drift. heatingStartedAt records the wall-clock moment we
+  // entered heating; each tick and each AppState 'active' event recomputes
+  // remaining from the elapsed wall time rather than decrementing a counter.
   const torchDurationS = useMemo(
     () => torchDurationFor(selections.bangerId),
     [selections.bangerId],
@@ -630,22 +665,81 @@ export function MoltenSurface({
   const [torchSecondsLeftJS, setTorchSecondsLeftJS] = React.useState(
     torchDurationS,
   );
+  const heatingStartedAtRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (phase !== 'heating') {
+      heatingStartedAtRef.current = null;
       setTorchSecondsLeftJS(torchDurationS);
       return;
     }
-    let remaining = torchDurationS;
-    setTorchSecondsLeftJS(remaining);
+
+    // Only capture start time on the initial entry into heating (not on
+    // re-renders triggered by banger changes that occur mid-heating).
+    if (heatingStartedAtRef.current === null) {
+      heatingStartedAtRef.current = Date.now();
+    }
+
+    function computeRemaining(): number {
+      const startedAt = heatingStartedAtRef.current;
+      if (startedAt === null) return torchDurationS;
+      return Math.max(0, torchDurationS - Math.floor((Date.now() - startedAt) / 1000));
+    }
+
+    setTorchSecondsLeftJS(computeRemaining());
+
     const id = setInterval(() => {
-      remaining = clamp(remaining - 1, 0, torchDurationS);
-      setTorchSecondsLeftJS(remaining);
-      if (remaining <= 0) {
-        clearInterval(id);
-      }
+      const r = computeRemaining();
+      setTorchSecondsLeftJS(r);
+      if (r <= 0) clearInterval(id);
     }, 1000);
-    return () => clearInterval(id);
+
+    // Recompute on foreground resume so the displayed time snaps to reality.
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        setTorchSecondsLeftJS(computeRemaining());
+      }
+    });
+
+    return () => {
+      clearInterval(id);
+      appStateSub.remove();
+    };
   }, [phase, torchDurationS]);
+
+  // H3 — Heating fallback: after timer reaches 0 and 8 more seconds pass,
+  // surface a manual-advance chip in case ring-buffer detection missed the cue.
+  const [heatingFallback, setHeatingFallback] = useState(false);
+
+  useEffect(() => {
+    if (phase !== 'heating') {
+      setHeatingFallback(false);
+      return;
+    }
+    // Wait for the torch timer to exhaust, then give 8 extra seconds before
+    // showing the chip. Total wait = torchDurationS + 8 seconds.
+    const waitMs = (torchDurationS + 8) * 1000;
+    // Adjust for any already-elapsed time if we re-entered the effect.
+    const elapsed = heatingStartedAtRef.current !== null
+      ? Date.now() - heatingStartedAtRef.current
+      : 0;
+    const remaining = Math.max(0, waitMs - elapsed);
+    const t = setTimeout(() => setHeatingFallback(true), remaining);
+    return () => clearTimeout(t);
+  }, [phase, torchDurationS]);
+
+  // H3 — Window fallback: after 30 seconds in window, surface a manual-advance
+  // chip in case velocity detection missed the dab lift cue.
+  const [windowFallback, setWindowFallback] = useState(false);
+
+  useEffect(() => {
+    if (phase !== 'window') {
+      setWindowFallback(false);
+      return;
+    }
+    const t = setTimeout(() => setWindowFallback(true), 30_000);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   // Preset application — when a preset is selected and we have an apply hook,
   // fire it. We don't await — the visual is owned by useMoltenPhase.
@@ -665,11 +759,55 @@ export function MoltenSurface({
     };
   }, [selections.presetId, onApplyPreset]);
 
+  // Picker-flow BLE write — when the user lands at `ready` via the picker
+  // path (banger + concentrate, NO presetId), the preset-driven effect above
+  // never fires, so the dabrite never gets the new alarm temp. Bridge the
+  // gap: derive dabAlarmF from the concentrate's optimal temp and write it.
+  //
+  // Idempotency: track the last successfully-written {bangerId, concentrateId}
+  // pair so re-renders of `phase === 'ready'` don't enqueue a duplicate
+  // WRITE_ALL each time. Reset on phase exit from ready.
+  const lastWrittenSelectionsRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase !== 'ready') {
+      lastWrittenSelectionsRef.current = null;
+      return;
+    }
+    // Preset-driven ready entry is handled by the effect above.
+    if (selections.presetId !== null) return;
+    if (selections.bangerId === null || selections.concentrateId === null) return;
+    if (concentrate === undefined) return;
+    const optimalF = concentrate.surface_temp_optimal_f;
+    if (optimalF === null) return; // no data → silently skip
+
+    const key = `${selections.bangerId}:${selections.concentrateId}`;
+    if (lastWrittenSelectionsRef.current === key) return;
+
+    let cancelled = false;
+    void (async () => {
+      const currentSettings = useSettingsStore.getState().settings;
+      const override: DeviceSettings = { ...currentSettings, dabAlarmF: optimalF };
+      try {
+        await bleManager.writeSettings(override);
+      } catch {
+        if (cancelled) return;
+        toast.error("Couldn't reach the rig. Check Bluetooth and try again.");
+        return;
+      }
+      if (cancelled) return;
+      lastWrittenSelectionsRef.current = key;
+      useSettingsStore.getState().updateSetting('dabAlarmF', optimalF);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, selections.presetId, selections.bangerId, selections.concentrateId, concentrate]);
+
   // ── Recent-row tap handler ───────────────────────────────────────────────
   // The molten recents row stores its own ids (not preset ids), so map the
   // tapped recent's id to its banger+concentrate, then call `selectRecent` to
-  // populate selections and auto-advance to `ready` (mirrors prototype line
-  // 2140-2149). The existing `selections.presetId` → `onApplyPreset` effect
+  // populate selections and auto-advance to `ready`. The existing
+  // `selections.presetId` → `onApplyPreset` effect
   // below will also fire for any recent whose id collides with a preset id,
   // preserving the legacy BLE writeSettings side-effect when applicable.
   const handleRecentSelect = React.useCallback(
@@ -798,7 +936,7 @@ export function MoltenSurface({
         </Animated.View>
 
         {/* Phase-driven copy / overlay content (sits at bottom half of canvas) */}
-        <View style={styles.contentWell} pointerEvents="box-none">
+        <View style={[styles.contentWell, { top: contentWellTop }]} pointerEvents="box-none">
           {phase === 'cold' && <ColdCopy onPair={handlePairTap} />}
           {phase === 'connecting' && (
             <Pressable
@@ -856,8 +994,7 @@ export function MoltenSurface({
                 torchSecondsTotal={torchDurationS}
                 torchSecondsLeft={torchSecondsLeftJS}
               />
-              {/* Bottom mic-pad: matches prototype line 1921-1925 — active
-                  mic-bars + chromatic "Torch detected · heating" copy. */}
+              {/* Bottom mic-pad: active mic-bars + chromatic "Torch detected · heating" copy. */}
               <View style={styles.heatingMicPad}>
                 <MicPadIndicator live />
                 <Text
@@ -867,9 +1004,32 @@ export function MoltenSurface({
                   Torch detected · heating
                 </Text>
               </View>
+              {/* H3: manual-advance chip after timer + 8s if phase detection missed */}
+              {heatingFallback ? (
+                <Pressable
+                  onPress={() => setPhase('window')}
+                  hitSlop={16}
+                  accessibilityRole="button"
+                  accessibilityLabel="Tap if your dab is ready"
+                  style={({ pressed }) => [
+                    styles.torchFallbackChip,
+                    pressed && styles.torchFallbackChipPressed,
+                  ]}
+                >
+                  <Text style={styles.torchFallbackLabel} allowFontScaling={false}>
+                    Tap if your dab is ready
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           )}
-          {phase === 'window' && <WindowOverlay optimalF={optimalF} />}
+          {phase === 'window' && (
+            <WindowOverlay
+              optimalF={optimalF}
+              showStuckFallback={windowFallback}
+              onForceAdvance={() => setPhase('dabbing')}
+            />
+          )}
           {/* dabbing — empty, just the orb */}
           {phase === 'swab' && <SwabOverlay />}
           {phase === 'dunk' && <DunkOverlay />}
@@ -1039,7 +1199,7 @@ const styles = StyleSheet.create({
 
   // Mic-pad indicator (5 vertical bars).
   // Heights follow prototype `.mic-bars span:nth-child(N)` — 30/70/100/60/40 %
-  // of the 14 px container height (HTML lines 643–647).
+  // of the 14 px container height.
   micPadRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',

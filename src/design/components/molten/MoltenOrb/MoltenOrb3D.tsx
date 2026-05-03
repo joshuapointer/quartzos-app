@@ -224,7 +224,7 @@ export default function MoltenOrb3D(props: MoltenOrb3DProps) {
     <Canvas
       orthographic
       camera={{ position: [0, 0, 500], zoom: 1, up: [0, 1, 0], near: 0.1, far: 1000 }}
-      style={{ width: props.size, height: props.size }}
+      style={{ width: props.size, height: props.size, backgroundColor: 'transparent' }}
       gl={{ alpha: true, antialias: false }}
       dpr={[1, 2]}
     >
