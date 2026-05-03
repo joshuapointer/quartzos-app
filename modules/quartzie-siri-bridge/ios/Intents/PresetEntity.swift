@@ -1,7 +1,7 @@
 import AppIntents
 import Foundation
 
-@available(iOS 16.0, *)
+@available(iOS 18.0, *)
 struct PresetEntity: AppEntity {
   let id: String
   let name: String
@@ -17,7 +17,7 @@ struct PresetEntity: AppEntity {
   static var defaultQuery = PresetEntityQuery()
 }
 
-@available(iOS 16.0, *)
+@available(iOS 18.0, *)
 struct PresetEntityQuery: EntityQuery {
   func entities(for identifiers: [PresetEntity.ID]) async throws -> [PresetEntity] {
     let catalog = SharedDefaults.shared.loadPresetCatalog()

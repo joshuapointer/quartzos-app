@@ -1,7 +1,7 @@
 import AppIntents
 import Foundation
 
-@available(iOS 16.0, *)
+@available(iOS 18.0, *)
 struct StartSessionWithPresetIntent: AppIntent {
   static var title: LocalizedStringResource = "Start session with preset"
 

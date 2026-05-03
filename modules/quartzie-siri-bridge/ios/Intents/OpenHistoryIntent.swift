@@ -1,7 +1,7 @@
 import AppIntents
 import Foundation
 
-@available(iOS 16.0, *)
+@available(iOS 18.0, *)
 struct OpenHistoryIntent: AppIntent {
   static var title: LocalizedStringResource = "Open Quartzie history"
 

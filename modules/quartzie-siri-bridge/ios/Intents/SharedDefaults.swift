@@ -20,12 +20,12 @@ struct SharedDefaults {
 
   var presetCatalogJSON: String? {
     get { defaults?.string(forKey: presetCatalogKey) }
-    set { defaults?.set(newValue, forKey: presetCatalogKey) }
+    nonmutating set { defaults?.set(newValue, forKey: presetCatalogKey) }
   }
 
   var lastPresetId: String? {
     get { defaults?.string(forKey: lastPresetIdKey) }
-    set { defaults?.set(newValue, forKey: lastPresetIdKey) }
+    nonmutating set { defaults?.set(newValue, forKey: lastPresetIdKey) }
   }
 
   func loadPresetCatalog() -> [PresetCatalogEntry] {
