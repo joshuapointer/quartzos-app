@@ -88,7 +88,31 @@ const ORB_TARGET_Y_BY_PHASE: Record<MoltenPhase, number> = {
 };
 
 // Default torch duration when we don't have a per-banger override.
-const DEFAULT_TORCH_DURATION_S = 30;
+// Mirrors prototype `torchDurationFor` (quartzie-molten-refresh.html line
+// 2044-2050) — recommended torch seconds vary by banger style.
+const DEFAULT_TORCH_DURATION_S = 90;
+
+const TORCH_DURATION_BY_BANGER_ID: Record<string, number> = {
+  'flat-top': 90,
+  'beveled': 85,
+  'opaque-bottom': 90,
+  'thermal': 110,
+  'round-bottom': 80,
+  'core-reactor': 95,
+  'swing-arm': 75,
+  'terp-slurper': 85,
+  'blender': 80,
+  'spinner': 75,
+  'control-tower': 90,
+  'charmer': 85,
+  'insert': 95,
+  'e-banger': 60,
+};
+
+function torchDurationFor(bangerId: string | null | undefined): number {
+  if (!bangerId) return DEFAULT_TORCH_DURATION_S;
+  return TORCH_DURATION_BY_BANGER_ID[bangerId] ?? DEFAULT_TORCH_DURATION_S;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public props
@@ -103,12 +127,18 @@ export type MoltenSurfacePreset = {
 };
 
 /**
- * RecentEntry-compatible shape (id, bangerName, concentrateName, optimalF,
- * whenLabel) — pre-resolved by the parent so MoltenSurface doesn't need to
- * juggle banger/concentrate lookups for the recents row.
+ * RecentEntry-compatible shape — pre-resolved by the parent so MoltenSurface
+ * doesn't need to juggle banger/concentrate lookups for the recents row.
+ *
+ * `bangerId` / `concentrateId` are used by the recents tap handler to
+ * populate selections and auto-advance to `ready` (matches prototype line
+ * 2140-2149). They are required so the recent row is actually wired to the
+ * session.
  */
 export type MoltenSurfaceRecent = {
   id: string;
+  bangerId: string;
+  concentrateId: string;
   bangerName: string;
   concentrateName: string;
   optimalF: number;
@@ -186,7 +216,7 @@ function ConnectingCopy() {
       <CopyStack
         eyebrow="Searching"
         headline="Looking for a Dabrite nearby…"
-        sub="Keep the rig within a few feet — the radio is gentle."
+        sub="If nothing happens, hold the Dabrite's side button until its LED breathes."
       />
     </View>
   );
@@ -416,7 +446,7 @@ export function MoltenSurface({
     selections,
     selectBanger,
     selectConcentrate,
-    selectPreset,
+    selectRecent,
     clearSelections,
     tempF,
     peakF,
@@ -486,26 +516,32 @@ export function MoltenSurface({
     return buildRecentEntries(presets);
   }, [recents, presets]);
 
-  // Heating timer — drains DEFAULT_TORCH_DURATION_S to zero while in 'heating'.
+  // Heating timer — drains the per-banger torch duration to zero while in
+  // 'heating'. Duration is `torchDurationFor(banger.id)` (prototype line
+  // 2044-2050); falls back to DEFAULT_TORCH_DURATION_S when no banger is set.
+  const torchDurationS = useMemo(
+    () => torchDurationFor(selections.bangerId),
+    [selections.bangerId],
+  );
   const [torchSecondsLeftJS, setTorchSecondsLeftJS] = React.useState(
-    DEFAULT_TORCH_DURATION_S,
+    torchDurationS,
   );
   useEffect(() => {
     if (phase !== 'heating') {
-      setTorchSecondsLeftJS(DEFAULT_TORCH_DURATION_S);
+      setTorchSecondsLeftJS(torchDurationS);
       return;
     }
-    let remaining = DEFAULT_TORCH_DURATION_S;
+    let remaining = torchDurationS;
     setTorchSecondsLeftJS(remaining);
     const id = setInterval(() => {
-      remaining = clamp(remaining - 1, 0, DEFAULT_TORCH_DURATION_S);
+      remaining = clamp(remaining - 1, 0, torchDurationS);
       setTorchSecondsLeftJS(remaining);
       if (remaining <= 0) {
         clearInterval(id);
       }
     }, 1000);
     return () => clearInterval(id);
-  }, [phase]);
+  }, [phase, torchDurationS]);
 
   // Preset application — when a preset is selected and we have an apply hook,
   // fire it. We don't await — the visual is owned by useMoltenPhase.
@@ -524,6 +560,26 @@ export function MoltenSurface({
       cancelled = true;
     };
   }, [selections.presetId, onApplyPreset]);
+
+  // ── Recent-row tap handler ───────────────────────────────────────────────
+  // The molten recents row stores its own ids (not preset ids), so map the
+  // tapped recent's id to its banger+concentrate, then call `selectRecent` to
+  // populate selections and auto-advance to `ready` (mirrors prototype line
+  // 2140-2149). The existing `selections.presetId` → `onApplyPreset` effect
+  // below will also fire for any recent whose id collides with a preset id,
+  // preserving the legacy BLE writeSettings side-effect when applicable.
+  const handleRecentSelect = React.useCallback(
+    (recentId: string) => {
+      const recent = recents?.find((r) => r.id === recentId);
+      if (!recent) return;
+      selectRecent({
+        bangerId: recent.bangerId,
+        concentrateId: recent.concentrateId,
+        recentId,
+      });
+    },
+    [recents, selectRecent],
+  );
 
   // ── Action handlers for the complete overlay ─────────────────────────────
   const handleAgain = React.useCallback(() => {
@@ -660,7 +716,7 @@ export function MoltenSurface({
           {phase === 'presets' && (
             <RecentsRow
               recents={recentEntries}
-              onSelect={selectPreset}
+              onSelect={handleRecentSelect}
               onBuildFresh={handleBuildFresh}
             />
           )}
@@ -685,11 +741,24 @@ export function MoltenSurface({
             />
           )}
           {phase === 'heating' && (
-            <HeatingOverlay
-              tempF={tempF}
-              torchSecondsTotal={DEFAULT_TORCH_DURATION_S}
-              torchSecondsLeft={torchSecondsLeftJS}
-            />
+            <View style={styles.heatingStack}>
+              <HeatingOverlay
+                tempF={tempF}
+                torchSecondsTotal={torchDurationS}
+                torchSecondsLeft={torchSecondsLeftJS}
+              />
+              {/* Bottom mic-pad: matches prototype line 1921-1925 — active
+                  mic-bars + chromatic "Torch detected · heating" copy. */}
+              <View style={styles.heatingMicPad}>
+                <MicPadIndicator />
+                <Text
+                  style={styles.heatingMicPadText}
+                  allowFontScaling={false}
+                >
+                  Torch detected · heating
+                </Text>
+              </View>
+            </View>
           )}
           {phase === 'window' && (
             <WindowOverlay tempF={tempF} optimalF={optimalF} />
@@ -870,5 +939,20 @@ const styles = StyleSheet.create({
   },
   cancelScanPressed: {
     opacity: 0.85,
+  },
+
+  // Heating phase: stack the ring overlay above the bottom mic-pad copy
+  heatingStack: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  heatingMicPad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heatingMicPadText: {
+    ...fonts.monoEyebrow,
+    color: colors.bone100,
   },
 });

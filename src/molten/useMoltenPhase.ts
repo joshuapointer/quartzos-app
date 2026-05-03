@@ -25,6 +25,13 @@ export interface UseMoltenPhaseResult {
   selectBanger: (id: string | null) => void;
   selectConcentrate: (id: string | null) => void;
   selectPreset: (id: string | null) => void;
+  /**
+   * Resolve a recent session entry directly — sets banger + concentrate from
+   * already-known ids and auto-advances to `ready` after 700ms (mirrors
+   * prototype `setupPresetRow` line 2140-2149). Use this for the molten
+   * recents row whose ids do NOT live in the presets table.
+   */
+  selectRecent: (input: { bangerId: string; concentrateId: string; recentId?: string }) => void;
   clearSelections: () => void;
   // Convenience
   isPickerPhase: boolean;
@@ -112,6 +119,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
   const concentrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dunkCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const presetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -387,15 +395,36 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
     })();
   }, [setPhase]);
 
+  const selectRecent = useCallback(
+    (input: { bangerId: string; concentrateId: string; recentId?: string }) => {
+      setSelections({
+        bangerId: input.bangerId,
+        concentrateId: input.concentrateId,
+        presetId: input.recentId ?? null,
+      });
+      if (recentTimerRef.current !== null) {
+        clearTimeout(recentTimerRef.current);
+      }
+      recentTimerRef.current = setTimeout(() => {
+        setPhase('ready');
+        recentTimerRef.current = null;
+      }, 700);
+    },
+    [setPhase],
+  );
+
   const clearSelections = useCallback(() => {
     setSelections({ bangerId: null, concentrateId: null, presetId: null });
   }, []);
 
-  // Cleanup preset timer on unmount
+  // Cleanup preset / recent / concentrate timers on unmount
   useEffect(() => {
     return () => {
       if (presetTimerRef.current !== null) {
         clearTimeout(presetTimerRef.current);
+      }
+      if (recentTimerRef.current !== null) {
+        clearTimeout(recentTimerRef.current);
       }
       if (concentrateTimerRef.current !== null) {
         clearTimeout(concentrateTimerRef.current);
@@ -417,6 +446,7 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
     selectBanger,
     selectConcentrate,
     selectPreset,
+    selectRecent,
     clearSelections,
     isPickerPhase,
     isSessionPhase,

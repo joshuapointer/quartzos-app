@@ -173,6 +173,8 @@ export default function HomeScreen() {
       if (!banger || !concentrate) continue; // skip unresolvable rows
       out.push({
         id: recent.id,
+        bangerId: banger.id,
+        concentrateId: concentrate.id,
         bangerName: banger.name,
         concentrateName: concentrate.name,
         optimalF: concentrate.surface_temp_optimal_f ?? 480,
