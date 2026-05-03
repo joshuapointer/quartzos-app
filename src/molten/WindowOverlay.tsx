@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, gradients } from '../../../../src/design/tokens';
+import { colors, fonts, gradients } from '../design/tokens';
 
 // ─────────────────────────────────────────────────────────────────────────────
 

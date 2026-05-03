@@ -15,11 +15,11 @@ import type { MoltenRecent } from '../../src/db/moltenRecents';
 import { BANGERS } from '../../src/data/bangers';
 import { CONCENTRATES } from '../../src/data/concentrates';
 
-import { MoltenSurface } from './_home/molten/MoltenSurface';
+import { MoltenSurface } from '../../src/molten/MoltenSurface';
 import type {
   MoltenSurfacePreset,
   MoltenSurfaceRecent,
-} from './_home/molten/MoltenSurface';
+} from '../../src/molten/MoltenSurface';
 
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 

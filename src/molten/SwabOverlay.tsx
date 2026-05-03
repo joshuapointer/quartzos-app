@@ -9,8 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, G, LinearGradient as SvgLinearGradient, Stop, Rect, Ellipse } from 'react-native-svg';
-import { colors, fonts } from '../../../../src/design/tokens';
-import { PrismEdge } from '../../../../src/design/components/molten/PrismEdge';
+import { colors, fonts } from '../design/tokens';
+import { PrismEdge } from '../design/components/molten/PrismEdge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 

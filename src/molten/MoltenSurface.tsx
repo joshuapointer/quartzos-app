@@ -20,24 +20,24 @@ import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-s
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
-import { colors, fonts } from '../../../../src/design/tokens';
-import { useBleStore } from '../../../../src/state/bleStore';
-import type { ConnectionState } from '../../../../src/ble/types';
-import { bleManager } from '../../../../src/ble/BleManager';
-import { BANGERS } from '../../../../src/data/bangers';
-import { CONCENTRATES } from '../../../../src/data/concentrates';
-import type { Banger } from '../../../../src/data/bangers';
-import type { Concentrate } from '../../../../src/data/concentrates';
-import { torchDetector } from '../../../../src/utils/TorchDetector';
-import * as moltenRecents from '../../../../src/db/moltenRecents';
+import { colors, fonts } from '../design/tokens';
+import { useBleStore } from '../state/bleStore';
+import type { ConnectionState } from '../ble/types';
+import { bleManager } from '../ble/BleManager';
+import { BANGERS } from '../data/bangers';
+import { CONCENTRATES } from '../data/concentrates';
+import type { Banger } from '../data/bangers';
+import type { Concentrate } from '../data/concentrates';
+import { torchDetector } from '../utils/TorchDetector';
+import * as moltenRecents from '../db/moltenRecents';
 
-import { MoltenBackground } from '../../../../src/design/components/molten/MoltenBackground';
-import MoltenOrb from '../../../../src/design/components/molten/MoltenOrb';
-import { StatusChip } from '../../../../src/design/components/molten/StatusChip';
-import { BangerCarousel } from '../../../../src/design/components/molten/BangerCarousel';
-import { ConcentrateGrid } from '../../../../src/design/components/molten/ConcentrateGrid';
-import { RecentsRow } from '../../../../src/design/components/molten/RecentsRow';
-import type { RecentEntry } from '../../../../src/design/components/molten/RecentsRow';
+import { MoltenBackground } from '../design/components/molten/MoltenBackground';
+import MoltenOrb from '../design/components/molten/MoltenOrb';
+import { StatusChip } from '../design/components/molten/StatusChip';
+import { BangerCarousel } from '../design/components/molten/BangerCarousel';
+import { ConcentrateGrid } from '../design/components/molten/ConcentrateGrid';
+import { RecentsRow } from '../design/components/molten/RecentsRow';
+import type { RecentEntry } from '../design/components/molten/RecentsRow';
 
 import { useMoltenPhase } from './useMoltenPhase';
 import type { MoltenPhase } from './useMoltenPhase';

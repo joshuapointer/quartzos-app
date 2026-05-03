@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useBleStore } from '../../../../src/state/bleStore';
-import { useSessionStore } from '../../../../src/state/sessionStore';
-import * as presetsDb from '../../../../src/db/presets';
-import { bleManager } from '../../../../src/ble/BleManager';
-import { toast } from '../../../../src/design/components/Toast';
-import type { MoltenPhase } from '../../../../src/design/components/molten/MoltenOrb/STATES';
+import { useBleStore } from '../state/bleStore';
+import { useSessionStore } from '../state/sessionStore';
+import * as presetsDb from '../db/presets';
+import { bleManager } from '../ble/BleManager';
+import { toast } from '../design/components/Toast';
+import type { MoltenPhase } from '../design/components/molten/MoltenOrb/STATES';
 export type { MoltenPhase };
 
 // ---------------------------------------------------------------------------

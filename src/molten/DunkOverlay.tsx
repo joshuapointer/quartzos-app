@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { colors, fonts } from '../../../../src/design/tokens';
-import { PrismEdge } from '../../../../src/design/components/molten/PrismEdge';
+import { colors, fonts } from '../design/tokens';
+import { PrismEdge } from '../design/components/molten/PrismEdge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 

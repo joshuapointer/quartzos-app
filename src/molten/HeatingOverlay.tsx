@@ -13,7 +13,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { colors, fonts } from '../../../../src/design/tokens';
+import { colors, fonts } from '../design/tokens';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

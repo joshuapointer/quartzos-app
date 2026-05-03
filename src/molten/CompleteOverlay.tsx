@@ -8,8 +8,8 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, fonts, motion } from '../../../../src/design/tokens';
-import { PrismEdge } from '../../../../src/design/components/molten/PrismEdge';
+import { colors, fonts, motion } from '../design/tokens';
+import { PrismEdge } from '../design/components/molten/PrismEdge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
