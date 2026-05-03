@@ -22,10 +22,9 @@ interface SparkProps {
   cy: number;
   orbR: SharedValue<number>;
   particleIndex: number;
-  active: boolean;
 }
 
-function Spark({ cx, cy, orbR, particleIndex, active }: SparkProps): React.ReactElement {
+function Spark({ cx, cy, orbR, particleIndex }: SparkProps): React.ReactElement {
   const angle = (particleIndex / SPARK_COUNT) * Math.PI * 2;
   const flightFraction = 0.3 + (((particleIndex * 7) % 5) / 5) * 0.2; // 0.30–0.50 of orbR
   const staggerMs = (particleIndex / SPARK_COUNT) * 1200;
@@ -36,55 +35,48 @@ function Spark({ cx, cy, orbR, particleIndex, active }: SparkProps): React.React
   const sparkY = useSharedValue(cy);
   const sparkOpacity = useSharedValue(0);
 
+  // Spark is only mounted while phase === 'heating' (gated by Sparks parent),
+  // so we always emit; no inactive branch is needed.
   useEffect(() => {
-    if (active) {
-      const dx = Math.cos(angle) * orbR.value * flightFraction;
-      const dy = Math.sin(angle) * orbR.value * flightFraction;
-      const dur = 1200;
+    const dx = Math.cos(angle) * orbR.value * flightFraction;
+    const dy = Math.sin(angle) * orbR.value * flightFraction;
+    const dur = 1200;
 
-      // x animation
-      sparkX.value = withDelay(
-        staggerMs,
-        withRepeat(
-          withSequence(
-            withTiming(cx + dx, { duration: dur }),
-            withTiming(cx, { duration: 0 }),
-          ),
-          -1,
-          false,
+    sparkX.value = withDelay(
+      staggerMs,
+      withRepeat(
+        withSequence(
+          withTiming(cx + dx, { duration: dur }),
+          withTiming(cx, { duration: 0 }),
         ),
-      );
-      // y animation
-      sparkY.value = withDelay(
-        staggerMs,
-        withRepeat(
-          withSequence(
-            withTiming(cy + dy, { duration: dur }),
-            withTiming(cy, { duration: 0 }),
-          ),
-          -1,
-          false,
+        -1,
+        false,
+      ),
+    );
+    sparkY.value = withDelay(
+      staggerMs,
+      withRepeat(
+        withSequence(
+          withTiming(cy + dy, { duration: dur }),
+          withTiming(cy, { duration: 0 }),
         ),
-      );
-      // opacity animation
-      sparkOpacity.value = withDelay(
-        staggerMs,
-        withRepeat(
-          withSequence(
-            withTiming(1, { duration: dur * 0.1 }),
-            withTiming(0, { duration: dur * 0.9 }),
-            withTiming(0, { duration: 0 }),
-          ),
-          -1,
-          false,
+        -1,
+        false,
+      ),
+    );
+    sparkOpacity.value = withDelay(
+      staggerMs,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: dur * 0.1 }),
+          withTiming(0, { duration: dur * 0.9 }),
+          withTiming(0, { duration: 0 }),
         ),
-      );
-    } else {
-      sparkX.value = withTiming(cx, { duration: 300 });
-      sparkY.value = withTiming(cy, { duration: 300 });
-      sparkOpacity.value = withTiming(0, { duration: 300 });
-    }
-  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+        -1,
+        false,
+      ),
+    );
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const animProps = useAnimatedProps(() => ({
     cx: sparkX.value,
@@ -102,18 +94,17 @@ interface SparksProps {
   phase: MoltenPhase;
 }
 
-export default function Sparks({ cx, cy, orbR, phase }: SparksProps): React.ReactElement {
-  const active = phase === 'heating';
+export default function Sparks({ cx, cy, orbR, phase }: SparksProps): React.ReactElement | null {
+  if (phase !== 'heating') return null;
   return (
     <G>
       {Array.from({ length: SPARK_COUNT }, (_, i) => (
         <Spark
-          key={i}
+          key={`spark-${i}`}
           cx={cx}
           cy={cy}
           orbR={orbR}
           particleIndex={i}
-          active={active}
         />
       ))}
     </G>

@@ -8,11 +8,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, gradients } from '../design/tokens';
+import { useBleStore } from '../state/bleStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type WindowOverlayProps = {
-  tempF: number;
   optimalF: number;
   windowLowF?: number;
   windowHighF?: number;
@@ -68,12 +68,12 @@ const DEFAULT_COACHING =
   'Lift the rig to your lips when it feels right. Quartzie watches the temperature drop.';
 
 export const WindowOverlay = React.memo(function WindowOverlay({
-  tempF,
   optimalF,
   windowLowF,
   windowHighF,
   coachingText,
 }: WindowOverlayProps) {
+  const tempF = useBleStore((s) => s.liveTempF);
   const low = windowLowF ?? optimalF - 25;
   const high = windowHighF ?? optimalF + 15;
   const displayTemp = Math.round(Math.max(0, tempF));

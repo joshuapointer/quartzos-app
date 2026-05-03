@@ -12,12 +12,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, fonts, motion } from '../design/tokens';
 import { PrismEdge } from '../design/components/molten/PrismEdge';
+import { useBleStore } from '../state/bleStore';
+import { useSessionStore } from '../state/sessionStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type CompleteOverlayProps = {
   bangerName: string;
-  peakF: number;
   windowLabel: string;
   onAgain: () => void;
   onNew: () => void;
@@ -113,11 +114,13 @@ function CompleteCard({ title, sub, onPress }: CompleteCardProps) {
 
 export const CompleteOverlay = React.memo(function CompleteOverlay({
   bangerName,
-  peakF,
   windowLabel,
   onAgain,
   onNew,
 }: CompleteOverlayProps) {
+  const peakF = useSessionStore((s) => s.peakF);
+  const tempF = useBleStore((s) => s.liveTempF);
+  const displayPeakF = Math.round(peakF || tempF || 0);
   // Card-pair entrance: spring from scale 0.86 / opacity 0 → 1 on mount.
   // The prototype CSS doesn't formally specify an entrance, but the cards
   // visually pop on phase entry — matching the spec's "session card pair
@@ -164,7 +167,7 @@ export const CompleteOverlay = React.memo(function CompleteOverlay({
           {'Peak'}
         </Text>
         <Text style={styles.recapValue} allowFontScaling={false}>
-          {` ${peakF}°F`}
+          {` ${displayPeakF}°F`}
         </Text>
         <Text style={styles.recapSep} allowFontScaling={false}>
           {' · '}

@@ -14,6 +14,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { colors, fonts } from '../design/tokens';
+import { useBleStore } from '../state/bleStore';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,6 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 export type HeatingOverlayProps = {
-  tempF: number;
   torchSecondsTotal: number;
   torchSecondsLeft: number;
   size?: number;
@@ -47,12 +47,12 @@ export type HeatingOverlayProps = {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function HeatingOverlay({
-  tempF,
+export const HeatingOverlay = React.memo(function HeatingOverlay({
   torchSecondsTotal,
   torchSecondsLeft,
   size = 320,
 }: HeatingOverlayProps) {
+  const tempF = useBleStore((s) => s.liveTempF);
   const frameW = size;
   const frameH = size * (VIEWBOX_H / VIEWBOX_W); // 0.625 ratio
 
@@ -189,4 +189,4 @@ export function HeatingOverlay({
       </View>
     </View>
   );
-}
+});

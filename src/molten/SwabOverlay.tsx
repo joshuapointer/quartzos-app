@@ -11,11 +11,11 @@ import Animated, {
 import Svg, { Defs, G, LinearGradient as SvgLinearGradient, Stop, Rect, Ellipse } from 'react-native-svg';
 import { colors, fonts } from '../design/tokens';
 import { PrismEdge } from '../design/components/molten/PrismEdge';
+import { useBleStore } from '../state/bleStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type SwabOverlayProps = {
-  tempF: number;
   bandLowF?: number;
   bandHighF?: number;
 };
@@ -106,10 +106,10 @@ const QtipSvg = React.memo(function QtipSvg() {
 // ─── SwabOverlay ──────────────────────────────────────────────────────────────
 
 export const SwabOverlay = React.memo(function SwabOverlay({
-  tempF,
   bandLowF = 250,
   bandHighF = 300,
 }: SwabOverlayProps) {
+  const tempF = useBleStore((s) => s.liveTempF);
   const displayTemp = Math.round(Math.max(0, tempF));
 
   return (

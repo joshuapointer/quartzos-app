@@ -127,20 +127,22 @@ interface OrbMeshProps {
   chrom: SharedValue<number>;
   tempK: SharedValue<number>;
   baseRadius: number;
+  geometry: THREE.SphereGeometry;
   isOutline?: boolean;
   outlineColor?: string;
   outlineScale?: number;
   position?: [number, number, number];
 }
 
-const OrbMesh = ({ 
-  orbR, 
-  breathR, 
-  roil, 
-  complexity, 
-  chrom, 
-  tempK, 
+const OrbMesh = ({
+  orbR,
+  breathR,
+  roil,
+  complexity,
+  chrom,
+  tempK,
   baseRadius,
+  geometry,
   isOutline = false,
   outlineColor = '#ffffff',
   outlineScale = 1.02,
@@ -187,8 +189,7 @@ const OrbMesh = ({
 
   return (
     <mesh position={position}>
-      {/* 512x512 segments for max resolution displacement */}
-      <sphereGeometry args={[baseRadius, 512, 512]} />
+      <primitive object={geometry} attach="geometry" />
       <shaderMaterial
         ref={materialRef}
         vertexShader={vertexShader}
@@ -213,25 +214,28 @@ export interface MoltenOrb3DProps {
 }
 
 export default function MoltenOrb3D(props: MoltenOrb3DProps) {
-  // Use OrthographicCamera so the sphere scale maps directly to screen pixels.
-  // We want the sphere of radius R to be R pixels on screen.
+  const geometry = useMemo(
+    () => new THREE.SphereGeometry(props.size / 2, 64, 64),
+    [props.size]
+  );
+
   return (
     <Canvas
       orthographic
       camera={{ position: [0, 0, 500], zoom: 1, up: [0, 1, 0], near: 0.1, far: 1000 }}
       style={{ width: props.size, height: props.size }}
-      gl={{ alpha: true, antialias: true }}
-      dpr={[1, 3]}
+      gl={{ alpha: true, antialias: false }}
+      dpr={[1, 2]}
     >
       <ambientLight intensity={1} />
-      
+
       {/* Chromatic Fringes (Inverted Hull Outlines) */}
-      <OrbMesh {...props} baseRadius={props.size / 2} isOutline outlineColor="#00f0ff" outlineScale={1.03} position={[-2, 0, -2]} />
-      <OrbMesh {...props} baseRadius={props.size / 2} isOutline outlineColor="#ff0055" outlineScale={1.03} position={[2, 0, -2]} />
-      
+      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} isOutline outlineColor="#00f0ff" outlineScale={1.03} position={[-2, 0, -2]} />
+      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} isOutline outlineColor="#ff0055" outlineScale={1.03} position={[2, 0, -2]} />
+
       {/* The sphere base radius is mapped 1:1 to size / 2. We use baseRadius to size the geometry
           and uRadiusRatio to scale it dynamically in the shader based on orbR / baseRadius. */}
-      <OrbMesh {...props} baseRadius={props.size / 2} position={[0, 0, 0]} />
+      <OrbMesh {...props} baseRadius={props.size / 2} geometry={geometry} position={[0, 0, 0]} />
     </Canvas>
   );
 }

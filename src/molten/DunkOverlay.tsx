@@ -12,12 +12,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, fonts } from '../design/tokens';
 import { PrismEdge } from '../design/components/molten/PrismEdge';
+import { useBleStore } from '../state/bleStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-export type DunkOverlayProps = {
-  tempF: number;
-};
 
 // ─── ChromaDot ────────────────────────────────────────────────────────────────
 // A 6×6 white dot with cyan/magenta double shadow approximation via two
@@ -62,9 +59,8 @@ function PrismDriftBorder() {
 
 // ─── DunkOverlay ─────────────────────────────────────────────────────────────
 
-export const DunkOverlay = React.memo(function DunkOverlay({
-  tempF,
-}: DunkOverlayProps) {
+export const DunkOverlay = React.memo(function DunkOverlay() {
+  const tempF = useBleStore((s) => s.liveTempF);
   const displayTemp = Math.round(Math.max(0, tempF));
 
   return (

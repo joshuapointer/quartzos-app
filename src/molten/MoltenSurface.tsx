@@ -24,6 +24,7 @@ import { useRouter } from 'expo-router';
 
 import { colors, fonts } from '../design/tokens';
 import { useBleStore } from '../state/bleStore';
+import { useSessionStore } from '../state/sessionStore';
 import type { ConnectionState } from '../ble/types';
 import { bleManager } from '../ble/BleManager';
 import { BANGERS } from '../data/bangers';
@@ -604,8 +605,6 @@ export function MoltenSurface({
     selectConcentrate,
     selectRecent,
     clearSelections,
-    tempF,
-    peakF,
     windowDurationMs,
   } = useMoltenPhase();
 
@@ -627,7 +626,6 @@ export function MoltenSurface({
 
   // Derived numbers
   const optimalF = concentrate?.surface_temp_optimal_f ?? 480;
-  const peakDisplayF = Math.round(peakF || tempF || 0);
   const orbSize = ORB_SIZE_BY_PHASE[phase];
 
   // Spring orb wrapper top/size based on phase
@@ -809,26 +807,24 @@ export function MoltenSurface({
     };
   }, [phase, setPhase]);
 
-  // Auto-save recent on entry to 'complete'.
+  // Auto-save recent on entry to 'complete'. Read peak/temp from the stores
+  // imperatively so this effect does NOT subscribe to ~30Hz BLE updates.
   useEffect(() => {
     if (phase !== 'complete') return;
     if (!selections.bangerId || !selections.concentrateId) return;
+    const { peakF: latestPeakF } = useSessionStore.getState();
+    const { liveTempF: latestTempF } = useBleStore.getState();
+    const peakToSave = Math.round(latestPeakF || latestTempF || 0);
     void moltenRecents
       .record({
         bangerId: selections.bangerId,
         concentrateId: selections.concentrateId,
-        peakF: peakDisplayF || tempF,
+        peakF: peakToSave,
       })
       .catch(() => {
         /* silent — don't block UI */
       });
-  }, [
-    phase,
-    selections.bangerId,
-    selections.concentrateId,
-    peakDisplayF,
-    tempF,
-  ]);
+  }, [phase, selections.bangerId, selections.concentrateId]);
 
   // Window-phase duration: captured by useMoltenPhase on the window→dabbing
   // transition. Falls back to the prototype's "0:24" placeholder until a real
@@ -842,24 +838,6 @@ export function MoltenSurface({
   return (
     <MoltenBackground intensity={1}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        {/* DIAGNOSTIC strip OUTSIDE contentWell — survives even if contentWell
-            is unmounted. If THIS goes away on phase change, the whole
-            MoltenSurface is being remounted/replaced. */}
-        <View
-          style={{
-            backgroundColor: 'rgba(0,200,0,0.3)',
-            borderColor: 'lime',
-            borderWidth: 1,
-            padding: 6,
-            marginHorizontal: 24,
-            marginTop: 4,
-          }}
-          pointerEvents="none"
-        >
-          <Text style={{ color: 'white', fontSize: 11, fontFamily: 'GeistMono_400Regular' }}>
-            {`[OUTER] phase=${phase} bId=${selections.bangerId ?? '∅'} cId=${selections.concentrateId ?? '∅'}`}
-          </Text>
-        </View>
         <Header
           connectionState={connectionState}
           onLongPressSettings={handleLongPressSettings}
@@ -877,21 +855,6 @@ export function MoltenSurface({
 
         {/* Phase-driven copy / overlay content (sits at bottom half of canvas) */}
         <View style={styles.contentWell} pointerEvents="box-none">
-          {/* DEBUG STRIP — remove once invisible-picker bug is isolated */}
-          <View
-            style={{
-              backgroundColor: 'rgba(255,0,255,0.2)',
-              borderColor: 'magenta',
-              borderWidth: 1,
-              padding: 6,
-              marginBottom: 6,
-            }}
-            pointerEvents="none"
-          >
-            <Text style={{ color: 'white', fontSize: 11, fontFamily: 'GeistMono_400Regular' }}>
-              {`phase=${phase} bangerId=${selections.bangerId ?? '∅'} concId=${selections.concentrateId ?? '∅'} presetId=${selections.presetId ?? '∅'}`}
-            </Text>
-          </View>
           {phase === 'cold' && <ColdCopy onPair={handlePairTap} />}
           {phase === 'connecting' && (
             <Pressable
@@ -952,7 +915,6 @@ export function MoltenSurface({
           {phase === 'heating' && (
             <View style={styles.heatingStack}>
               <HeatingOverlay
-                tempF={tempF}
                 torchSecondsTotal={torchDurationS}
                 torchSecondsLeft={torchSecondsLeftJS}
               />
@@ -969,16 +931,13 @@ export function MoltenSurface({
               </View>
             </View>
           )}
-          {phase === 'window' && (
-            <WindowOverlay tempF={tempF} optimalF={optimalF} />
-          )}
+          {phase === 'window' && <WindowOverlay optimalF={optimalF} />}
           {/* dabbing — empty, just the orb */}
-          {phase === 'swab' && <SwabOverlay tempF={tempF} />}
-          {phase === 'dunk' && <DunkOverlay tempF={tempF} />}
+          {phase === 'swab' && <SwabOverlay />}
+          {phase === 'dunk' && <DunkOverlay />}
           {phase === 'complete' && (
             <CompleteOverlay
               bangerName={banger?.name ?? 'Banger'}
-              peakF={peakDisplayF}
               windowLabel={windowLabel}
               onAgain={handleAgain}
               onNew={handleNew}

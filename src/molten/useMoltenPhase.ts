@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBleStore } from '../state/bleStore';
-import { useSessionStore } from '../state/sessionStore';
 import * as presetsDb from '../db/presets';
 import { bleManager } from '../ble/BleManager';
 import { toast } from '../design/components/Toast';
@@ -36,9 +35,6 @@ export interface UseMoltenPhaseResult {
   // Convenience
   isPickerPhase: boolean;
   isSessionPhase: boolean;
-  // Live temp passthrough
-  tempF: number;
-  peakF: number;
   /**
    * Duration of the most recent window phase (window-entry → dabbing-entry),
    * captured at the moment the user starts the dab. Null until the first
@@ -107,8 +103,6 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
   });
 
   const connectionState = useBleStore((s) => s.connectionState);
-  const tempF = useBleStore((s) => s.liveTempF);
-  const peakF = useSessionStore((s) => s.peakF);
 
   // Ref so effects can read latest phase without stale closures
   const phaseRef = useRef<MoltenPhase>(phase);
@@ -229,29 +223,97 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
   }, [connectionState, setPhase]);
 
   // ---------------------------------------------------------------------------
-  // 4. heating → window (peak detection via ring buffer)
+  // 4-8. Per-temp-sample phase transitions (heating→window→dabbing→swab→dunk
+  //      →complete) — subscribed directly to the BLE store so the hook does
+  //      NOT re-render on every ~30 Hz temp tick. Branches on phaseRef so a
+  //      single non-rendering listener handles all five transitions.
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (phaseRef.current !== 'heating') return;
+    const unsub = useBleStore.subscribe((state, prev) => {
+      if (state.liveTempF === prev.liveTempF) return;
+      const tempF = state.liveTempF;
+      const current = phaseRef.current;
 
-    if (tempF <= 0) return;
+      if (current === 'heating') {
+        if (tempF <= 0) return;
+        const sample: TempSample = { t: Date.now(), f: tempF };
+        ringRef.current = pushRing(ringRef.current, sample);
+        if (ringRef.current.length < 4) return;
+        const peak = ringMax(ringRef.current);
+        if (tempF < peak - 5 && tempF > 0) {
+          setPhase('window');
+          ringRef.current = [];
+        }
+        return;
+      }
 
-    const sample: TempSample = { t: Date.now(), f: tempF };
-    ringRef.current = pushRing(ringRef.current, sample);
+      if (current === 'window') {
+        const now = Date.now();
+        const prevV = velocityRef.current;
+        if (prevV !== null) {
+          const dt = (now - prevV.lastT) / 1000;
+          if (dt > 0) {
+            const velocity = (tempF - prevV.lastF) / dt;
+            if (velocity < -50) {
+              setPhase('dabbing');
+              velocityRef.current = null;
+              return;
+            }
+          }
+        }
+        velocityRef.current = { lastT: now, lastF: tempF };
+        return;
+      }
 
-    if (ringRef.current.length < 4) return;
+      if (current === 'dabbing') {
+        if (tempF > 200 && tempF < 320) {
+          setPhase('swab');
+        }
+        return;
+      }
 
-    const peak = ringMax(ringRef.current);
-    if (tempF < peak - 5 && tempF > 0) {
-      setPhase('window');
-      ringRef.current = [];
-    }
-  }, [tempF, setPhase]);
+      if (current === 'swab') {
+        if (tempF < 250) {
+          setPhase('dunk');
+        }
+        return;
+      }
 
-  // When phase transitions away from heating, reset ring buffer
+      if (current === 'dunk') {
+        if (tempF < 180) {
+          if (dunkCompleteTimerRef.current === null) {
+            dunkCompleteTimerRef.current = setTimeout(() => {
+              const latestTemp = useBleStore.getState().liveTempF;
+              if (phaseRef.current === 'dunk' && latestTemp < 180) {
+                setPhase('complete');
+              }
+              dunkCompleteTimerRef.current = null;
+            }, 4500);
+          }
+        } else if (dunkCompleteTimerRef.current !== null) {
+          // Temp rose back above threshold — cancel pending timer
+          clearTimeout(dunkCompleteTimerRef.current);
+          dunkCompleteTimerRef.current = null;
+        }
+        return;
+      }
+    });
+    return unsub;
+  }, [setPhase]);
+
+  // Reset per-phase trackers when leaving the originating phase. Velocity
+  // and ring buffer are scratch state that should not persist across phases;
+  // the dunk timer must be cancelled if we exit dunk before it fires.
   useEffect(() => {
     if (phase !== 'heating') {
       ringRef.current = [];
+    }
+    if (phase !== 'window') {
+      velocityRef.current = null;
+    }
+    if (phase !== 'dunk' && dunkCompleteTimerRef.current !== null) {
+      clearTimeout(dunkCompleteTimerRef.current);
+      dunkCompleteTimerRef.current = null;
     }
   }, [phase]);
 
@@ -278,83 +340,6 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
       setWindowDurationMs(null);
     }
   }, [phase, windowDurationMs]);
-
-  // ---------------------------------------------------------------------------
-  // 5. window → dabbing (velocity < -50°F/s)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (phaseRef.current !== 'window') {
-      velocityRef.current = null;
-      return;
-    }
-
-    const now = Date.now();
-    const prev = velocityRef.current;
-
-    if (prev !== null) {
-      const dt = (now - prev.lastT) / 1000; // seconds
-      if (dt > 0) {
-        const velocity = (tempF - prev.lastF) / dt;
-        if (velocity < -50) {
-          setPhase('dabbing');
-          velocityRef.current = null;
-          return;
-        }
-      }
-    }
-
-    velocityRef.current = { lastT: now, lastF: tempF };
-  }, [tempF, setPhase]);
-
-  // ---------------------------------------------------------------------------
-  // 6. dabbing → swab (200–320°F, banger back on sensor)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (phaseRef.current !== 'dabbing') return;
-    if (tempF > 200 && tempF < 320) {
-      setPhase('swab');
-    }
-  }, [tempF, setPhase]);
-
-  // ---------------------------------------------------------------------------
-  // 7. swab → dunk (< 250°F)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (phaseRef.current !== 'swab') return;
-    if (tempF < 250) {
-      setPhase('dunk');
-    }
-  }, [tempF, setPhase]);
-
-  // ---------------------------------------------------------------------------
-  // 8. dunk → complete (< 180°F for 4500ms)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (phaseRef.current !== 'dunk') {
-      if (dunkCompleteTimerRef.current !== null) {
-        clearTimeout(dunkCompleteTimerRef.current);
-        dunkCompleteTimerRef.current = null;
-      }
-      return;
-    }
-
-    if (tempF < 180) {
-      if (dunkCompleteTimerRef.current === null) {
-        dunkCompleteTimerRef.current = setTimeout(() => {
-          if (phaseRef.current === 'dunk' && tempF < 180) {
-            setPhase('complete');
-          }
-          dunkCompleteTimerRef.current = null;
-        }, 4500);
-      }
-    } else {
-      // Temp rose back above threshold — cancel the pending timer
-      if (dunkCompleteTimerRef.current !== null) {
-        clearTimeout(dunkCompleteTimerRef.current);
-        dunkCompleteTimerRef.current = null;
-      }
-    }
-  }, [tempF, setPhase]);
 
   // Cleanup dunk timer on unmount
   useEffect(() => {
@@ -484,8 +469,6 @@ export function useMoltenPhase(): UseMoltenPhaseResult {
     clearSelections,
     isPickerPhase,
     isSessionPhase,
-    tempF,
-    peakF,
     windowDurationMs,
   };
 }
