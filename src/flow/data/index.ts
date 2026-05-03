@@ -8,3 +8,4 @@ export * from './walls';
 export * from './presets';
 export * from './calibration';
 export * from './display';
+export * from './coolCurve';

@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -12,6 +12,7 @@ import {
   THEME,
 } from '../theme';
 import {
+  SessionMode,
   useCalibration,
   useBanger,
   useFlow,
@@ -68,11 +69,19 @@ function DropRateStrip({ dropRate }: { dropRate: number }) {
 function BottomActionPill({
   cur,
   heatActive,
+  sessionMode,
   startHeating,
+  liftToDab,
+  placeBack,
+  advancePhase,
 }: {
   cur: string;
   heatActive: boolean;
+  sessionMode: SessionMode;
   startHeating: () => void;
+  liftToDab: () => void;
+  placeBack: () => void;
+  advancePhase: () => void;
 }) {
   const reduced = useReducedMotion();
   const scale = useSharedValue(1);
@@ -80,15 +89,44 @@ function BottomActionPill({
     transform: [{ scale: scale.value }],
   }));
 
+  // 3-second arming gate for the dab phase in timed mode — prevents an
+  // immediate "PLACE BACK" tap so the dab moment gets its full beat.
+  const [dabArmed, setDabArmed] = useState(false);
+  useEffect(() => {
+    if (sessionMode !== 'timed' || cur !== 'dab') {
+      setDabArmed(false);
+      return;
+    }
+    const id = setTimeout(() => setDabArmed(true), 3000);
+    return () => clearTimeout(id);
+  }, [sessionMode, cur]);
+
   // Derive label + glyph + tappable per phase
-  const config: { label: string; glyph: string | null; tappable: boolean } = (() => {
-    if (cur === 'load') return { label: 'COLD LOAD', glyph: null, tappable: false };
+  const config: {
+    label: string;
+    glyph: string | null;
+    tappable: boolean;
+    action?: 'heat' | 'lift' | 'placeBack' | 'advance';
+  } = (() => {
+    if (cur === 'load') {
+      if (sessionMode === 'timed')
+        return { label: 'START TORCHING', glyph: '→', tappable: true, action: 'advance' };
+      return { label: 'COLD LOAD', glyph: null, tappable: false };
+    }
     if (cur === 'heat') {
       if (heatActive) return { label: 'TORCHING', glyph: null, tappable: false };
-      return { label: 'START HEATING', glyph: '→', tappable: true };
+      return { label: 'START HEATING', glyph: '→', tappable: true, action: 'heat' };
     }
-    if (cur === 'cool') return { label: 'LIFT TO DAB', glyph: '↑', tappable: false };
-    if (cur === 'dab') return { label: 'PLACE BACK', glyph: '↻', tappable: false };
+    if (cur === 'cool') {
+      if (sessionMode === 'timed')
+        return { label: 'LIFT TO DAB', glyph: '↑', tappable: true, action: 'lift' };
+      return { label: 'LIFT TO DAB', glyph: '↑', tappable: false };
+    }
+    if (cur === 'dab') {
+      if (sessionMode === 'timed')
+        return { label: 'PLACE BACK', glyph: '↻', tappable: dabArmed, action: 'placeBack' };
+      return { label: 'PLACE BACK', glyph: '↻', tappable: false };
+    }
     if (cur === 'dunk') return { label: 'DUNK Q-TIP', glyph: '↓', tappable: false };
     if (cur === 'clean') return { label: 'SWAB CLEAN', glyph: '→', tappable: false };
     return { label: '', glyph: null, tappable: false };
@@ -110,7 +148,10 @@ function BottomActionPill({
       return;
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    startHeating();
+    if (config.action === 'heat') startHeating();
+    else if (config.action === 'lift') liftToDab();
+    else if (config.action === 'placeBack') placeBack();
+    else if (config.action === 'advance') advancePhase();
   }
 
   return (
@@ -172,6 +213,10 @@ export function SessionStage() {
   const windowState = useFlow((s) => s.windowState);
   const windowSecondsLeft = useFlow((s) => s.windowSecondsLeft);
   const startHeating = useFlow((s) => s.startHeating);
+  const sessionMode = useFlow((s) => s.sessionMode);
+  const liftToDab = useFlow((s) => s.liftToDab);
+  const placeBack = useFlow((s) => s.placeBack);
+  const advancePhase = useFlow((s) => s.advancePhase);
 
   const banger = useBanger();
   const calibration = useCalibration();
@@ -220,6 +265,7 @@ export function SessionStage() {
   const wasInWindowRef = useRef(false);
   useEffect(() => {
     const inWindow =
+      sessionMode === 'live' &&
       cur === 'cool' &&
       calibration != null &&
       liveTempF >= calibration.low &&
@@ -229,13 +275,14 @@ export function SessionStage() {
     if (!was && inWindow) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  }, [cur, liveTempF, calibration]);
+  }, [cur, liveTempF, calibration, sessionMode]);
 
   // ── Eyebrow / phase-label header ─────────────────────────────────────────
   // Bold #6: clock has moved out of the eyebrow into the orb's session arc.
   // Eyebrow now only carries phase + reheat suffix.
   const reheatSuffix = isReheat && cur === 'heat' ? ' · REHEAT' : '';
-  const eyebrowText = `${cur.toUpperCase()}${reheatSuffix}`;
+  const modeSuffix = sessionMode === 'timed' ? ' · TIMED' : '';
+  const eyebrowText = `${cur.toUpperCase()}${reheatSuffix}${modeSuffix}`;
 
   // ── Dab window countdown (count-down: time remaining in window) ───────────
   // Show a closing-now state at zero so the user isn't left without feedback
@@ -258,7 +305,7 @@ export function SessionStage() {
       if (heatReason === 'missed') return 'Window slipped. Reheat.';
       return 'Underheated. Reheat briefly.';
     }
-    if (cur === 'cool') return 'Place back on the Dab Rite.';
+    if (cur === 'cool') return sessionMode === 'timed' ? 'Wait for the window.' : 'Place back on the Dab Rite.';
     if (cur === 'dab') {
       if (isMissed) return 'Missed the window.';
       return 'Dab now.';
@@ -285,10 +332,8 @@ export function SessionStage() {
       return "Fast drop detected — heat didn't soak. Short reheat.";
     }
     if (cur === 'cool') {
-      // No sub copy at the highest-tension moment. The orb shows the live
-      // temp; ReviewStep already showed the target. Two numbers competing
-      // here forces the user to compute a delta during the dab window.
-      return '';
+      if (sessionMode === 'timed') return 'Tap when ready.';
+      return ''; // unchanged for live mode
     }
     if (cur === 'dab') {
       if (isMissed) return 'Apply. Place back to finish.';
@@ -358,7 +403,11 @@ export function SessionStage() {
       <BottomActionPill
         cur={cur}
         heatActive={heatActive}
+        sessionMode={sessionMode}
         startHeating={startHeating}
+        liftToDab={liftToDab}
+        placeBack={placeBack}
+        advancePhase={advancePhase}
       />
     </View>
   );

@@ -32,6 +32,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  ringSvg: {
+    position: 'absolute',
+  },
   coronaAbs: {
     position: 'absolute',
     borderWidth: 1.5,

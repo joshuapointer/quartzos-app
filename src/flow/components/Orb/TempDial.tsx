@@ -4,6 +4,7 @@ import Animated, {
   Easing,
   cancelAnimation,
   interpolate,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -13,6 +14,7 @@ import Animated, {
 import Svg, {
   Circle,
   Defs,
+  LinearGradient,
   RadialGradient,
   Stop,
 } from 'react-native-svg';
@@ -23,11 +25,14 @@ import { styles } from './styles';
 import type { TempDialProps } from './types';
 import { isCool } from './utils';
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 function TempDialInner({
   size,
   state,
   label,
   temp,
+  ringProgress,
   noReading,
   inWindow,
   fastDrop,
@@ -158,6 +163,27 @@ function TempDialInner({
   }));
   const sessionArcStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${sessionArcRotation.value * 360}deg` }],
+  }));
+
+  // Progress ring — animated arc rendered around the orb edge whenever the
+  // caller passes ringProgress (timed-mode cool/dunk). The ring sweeps
+  // clockwise from 12 o'clock, lerping smoothly between samples so the
+  // 100ms phase ticks read as continuous motion.
+  const showRing = typeof ringProgress === 'number';
+  const ringAnim = useSharedValue(typeof ringProgress === 'number' ? ringProgress : 0);
+  useEffect(() => {
+    if (typeof ringProgress !== 'number') return;
+    ringAnim.value = withTiming(ringProgress, {
+      duration: reduced ? 0 : 200,
+      easing: Easing.linear,
+    });
+  }, [ringProgress, reduced, ringAnim]);
+
+  const ringStroke = 5;
+  const ringRadius = size / 2 - ringStroke / 2 - 1;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const animatedRingProps = useAnimatedProps(() => ({
+    strokeDashoffset: ringCircumference * (1 - Math.max(0, Math.min(1, ringAnim.value))),
   }));
 
   const showTemp =
@@ -360,6 +386,59 @@ function TempDialInner({
           completing one revolution every 90s during cool/dab/dunk/clean. */}
       {showSessionArc && (
         <SessionArc size={size} animStyle={sessionArcStyle} />
+      )}
+
+      {/* Animated progress ring — drains/fills to visualise time-bound phases
+          in timed mode. Mirrors the TorchRing treatment from the heat phase
+          so cool/dunk feel as alive, not just a quiet readout. */}
+      {showRing && (
+        <Svg
+          width={size}
+          height={size}
+          style={[
+            styles.ringSvg,
+            { transform: [{ rotate: '-90deg' }] },
+          ]}
+          pointerEvents="none"
+        >
+          <Defs>
+            <LinearGradient id={`${uid}-ring`} x1="0" y1="0" x2="1" y2="1">
+              <Stop
+                offset="0"
+                stopColor={inWindow ? THEME.quartz.bright : THEME.ember.bright}
+                stopOpacity="1"
+              />
+              <Stop
+                offset="1"
+                stopColor={inWindow ? THEME.quartz.base : THEME.ember.deep}
+                stopOpacity="0.65"
+              />
+            </LinearGradient>
+          </Defs>
+          {/* Etched track — sits under the live arc and reads as a recessed
+              groove around the orb. */}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={ringRadius}
+            fill="none"
+            stroke={THEME.navy[4]}
+            strokeWidth={ringStroke}
+            opacity={0.55}
+          />
+          {/* Live arc */}
+          <AnimatedCircle
+            cx={cx}
+            cy={cy}
+            r={ringRadius}
+            fill="none"
+            stroke={`url(#${uid}-ring)`}
+            strokeWidth={ringStroke}
+            strokeLinecap="round"
+            strokeDasharray={`${ringCircumference} ${ringCircumference}`}
+            animatedProps={animatedRingProps}
+          />
+        </Svg>
       )}
 
       {/* Centered text stack. */}

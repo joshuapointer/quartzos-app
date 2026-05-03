@@ -16,7 +16,7 @@ import { immer } from 'zustand/middleware/immer';
 
 import { bleManager } from '../ble/BleManager';
 import { useBleStore } from '../state/bleStore';
-import { useSettingsStore } from '../state/settingsStore';
+import { useSettingsStore, type SessionMode } from '../state/settingsStore';
 import { torchDetector } from '../utils/TorchDetector';
 
 import type { OrbProps, OrbState } from './components/Orb';
@@ -35,6 +35,9 @@ import {
 } from './data';
 import { findBanger } from '../data/bangers';
 import { totalHeatSeconds } from '../design/components/SessionWalkthrough/utils';
+import { predictCoolTemp, predictCoolDropRate } from './data/coolCurve';
+
+export type { SessionMode } from '../state/settingsStore';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -89,7 +92,12 @@ export type FlowState = {
   coolDropRate: number;
   startedAt: number | null;
 
+  // ── Session mode
+  sessionMode: SessionMode;
+
   // ── Actions
+  setSessionMode: (m: SessionMode) => void;
+  enterTimedMode: () => void;
   connect: () => void;
   finishConnect: () => void;
   disconnect: () => void;
@@ -172,6 +180,8 @@ function syncAlarmsToDevice(bangerId: string | null, concId: string | null, wall
   const c = concById(concId);
   const w = wallById(wallId);
   if (!b || !c) return;
+  const flow = useFlow.getState();
+  if (!flow.connected || flow.sessionMode === 'timed') return;
   const calibration = computeCalibration(b, c, w);
   const settings = useSettingsStore.getState().settings;
   bleManager.writeSettings({
@@ -210,6 +220,7 @@ const INITIAL: Pick<
   | 'coolTemp'
   | 'coolDropRate'
   | 'startedAt'
+  | 'sessionMode'
 > = {
   stage: 'connect',
   connected: false,
@@ -234,6 +245,7 @@ const INITIAL: Pick<
   coolTemp: 0,
   coolDropRate: 0,
   startedAt: null,
+  sessionMode: 'live',
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -285,11 +297,20 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'cool') {
-        // Progress timer (does NOT auto-advance from cool).
+        // Cool phase duration drives both the progress arc and the synthetic
+        // curve in timed mode. Live mode keeps the legacy 25s window — there,
+        // phaseProgress is just a UI clock; reactive UI is driven by BLE temp.
+        const coolSecRange = banger?.cool_seconds ?? [30, 50];
+        const coolSecAvg = (coolSecRange[0] + coolSecRange[1]) / 2;
+        const coolDurationMs = state.sessionMode === 'timed'
+          ? coolSecAvg * 1000
+          : COOL_TOTAL_MS;
+
+        // Progress timer (does NOT auto-advance from cool). Runs in both modes.
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
           const elapsed = Date.now() - startedAt;
-          const p = Math.min(1, elapsed / COOL_TOTAL_MS);
+          const p = Math.min(1, elapsed / coolDurationMs);
           set((s) => {
             s.phaseProgress = p;
           });
@@ -298,7 +319,36 @@ export const useFlow = create<FlowState>()(
           }
         }, COOL_TICK_MS);
 
-        // Live IR temp tracking + reheat triggers.
+        // ── Timed mode: synthetic cooling curve, no BLE. ─────────────────────
+        if (state.sessionMode === 'timed') {
+          const calibration = banger && concentrate
+            ? computeCalibration(banger, concentrate, wall)
+            : null;
+          const targetDisplay = calibration?.displayed ?? 550;
+          const targetHigh = calibration?.high ?? targetDisplay + 15;
+          const peak = targetHigh + 30;
+          const startedAtCool = Date.now();
+
+          set((s) => {
+            s.coolTemp = peak;
+            s.coolDropRate = 0;
+          });
+
+          // Sample the curve at COOL_TICK_MS so the displayed estimated temp
+          // and the ring progress stay in lockstep with phaseProgress.
+          coolTimer = setInterval(() => {
+            const elapsed = Date.now() - startedAtCool;
+            const t = predictCoolTemp(elapsed, peak, targetDisplay, undefined, coolDurationMs);
+            const drop = predictCoolDropRate(elapsed, peak, targetDisplay, undefined, coolDurationMs);
+            set((s) => {
+              s.coolTemp = t;
+              s.coolDropRate = drop;
+            });
+          }, COOL_TICK_MS);
+          return;
+        }
+
+        // ── Live mode: IR temp tracking + reheat triggers. ───────────────────
         const calibration = banger && concentrate
           ? computeCalibration(banger, concentrate, wall)
           : null;
@@ -392,6 +442,8 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'dab') {
+        // Timed mode: user taps a CTA to call placeBack().
+        if (state.sessionMode === 'timed') return;
         const startedAt = Date.now();
         phaseTimer = setInterval(() => {
           const t = useBleStore.getState().liveTempF;
@@ -406,6 +458,8 @@ export const useFlow = create<FlowState>()(
       }
 
       if (phaseKey === 'load') {
+        // Timed mode: user taps a CTA to advance.
+        if (state.sessionMode === 'timed') return;
         // Cold-start load — wait until user begins torching (temp rises)
         phaseTimer = setInterval(() => {
           const t = useBleStore.getState().liveTempF;
@@ -458,6 +512,26 @@ export const useFlow = create<FlowState>()(
 
     return {
       ...INITIAL,
+      sessionMode: useSettingsStore.getState().lastSessionMode,
+
+      // ── Session mode ───────────────────────────────────────────────────────
+      setSessionMode: (m) => {
+        set((s) => {
+          s.sessionMode = m;
+        });
+        useSettingsStore.getState().setLastSessionMode(m);
+      },
+
+      enterTimedMode: () => {
+        clearAllTimers();
+        void torchDetector.stopListening();
+        set((s) => {
+          Object.assign(s, INITIAL);
+          s.sessionMode = 'timed';
+          s.stage = 'choose';
+        });
+        useSettingsStore.getState().setLastSessionMode('timed');
+      },
 
       // ── Connect ────────────────────────────────────────────────────────────
       connect: () => {
@@ -662,11 +736,17 @@ export const useFlow = create<FlowState>()(
         clearAllTimers();
         void torchDetector.stopListening();
         set((s) => {
-          // Preserve connected status; reset everything else to choose stage.
+          // Preserve connected status and session mode; reset everything else.
           const wasConnected = s.connected;
+          const mode = s.sessionMode;
           Object.assign(s, INITIAL);
           s.connected = wasConnected;
-          s.stage = wasConnected ? 'choose' : 'connect';
+          s.sessionMode = mode;
+          if (mode === 'timed') {
+            s.stage = 'choose';
+          } else {
+            s.stage = wasConnected ? 'choose' : 'connect';
+          }
         });
       },
     };
@@ -725,6 +805,8 @@ export const useOrbProps = (): OrbProps => {
   const coolDropRate = useFlow((s) => s.coolDropRate);
   const searching = useFlow((s) => s.searching);
   const connected = useFlow((s) => s.connected);
+  const sessionMode = useFlow((s) => s.sessionMode);
+  const coolTemp = useFlow((s) => s.coolTemp);
   const banger = useBanger();
   const calibration = useCalibration();
   const liveTempF = useBleStore((s) => s.liveTempF);
@@ -782,7 +864,7 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'cool') {
-        const t = liveTempF; // Always use the latest liveTempF
+        const t = sessionMode === 'timed' ? coolTemp : liveTempF;
         const inWindow = t <= high && t >= low;
         const fastDrop = coolDropRate > COOL_FAST_DROP_THRESHOLD;
         const orbState: OrbState = fastDrop
@@ -790,6 +872,23 @@ export const useOrbProps = (): OrbProps => {
           : inWindow
             ? 'cool-in-window'
             : 'cool';
+        // Timed mode shows the synthetic temp behind an "EST. TEMP" eyebrow
+        // and renders an animated ring that drains as the curve approaches
+        // the dab window — same dab-window math as live mode (cool-in-window
+        // fires on `t ∈ [low, high]`), the ring just visualizes time.
+        if (sessionMode === 'timed') {
+          return {
+            state: orbState,
+            size: 240,
+            temp: t,
+            ringProgress: 1 - phaseProgress,
+            label: orbState === 'cool' || orbState === 'cool-fast-drop'
+              ? 'EST. TEMP'
+              : undefined,
+            low,
+            high,
+          };
+        }
         return {
           state: orbState,
           size: 240,
@@ -809,22 +908,40 @@ export const useOrbProps = (): OrbProps => {
       }
 
       if (phaseKey === 'dunk') {
-        const t = liveTempF;
+        // Timed mode dunk is purely time-driven (DUNK_TOTAL_MS) — surfacing a
+        // stale `coolTemp` here read as a live measurement, which it isn't.
+        // Replace with a ring filling 0→1 over the dunk duration.
+        if (sessionMode === 'timed') {
+          return {
+            state: 'dunk' satisfies OrbState,
+            size: 240,
+            ringProgress: phaseProgress,
+            noReading: true,
+            label: 'DUNKING',
+          };
+        }
         return {
           state: 'dunk' satisfies OrbState,
           size: 240,
-          temp: t,
+          temp: liveTempF,
           low,
           high,
         };
       }
 
       if (phaseKey === 'clean') {
-        const t = liveTempF;
+        if (sessionMode === 'timed') {
+          return {
+            state: 'clean' satisfies OrbState,
+            size: 170,
+            ringProgress: phaseProgress,
+            noReading: true,
+          };
+        }
         return {
           state: 'clean' satisfies OrbState,
           size: 170,
-          temp: t,
+          temp: liveTempF,
         };
       }
 
@@ -854,6 +971,8 @@ export const useOrbProps = (): OrbProps => {
     coolDropRate,
     searching,
     connected,
+    sessionMode,
+    coolTemp,
     banger,
     calibration,
     liveTempF,
@@ -864,11 +983,11 @@ export const useOrbProps = (): OrbProps => {
 useBleStore.subscribe((state, prevState) => {
   const flow = useFlow.getState();
   if (state.connectionState === 'READY' && prevState.connectionState !== 'READY') {
-    if (flow.stage === 'connect') {
+    if (flow.stage === 'connect' && flow.sessionMode === 'live') {
       flow.finishConnect();
     }
   } else if (state.connectionState === 'IDLE' && prevState.connectionState !== 'IDLE') {
-    if (flow.connected) {
+    if (flow.connected && flow.sessionMode === 'live') {
       flow.disconnect();
     }
   }

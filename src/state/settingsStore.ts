@@ -10,6 +10,9 @@ const storage = new MMKV();
 
 const ACTIVE_PRESET_KEY = 'app.activePresetId';
 const MOCK_BLE_KEY = 'app.mockBleEnabled';
+const LAST_SESSION_MODE_KEY = 'app.lastSessionMode';
+
+export type SessionMode = 'live' | 'timed';
 
 function loadPersistedTheme(): ThemeName {
   const stored = storage.getString('app.theme');
@@ -28,6 +31,11 @@ function loadPersistedMockBleEnabled(): boolean {
   return storage.getBoolean(MOCK_BLE_KEY) ?? false;
 }
 
+function loadPersistedSessionMode(): SessionMode {
+  const stored = storage.getString(LAST_SESSION_MODE_KEY);
+  return stored === 'timed' ? 'timed' : 'live';
+}
+
 interface SettingsState {
   settings: DeviceSettings;
   confirmed: boolean;
@@ -41,12 +49,14 @@ interface SettingsState {
    */
   activePresetId: string | null;
   mockBleEnabled: boolean;
+  lastSessionMode: SessionMode;
   setSettings: (s: DeviceSettings) => void;
   updateSetting: <K extends keyof DeviceSettings>(key: K, val: DeviceSettings[K]) => void;
   markConfirmed: () => void;
   setTheme: (t: ThemeName) => void;
   setActivePresetId: (id: string | null) => void;
   setMockBleEnabled: (enabled: boolean) => void;
+  setLastSessionMode: (mode: SessionMode) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(immer((set) => ({
@@ -56,6 +66,7 @@ export const useSettingsStore = create<SettingsState>()(immer((set) => ({
   theme: loadPersistedTheme(),
   activePresetId: loadPersistedActivePresetId(),
   mockBleEnabled: loadPersistedMockBleEnabled(),
+  lastSessionMode: loadPersistedSessionMode(),
   setSettings: (s) => set((st) => {
     // Defense-in-depth: clamp the (dab, dunk) pair so any path through the
     // store lands a valid alarm pair. The BLE encoder also clamps, but
@@ -92,5 +103,9 @@ export const useSettingsStore = create<SettingsState>()(immer((set) => ({
   setMockBleEnabled: (enabled) => {
     storage.set(MOCK_BLE_KEY, enabled);
     set((st) => { st.mockBleEnabled = enabled; });
+  },
+  setLastSessionMode: (mode) => {
+    storage.set(LAST_SESSION_MODE_KEY, mode);
+    set((st) => { st.lastSessionMode = mode; });
   },
 })));

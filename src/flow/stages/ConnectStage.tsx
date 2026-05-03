@@ -135,9 +135,11 @@ const btnStyles = StyleSheet.create({
 
 const SCAN_TIMEOUT_MS = 25000;
 
+
 export default function ConnectStage() {
   const connect = useFlow((s) => s.connect);
   const searching = useFlow((s) => s.searching);
+  const enterTimedMode = useFlow((s) => s.enterTimedMode);
 
   // Surface a recovery state if a scan runs for too long without finding the
   // Dab Rite. Without it, a first-timer with the device powered off is
@@ -158,6 +160,11 @@ export default function ConnectStage() {
     connect();
   }
 
+  function handleTimedMode() {
+    void Haptics.selectionAsync();
+    enterTimedMode();
+  }
+
   // While timed out, present the button as ready-to-retry (not searching),
   // even though the store's searching flag is still true under the hood.
   const buttonSearching = searching && !timedOut;
@@ -165,6 +172,7 @@ export default function ConnectStage() {
   const s0 = useStaggerEntrance(0);
   const s1 = useStaggerEntrance(1);
   const s2 = useStaggerEntrance(2);
+  const s3 = useStaggerEntrance(3);
 
   const footerText = timedOut
     ? 'DAB RITE NOT RESPONDING'
@@ -181,17 +189,25 @@ export default function ConnectStage() {
             {'Find your\nDab Rite.'}
           </Text>
         ) : (
-          <Text style={st.awaitingSignal}>AWAITING SIGNAL</Text>
+          <Text style={st.awaitingSignal}>CHOOSE A SESSION</Text>
         )}
       </Animated.View>
 
       <View style={st.spacer} />
 
-      <Animated.View style={s1}>
+      <Animated.View style={[s1, st.btnWrap]}>
         <ConnectButton searching={buttonSearching} onPress={handleConnect} />
       </Animated.View>
 
-      <Animated.View style={s2}>
+      <Animated.View style={[s2, st.btnWrap]}>
+        <PrimaryButton
+          label="USE TIMER"
+          onPress={handleTimedMode}
+          accessibilityLabel="Start a timed session without a Dab Rite"
+        />
+      </Animated.View>
+
+      <Animated.View style={s3}>
         <Text style={st.footer}>{footerText}</Text>
       </Animated.View>
 
@@ -235,12 +251,15 @@ const st = StyleSheet.create({
     flex: 1,
     minHeight: 32,
   },
+  btnWrap: {
+    marginBottom: 14,
+  },
   footer: {
     fontFamily: 'GeistMono_400Regular',
     fontSize: 11,
     letterSpacing: 1.7,
     color: THEME.bone[35],
-    marginTop: 28,
+    marginTop: 14,
     textTransform: 'uppercase',
     textAlign: 'center',
   },

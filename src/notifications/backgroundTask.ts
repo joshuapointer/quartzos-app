@@ -1,6 +1,7 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import type { SessionMode } from '@/state/settingsStore';
 
 export const FOREGROUND_SERVICE_TASK = 'quartzos-ble-foreground';
 
@@ -11,14 +12,17 @@ TaskManager.defineTask(FOREGROUND_SERVICE_TASK, async () => {
   return { shouldContinue: true };
 });
 
-export async function startForegroundService(): Promise<void> {
+export async function startForegroundService(mode: SessionMode = 'live'): Promise<void> {
   if (Platform.OS !== 'android') return;
+  const body = mode === 'timed'
+    ? 'Quartzie is running a timed session.'
+    : 'Quartzie is monitoring your Dab Rite.';
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: FOREGROUND_NOTIFICATION_ID,
       content: {
         title: 'Quartzie Active',
-        body: 'Quartzie is monitoring your Dab Rite.',
+        body,
         sticky: true,
         autoDismiss: false,
       },
