@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg-deep" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="oklch(0.13 0.03 250)"/>
+      <stop offset="50%" stop-color="oklch(0.09 0.02 250)"/>
+      <stop offset="100%" stop-color="oklch(0.05 0.01 250)"/>
+    </radialGradient>
+    <radialGradient id="bg-prism" cx="30%" cy="20%" r="100%">
+      <stop offset="0%" stop-color="oklch(0.18 0.06 220 / 0.65)"/>
+      <stop offset="40%" stop-color="oklch(0.12 0.05 280 / 0.45)"/>
+      <stop offset="100%" stop-color="oklch(0.05 0.01 250)"/>
+    </radialGradient>
+    <linearGradient id="prism-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="oklch(0.84 0.12 200)"/>
+      <stop offset="50%" stop-color="oklch(0.78 0.18 320)"/>
+      <stop offset="100%" stop-color="oklch(0.90 0.14 95)"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="40%" cy="34%" r="68%">
+      <stop offset="0%" stop-color="oklch(0.95 0.05 220)"/>
+      <stop offset="22%" stop-color="oklch(0.78 0.10 215)"/>
+      <stop offset="58%" stop-color="oklch(0.42 0.14 270)"/>
+      <stop offset="86%" stop-color="oklch(0.18 0.08 280)"/>
+      <stop offset="100%" stop-color="oklch(0.10 0.04 260)"/>
+    </radialGradient>
+    <radialGradient id="orb-iris" cx="50%" cy="60%" r="60%">
+      <stop offset="0%" stop-color="oklch(0.78 0.18 290 / 0)"/>
+      <stop offset="55%" stop-color="oklch(0.74 0.22 320 / 0.36)"/>
+      <stop offset="100%" stop-color="oklch(0.84 0.16 200 / 0)"/>
+    </radialGradient>
+    <radialGradient id="orb-spec" cx="36%" cy="30%" r="22%">
+      <stop offset="0%" stop-color="oklch(0.99 0.02 220 / 0.92)"/>
+      <stop offset="60%" stop-color="oklch(0.95 0.04 220 / 0.18)"/>
+      <stop offset="100%" stop-color="oklch(0.99 0.02 220 / 0)"/>
+    </radialGradient>
+    <radialGradient id="orb-glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="oklch(0.74 0.18 280 / 0.35)"/>
+      <stop offset="100%" stop-color="oklch(0.55 0.18 270 / 0)"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg-prism)"/>
+  <rect width="1024" height="1024" fill="url(#bg-deep)" opacity="0.85"/>
+  <circle cx="512" cy="512" r="420" fill="url(#orb-glow)"/>
+  <path d="M 152 512 A 360 360 0 0 1 872 512" fill="none" stroke="url(#prism-stroke)" stroke-width="3" opacity="0.55" stroke-linecap="round"/>
+  <path d="M 872 512 A 360 360 0 0 1 700 798" fill="none" stroke="url(#prism-stroke)" stroke-width="3" opacity="0.30" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="320" fill="url(#orb)"/>
+  <circle cx="512" cy="512" r="320" fill="url(#orb-iris)" opacity="0.75"/>
+  <circle cx="512" cy="512" r="320" fill="url(#orb-spec)"/>
+  <circle cx="512" cy="512" r="320" fill="none" stroke="oklch(0 0 0 / 0.4)" stroke-width="0.5"/>
+</svg>

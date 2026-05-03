@@ -15,6 +15,7 @@
     "ios": {
       "bundleIdentifier": "com.quartzos.app",
       "supportsTablet": false,
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Quartzie connects to your Dab Rite to read temperature and sync settings.",
         "NSBluetoothPeripheralUsageDescription": "Quartzie connects to your Dab Rite to read temperature and sync settings.",
