@@ -65,10 +65,11 @@
             "targetSdkVersion": 35
           },
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "16.0"
           }
         }
       ],
+      "./modules/quartzie-siri-bridge/plugin/build/index.js",
       [
         "expo-notifications",
         {

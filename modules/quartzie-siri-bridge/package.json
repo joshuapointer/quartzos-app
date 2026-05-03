@@ -1,0 +1,24 @@
+{
+  "name": "quartzie-siri-bridge",
+  "version": "1.0.0",
+  "description": "Local Expo module: App Group bridge + Siri App Intents for Quartzie",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build:plugin": "tsc -p plugin"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {},
+  "peerDependencies": {
+    "expo": "*",
+    "expo-modules-core": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "expo": {
+    "plugin": "./plugin/build/index.js"
+  }
+}

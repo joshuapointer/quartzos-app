@@ -1,0 +1,13 @@
+{
+  "name": "quartzie-siri-bridge-plugin",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@expo/config-plugins": "*"
+  }
+}

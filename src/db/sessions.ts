@@ -1,4 +1,5 @@
 import { getDb } from './connection';
+import { siriBridge } from '../native/siriBridge';
 
 // Portable UUID v4 — Hermes/React Native's `crypto.randomUUID` is not
 // reliably available across runtimes, so we generate locally. Sufficient
@@ -121,6 +122,21 @@ export async function end(
      WHERE id = ?`,
     [endedAt, peakTempF, JSON.stringify(samples), JSON.stringify(alerts), id]
   );
+
+  // Mirror the just-completed session's preset id to the App Group so the
+  // "Start last session" Siri intent can resolve without booting JS. We
+  // re-read the row instead of plumbing presetId through every caller.
+  try {
+    const row = await db.getFirstAsync<{ preset_id: string | null }>(
+      'SELECT preset_id FROM sessions WHERE id = ?',
+      [id],
+    );
+    if (row?.preset_id) {
+      siriBridge.setLastPresetId(row.preset_id);
+    }
+  } catch {
+    /* mirror is best-effort */
+  }
 }
 
 export async function addNote(id: string, notes: string): Promise<void> {

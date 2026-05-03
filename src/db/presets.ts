@@ -1,4 +1,5 @@
 import { getDb } from './connection';
+import { siriBridge } from '../native/siriBridge';
 import { DEFAULT_SETTINGS } from '../ble/types';
 import type { DeviceSettings } from '../ble/types';
 import { findBanger } from '../data/bangers';
@@ -73,6 +74,18 @@ export async function getAll(): Promise<Preset[]> {
   return rows.map(rowToPreset);
 }
 
+// Mirror the preset list to the iOS App Group so Siri App Intents can
+// surface preset names without booting the JS runtime. Best-effort —
+// the Siri bridge swallows native errors.
+async function syncSiriCatalog(): Promise<void> {
+  try {
+    const all = await getAll();
+    siriBridge.setPresetCatalog(all);
+  } catch {
+    /* mirror is non-critical; SQLite remains source of truth */
+  }
+}
+
 export async function getById(id: string): Promise<Preset | null> {
   const db = await getDb();
   const row = await db.getFirstAsync<PresetRow>(
@@ -93,6 +106,7 @@ export async function create(
     'INSERT INTO presets (id, name, settings_json, created_at, updated_at, is_builtin) VALUES (?, ?, ?, ?, ?, 0)',
     [id, name, JSON.stringify(settings), now, now]
   );
+  void syncSiriCatalog();
   return {
     id,
     name,
@@ -134,6 +148,7 @@ export async function update(
     `UPDATE presets SET ${fields.join(', ')} WHERE id = ?`,
     values
   );
+  void syncSiriCatalog();
 }
 
 export async function remove(id: string): Promise<void> {
@@ -147,6 +162,7 @@ export async function remove(id: string): Promise<void> {
     throw new Error('Cannot delete a built-in preset');
   }
   await db.runAsync('DELETE FROM presets WHERE id = ?', [id]);
+  void syncSiriCatalog();
 }
 
 // ---------------------------------------------------------------------------
@@ -354,6 +370,8 @@ export async function seedBuiltins(): Promise<void> {
       );
     }
   }
+
+  void syncSiriCatalog();
 }
 
 export async function importFromJson(json: string): Promise<Preset | null> {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppState, StyleSheet, LogBox } from 'react-native';
+import { AppState, Linking, StyleSheet, LogBox } from 'react-native';
 
 LogBox.ignoreLogs(['Sending `onAnimatedValueUpdate` with no listeners registered.']);
 import { Stack } from 'expo-router';
@@ -29,6 +29,7 @@ import { ThemeProvider } from '../src/design/ThemeContext';
 import { colors } from '../src/design/tokens';
 import { ErrorBoundary, ToastHost } from '../src/design';
 import { BleManager } from '../src/ble/BleManager';
+import { handleIntentUrl } from '../src/utils/intentRouter';
 
 // Keep the splash screen up until we're ready.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -82,6 +83,21 @@ export default function RootLayout() {
         /* ignore */
       });
     }
+  }, [ready]);
+
+  // Handle Siri / Shortcut deep links. Wait for `ready` so the home screen
+  // can resolve the preset before applyPreset fires.
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    Linking.getInitialURL()
+      .then((url) => { if (!cancelled && url) handleIntentUrl(url); })
+      .catch(() => { /* no initial url */ });
+    const sub = Linking.addEventListener('url', ({ url }) => { handleIntentUrl(url); });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
   }, [ready]);
 
   // Flush an in-memory session to SQLite when the app drops to background

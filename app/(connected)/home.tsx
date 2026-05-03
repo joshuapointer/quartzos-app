@@ -17,6 +17,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -226,6 +227,26 @@ export default function HomeScreen() {
     // Intentionally NOT auto-navigating back; user stays in Presets and
     // chooses when to return. The dial-bloom above confirms the apply.
   }, [dialGlow, updateSetting, setActivePresetId]);
+
+  // Siri / Shortcut deep-link entry: when the route arrives with
+  // `?applyPreset=<id>`, find the matching preset and run the canonical
+  // apply path, then clear the param. The `appliedRef` guard makes the
+  // effect idempotent against expo-router rehydration on remount.
+  const { applyPreset: applyPresetParam } = useLocalSearchParams<{ applyPreset?: string }>();
+  const appliedPresetIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!applyPresetParam) return;
+    if (appliedPresetIdsRef.current.has(applyPresetParam)) {
+      router.setParams({ applyPreset: undefined });
+      return;
+    }
+    if (presets.length === 0) return; // wait for hydration; effect re-runs when presets load
+    appliedPresetIdsRef.current.add(applyPresetParam);
+    router.setParams({ applyPreset: undefined });
+    const target = presets.find((p) => p.id === applyPresetParam);
+    if (!target) return;
+    void handleApplyPreset(target).catch(() => { /* toast already shown */ });
+  }, [applyPresetParam, presets, handleApplyPreset]);
 
   // Clear activePresetId whenever the live settings drift away from the
   // active preset's settings (so the indicator fades to "custom"). Cheap
