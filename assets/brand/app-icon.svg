@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="dabwith.me — app icon">
+  <title>dabwith.me — app icon (1024×1024)</title>
+  <defs>
+    <!-- Paper background — lilac-cream wash with subtle radial accents -->
+    <radialGradient id="ai_bg1" cx="30%" cy="14%" r="55%">
+      <stop offset="0"   stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ai_bg2" cx="80%" cy="92%" r="55%">
+      <stop offset="0"   stop-color="oklch(92% 0.08 30)"  stop-opacity="0.45"/>
+      <stop offset="1"   stop-color="oklch(92% 0.08 30)"  stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ai_bg3" cx="50%" cy="55%" r="50%">
+      <stop offset="0"   stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
+      <stop offset="1"   stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Orb gradients -->
+    <radialGradient id="ai_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ai_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="ai_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ai_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ai_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ai_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="ai_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+    <clipPath id="ai_clip"><circle cx="512" cy="512" r="380"/></clipPath>
+  </defs>
+
+  <!-- Paper background -->
+  <rect x="0" y="0" width="1024" height="1024" fill="oklch(97% 0.025 320)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#ai_bg1)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#ai_bg2)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#ai_bg3)"/>
+
+  <!-- Halo -->
+  <circle cx="512" cy="512" r="468" fill="url(#ai_halo)"/>
+
+  <!-- Body -->
+  <circle cx="512" cy="512" r="380" fill="url(#ai_body)"/>
+  <circle cx="512" cy="512" r="380" fill="url(#ai_hi)"/>
+  <circle cx="512" cy="512" r="380" fill="url(#ai_innershadow)"/>
+
+  <!-- Cheeks -->
+  <g clip-path="url(#ai_clip)">
+    <ellipse cx="278" cy="618" rx="65" ry="42" fill="url(#ai_cheek)" filter="url(#ai_blur)"/>
+    <ellipse cx="746" cy="618" rx="65" ry="42" fill="url(#ai_cheek)" filter="url(#ai_blur)"/>
+  </g>
+
+  <!-- Eyes -->
+  <ellipse cx="404" cy="544" rx="54" ry="70" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="620" cy="544" rx="54" ry="70" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="388" cy="514" rx="17" ry="23" fill="url(#ai_eyehi)"/>
+  <ellipse cx="604" cy="514" rx="17" ry="23" fill="url(#ai_eyehi)"/>
+
+  <!-- Anchor hairline -->
+  <circle cx="512" cy="512" r="380" fill="none" stroke="oklch(70% 0.06 320)" stroke-opacity="0.18" stroke-width="1.5"/>
+</svg>

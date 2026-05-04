@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="dabwith.me — Android adaptive foreground">
+  <title>dabwith.me — Android adaptive foreground (orb only, safe-area sized)</title>
+  <!-- Android masks the icon, cropping up to ~25% on each edge.
+       Safe area = central 66% (a circle of radius ~338px around center).
+       We size the orb at r=300 so it survives the most aggressive circular mask. -->
+  <defs>
+    <radialGradient id="af_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="af_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="af_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+    <clipPath id="af_clip"><circle cx="512" cy="512" r="300"/></clipPath>
+  </defs>
+
+  <circle cx="512" cy="512" r="370" fill="url(#af_halo)"/>
+  <circle cx="512" cy="512" r="300" fill="url(#af_body)"/>
+  <circle cx="512" cy="512" r="300" fill="url(#af_hi)"/>
+  <circle cx="512" cy="512" r="300" fill="url(#af_innershadow)"/>
+
+  <g clip-path="url(#af_clip)">
+    <ellipse cx="327" cy="595" rx="51" ry="33" fill="url(#af_cheek)" filter="url(#af_blur)"/>
+    <ellipse cx="697" cy="595" rx="51" ry="33" fill="url(#af_cheek)" filter="url(#af_blur)"/>
+  </g>
+
+  <ellipse cx="427" cy="537" rx="43" ry="55" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="597" cy="537" rx="43" ry="55" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="414" cy="513" rx="13" ry="18" fill="url(#af_eyehi)"/>
+  <ellipse cx="584" cy="513" rx="13" ry="18" fill="url(#af_eyehi)"/>
+</svg>

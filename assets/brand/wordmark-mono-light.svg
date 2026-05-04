@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" role="img" aria-label="dabwith.me wordmark, mono light">
+  <title>dabwith.me — mono light</title>
+  <text x="400" y="135" text-anchor="middle"
+        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
+        font-weight="700"
+        font-size="120"
+        letter-spacing="-4.2"
+        fill="oklch(99% 0.005 320)">dabwith<tspan font-weight="800">.me</tspan></text>
+</svg>

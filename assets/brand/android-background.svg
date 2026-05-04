@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="dabwith.me — Android adaptive background">
+  <title>dabwith.me — Android adaptive background (lilac-cream paper)</title>
+  <defs>
+    <radialGradient id="ab_bg1" cx="30%" cy="14%" r="55%">
+      <stop offset="0" stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ab_bg2" cx="80%" cy="92%" r="55%">
+      <stop offset="0" stop-color="oklch(92% 0.08 30)" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="oklch(92% 0.08 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ab_bg3" cx="50%" cy="55%" r="50%">
+      <stop offset="0" stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" fill="oklch(97% 0.025 320)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#ab_bg1)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#ab_bg2)"/>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#ab_bg3)"/>
+</svg>

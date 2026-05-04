@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="dabwith.me — Open Graph card">
+  <title>dabwith.me — OG / Twitter card (1200×630)</title>
+  <defs>
+    <radialGradient id="og_bg1" cx="20%" cy="14%" r="55%">
+      <stop offset="0" stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_bg2" cx="85%" cy="92%" r="55%">
+      <stop offset="0" stop-color="oklch(92% 0.08 30)" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="oklch(92% 0.08 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_bg3" cx="50%" cy="55%" r="50%">
+      <stop offset="0" stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.60"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="og_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="og_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="og_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <clipPath id="og_clip"><circle cx="305" cy="315" r="180"/></clipPath>
+  </defs>
+
+  <!-- Background paper -->
+  <rect width="1200" height="630" fill="oklch(97% 0.025 320)"/>
+  <rect width="1200" height="630" fill="url(#og_bg1)"/>
+  <rect width="1200" height="630" fill="url(#og_bg2)"/>
+  <rect width="1200" height="630" fill="url(#og_bg3)"/>
+
+  <!-- Bub on left, vertically centered -->
+  <circle cx="305" cy="315" r="225" fill="url(#og_halo)"/>
+  <circle cx="305" cy="315" r="180" fill="url(#og_body)"/>
+  <circle cx="305" cy="315" r="180" fill="url(#og_hi)"/>
+  <circle cx="305" cy="315" r="180" fill="url(#og_innershadow)"/>
+  <g clip-path="url(#og_clip)">
+    <ellipse cx="194" cy="365" rx="31" ry="20" fill="url(#og_cheek)" filter="url(#og_blur)"/>
+    <ellipse cx="416" cy="365" rx="31" ry="20" fill="url(#og_cheek)" filter="url(#og_blur)"/>
+  </g>
+  <ellipse cx="245" cy="330" rx="26" ry="33" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="347" cy="330" rx="26" ry="33" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="237" cy="316" rx="8" ry="11" fill="url(#og_eyehi)"/>
+  <ellipse cx="339" cy="316" rx="8" ry="11" fill="url(#og_eyehi)"/>
+
+  <!-- Wordmark and tagline on right -->
+  <text x="540" y="295"
+        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
+        font-weight="700"
+        font-size="116"
+        letter-spacing="-4"
+        fill="oklch(30% 0.04 300)">dabwith<tspan fill="oklch(75% 0.18 30)" font-weight="800">.me</tspan></text>
+
+  <text x="540" y="360"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+        font-weight="400"
+        font-size="32"
+        fill="oklch(55% 0.04 300)">a calmer way to dab.</text>
+
+  <!-- Hairline divider -->
+  <rect x="540" y="400" width="80" height="3" rx="1.5" fill="oklch(75% 0.18 30)"/>
+
+  <!-- Mono uppercase eyebrow -->
+  <text x="540" y="450"
+        font-family="'SF Mono', ui-monospace, Menlo, monospace"
+        font-size="18"
+        letter-spacing="5"
+        fill="oklch(55% 0.04 300)">CONCENTRATE · CONNECTED · CALM</text>
+</svg>

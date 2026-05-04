@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 2532" role="img" aria-label="dabwith.me — iOS splash">
+  <title>dabwith.me — iOS launch screen (1170×2532)</title>
+  <defs>
+    <radialGradient id="sp_bg1" cx="30%" cy="14%" r="55%">
+      <stop offset="0" stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_bg2" cx="80%" cy="92%" r="55%">
+      <stop offset="0" stop-color="oklch(92% 0.08 30)" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="oklch(92% 0.08 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_bg3" cx="50%" cy="55%" r="50%">
+      <stop offset="0" stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="sp_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sp_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sp_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="11"/>
+    </filter>
+    <clipPath id="sp_clip"><circle cx="585" cy="1080" r="320"/></clipPath>
+  </defs>
+
+  <!-- Paper background -->
+  <rect width="1170" height="2532" fill="oklch(97% 0.025 320)"/>
+  <rect width="1170" height="2532" fill="url(#sp_bg1)"/>
+  <rect width="1170" height="2532" fill="url(#sp_bg2)"/>
+  <rect width="1170" height="2532" fill="url(#sp_bg3)"/>
+
+  <!-- Bub — centered horizontally, slightly above middle vertically -->
+  <circle cx="585" cy="1080" r="400" fill="url(#sp_halo)"/>
+  <circle cx="585" cy="1080" r="320" fill="url(#sp_body)"/>
+  <circle cx="585" cy="1080" r="320" fill="url(#sp_hi)"/>
+  <circle cx="585" cy="1080" r="320" fill="url(#sp_innershadow)"/>
+  <g clip-path="url(#sp_clip)">
+    <ellipse cx="388" cy="1170" rx="55" ry="36" fill="url(#sp_cheek)" filter="url(#sp_blur)"/>
+    <ellipse cx="782" cy="1170" rx="55" ry="36" fill="url(#sp_cheek)" filter="url(#sp_blur)"/>
+  </g>
+  <ellipse cx="494" cy="1107" rx="46" ry="59" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="676" cy="1107" rx="46" ry="59" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="481" cy="1082" rx="14" ry="19" fill="url(#sp_eyehi)"/>
+  <ellipse cx="663" cy="1082" rx="14" ry="19" fill="url(#sp_eyehi)"/>
+
+  <!-- Wordmark below -->
+  <text x="585" y="1640" text-anchor="middle"
+        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
+        font-weight="700"
+        font-size="124"
+        letter-spacing="-4.3"
+        fill="oklch(30% 0.04 300)">dabwith<tspan fill="oklch(75% 0.18 30)" font-weight="800">.me</tspan></text>
+
+  <!-- Mono uppercase eyebrow -->
+  <text x="585" y="1745" text-anchor="middle"
+        font-family="'SF Mono', ui-monospace, Menlo, monospace"
+        font-size="22"
+        letter-spacing="6"
+        fill="oklch(55% 0.04 300)">CONCENTRATE · CONNECTED · CALM</text>
+</svg>

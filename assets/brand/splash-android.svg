@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-label="dabwith.me — Android splash">
+  <title>dabwith.me — Android splash (1080×1920)</title>
+  <defs>
+    <radialGradient id="spa_bg1" cx="30%" cy="14%" r="55%">
+      <stop offset="0" stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_bg2" cx="80%" cy="92%" r="55%">
+      <stop offset="0" stop-color="oklch(92% 0.08 30)" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="oklch(92% 0.08 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_bg3" cx="50%" cy="55%" r="50%">
+      <stop offset="0" stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="spa_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spa_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="spa_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+    <clipPath id="spa_clip"><circle cx="540" cy="820" r="290"/></clipPath>
+  </defs>
+
+  <rect width="1080" height="1920" fill="oklch(97% 0.025 320)"/>
+  <rect width="1080" height="1920" fill="url(#spa_bg1)"/>
+  <rect width="1080" height="1920" fill="url(#spa_bg2)"/>
+  <rect width="1080" height="1920" fill="url(#spa_bg3)"/>
+
+  <circle cx="540" cy="820" r="360" fill="url(#spa_halo)"/>
+  <circle cx="540" cy="820" r="290" fill="url(#spa_body)"/>
+  <circle cx="540" cy="820" r="290" fill="url(#spa_hi)"/>
+  <circle cx="540" cy="820" r="290" fill="url(#spa_innershadow)"/>
+  <g clip-path="url(#spa_clip)">
+    <ellipse cx="362" cy="900" rx="50" ry="32" fill="url(#spa_cheek)" filter="url(#spa_blur)"/>
+    <ellipse cx="718" cy="900" rx="50" ry="32" fill="url(#spa_cheek)" filter="url(#spa_blur)"/>
+  </g>
+  <ellipse cx="458" cy="844" rx="42" ry="54" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="622" cy="844" rx="42" ry="54" fill="oklch(28% 0.04 290)"/>
+  <ellipse cx="446" cy="821" rx="13" ry="17" fill="url(#spa_eyehi)"/>
+  <ellipse cx="610" cy="821" rx="13" ry="17" fill="url(#spa_eyehi)"/>
+
+  <text x="540" y="1280" text-anchor="middle"
+        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
+        font-weight="700"
+        font-size="115"
+        letter-spacing="-4"
+        fill="oklch(30% 0.04 300)">dabwith<tspan fill="oklch(75% 0.18 30)" font-weight="800">.me</tspan></text>
+
+  <text x="540" y="1370" text-anchor="middle"
+        font-family="'SF Mono', ui-monospace, Menlo, monospace"
+        font-size="20"
+        letter-spacing="5"
+        fill="oklch(55% 0.04 300)">CONCENTRATE · CONNECTED · CALM</text>
+</svg>

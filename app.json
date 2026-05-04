@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Quartzie",
-    "slug": "quartzos",
+    "name": "dabwith.me",
+    "slug": "dabwithme",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "com.quartzos.app",
+      "bundleIdentifier": "com.dabwith.me",
       "supportsTablet": false,
       "icon": "./assets/icon.png",
       "infoPlist": {
-        "NSBluetoothAlwaysUsageDescription": "Quartzie connects to your Dab Rite to read temperature and sync settings.",
-        "NSBluetoothPeripheralUsageDescription": "Quartzie connects to your Dab Rite to read temperature and sync settings.",
+        "NSBluetoothAlwaysUsageDescription": "dabwith.me connects to your Dab Rite to read temperature and sync settings.",
+        "NSBluetoothPeripheralUsageDescription": "dabwith.me connects to your Dab Rite to read temperature and sync settings.",
         "UIBackgroundModes": [
           "bluetooth-central",
           "fetch"
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.quartzos.app",
+      "package": "com.dabwith.me",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundImage": "./assets/adaptive-icon-background.png",

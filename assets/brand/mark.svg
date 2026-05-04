@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="dabwith.me — Bub mark">
+  <title>dabwith.me — Bub</title>
+  <defs>
+    <radialGradient id="m_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="m_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="m_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="m_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="m_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="m_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"   stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"   stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="m_blur1" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.6"/>
+    </filter>
+    <clipPath id="m_clip"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+
+  <!-- Outer dreamy halo -->
+  <circle cx="120" cy="120" r="120" fill="url(#m_halo)"/>
+
+  <!-- Body sphere -->
+  <circle cx="120" cy="120" r="100" fill="url(#m_body)"/>
+  <!-- Top-left highlight -->
+  <circle cx="120" cy="120" r="100" fill="url(#m_hi)"/>
+  <!-- Inset shadow at bottom (lilac-tinted) -->
+  <circle cx="120" cy="120" r="100" fill="url(#m_innershadow)"/>
+
+  <!-- Cheeks (clipped to orb) -->
+  <g clip-path="url(#m_clip)">
+    <ellipse cx="58"  cy="148" rx="17" ry="11" fill="url(#m_cheek)" filter="url(#m_blur1)"/>
+    <ellipse cx="182" cy="148" rx="17" ry="11" fill="url(#m_cheek)" filter="url(#m_blur1)"/>
+  </g>
+
+  <!-- Eyes — oval, slightly taller than wide -->
+  <g>
+    <ellipse cx="92"  cy="128" rx="14" ry="18" fill="oklch(28% 0.04 290)"/>
+    <ellipse cx="148" cy="128" rx="14" ry="18" fill="oklch(28% 0.04 290)"/>
+    <!-- Catchlights -->
+    <ellipse cx="88"  cy="121" rx="4.4" ry="6"  fill="url(#m_eyehi)"/>
+    <ellipse cx="144" cy="121" rx="4.4" ry="6"  fill="url(#m_eyehi)"/>
+  </g>
+
+  <!-- Outer rim faint hairline (anchors the form on white bgs) -->
+  <circle cx="120" cy="120" r="100" fill="none" stroke="oklch(70% 0.06 320)" stroke-opacity="0.25" stroke-width="0.7"/>
+</svg>

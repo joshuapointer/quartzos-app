@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="dabwith.me — Bub mark, mono light">
+  <title>dabwith.me — Bub (mono light)</title>
+  <!-- Use this on dark backgrounds: 1-color white silhouette + dark eyes/cheeks -->
+  <circle cx="120" cy="120" r="100" fill="oklch(99% 0.005 320)"/>
+  <ellipse cx="92"  cy="128" rx="14" ry="18" fill="oklch(20% 0.04 300)"/>
+  <ellipse cx="148" cy="128" rx="14" ry="18" fill="oklch(20% 0.04 300)"/>
+  <ellipse cx="58"  cy="148" rx="13" ry="8" fill="oklch(20% 0.04 300)" fill-opacity="0.20"/>
+  <ellipse cx="182" cy="148" rx="13" ry="8" fill="oklch(20% 0.04 300)" fill-opacity="0.20"/>
+</svg>

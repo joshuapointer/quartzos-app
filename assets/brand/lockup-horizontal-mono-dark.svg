@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 320" role="img" aria-label="dabwith.me — horizontal lockup, mono dark">
+  <title>dabwith.me — horizontal lockup, mono dark</title>
+  <!-- Mark -->
+  <circle cx="180" cy="160" r="120" fill="oklch(30% 0.04 300)"/>
+  <ellipse cx="146" cy="170" rx="17" ry="22" fill="oklch(99% 0.005 320)" fill-opacity="0.94"/>
+  <ellipse cx="214" cy="170" rx="17" ry="22" fill="oklch(99% 0.005 320)" fill-opacity="0.94"/>
+  <ellipse cx="106" cy="194" rx="16" ry="10" fill="oklch(99% 0.005 320)" fill-opacity="0.18"/>
+  <ellipse cx="254" cy="194" rx="16" ry="10" fill="oklch(99% 0.005 320)" fill-opacity="0.18"/>
+  <!-- Wordmark -->
+  <text x="370" y="225"
+        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
+        font-weight="700"
+        font-size="180"
+        letter-spacing="-6.3"
+        fill="oklch(30% 0.04 300)">dabwith<tspan font-weight="800">.me</tspan></text>
+</svg>

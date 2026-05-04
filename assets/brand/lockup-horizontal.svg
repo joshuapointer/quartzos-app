@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 320" role="img" aria-label="dabwith.me — primary horizontal lockup">
+  <title>dabwith.me — horizontal lockup</title>
+  <defs>
+    <radialGradient id="lh_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lh_body" cx="65%" cy="72%" r="62%">
+      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
+      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
+      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
+    </radialGradient>
+    <radialGradient id="lh_hi" cx="32%" cy="28%" r="36%">
+      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lh_innershadow" cx="50%" cy="100%" r="65%">
+      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
+      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lh_cheek">
+      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lh_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="lh_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <clipPath id="lh_clip"><circle cx="180" cy="160" r="120"/></clipPath>
+  </defs>
+
+  <!-- Mark (orb) -->
+  <g>
+    <circle cx="180" cy="160" r="148" fill="url(#lh_halo)"/>
+    <circle cx="180" cy="160" r="120" fill="url(#lh_body)"/>
+    <circle cx="180" cy="160" r="120" fill="url(#lh_hi)"/>
+    <circle cx="180" cy="160" r="120" fill="url(#lh_innershadow)"/>
+    <g clip-path="url(#lh_clip)">
+      <ellipse cx="106" cy="194" rx="20" ry="13" fill="url(#lh_cheek)" filter="url(#lh_blur)"/>
+      <ellipse cx="254" cy="194" rx="20" ry="13" fill="url(#lh_cheek)" filter="url(#lh_blur)"/>
+    </g>
+    <ellipse cx="146" cy="170" rx="17" ry="22" fill="oklch(28% 0.04 290)"/>
+    <ellipse cx="214" cy="170" rx="17" ry="22" fill="oklch(28% 0.04 290)"/>
+    <ellipse cx="141" cy="161" rx="5.2" ry="7.2" fill="url(#lh_eyehi)"/>
+    <ellipse cx="209" cy="161" rx="5.2" ry="7.2" fill="url(#lh_eyehi)"/>
+    <circle cx="180" cy="160" r="120" fill="none" stroke="oklch(70% 0.06 320)" stroke-opacity="0.25" stroke-width="0.8"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="370" y="225"
+        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
+        font-weight="700"
+        font-size="180"
+        letter-spacing="-6.3"
+        fill="oklch(30% 0.04 300)">dabwith<tspan fill="oklch(75% 0.18 30)" font-weight="800">.me</tspan></text>
+</svg>
