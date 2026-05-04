@@ -1,9 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { layout, palette, fontStack, radii } from '../tokens';
 import { PressableButton } from '../primitives/PressableButton';
 import { PhaseStrip } from '../primitives/PhaseStrip';
 import { PHASE_COPY } from '../flow/copy';
+import { useReducedMotion } from '../../design/hooks/useReducedMotion';
+import { PeekIn } from '../primitives/PeekIn';
 
 export interface HeatScreenProps {
   secondsLeft: number;
@@ -28,47 +40,134 @@ export default function HeatScreen({
   onForceAdvance,
   sessionElapsedS,
 }: HeatScreenProps) {
+  const reduced = useReducedMotion();
   const copy = PHASE_COPY.heating;
   const eyebrow = `${copy.eyebrow} · ${fmtSession(sessionElapsedS)}`;
   const pillLabel = torchOn ? 'torch on' : 'listening';
   const pillSub = torchOn ? 'low · even · sweep' : "spark the torch — i'll start the timer";
-  const dotColor = torchOn ? palette.accent : palette.lilac;
-  const pillBg = torchOn ? '#FDF3EE' : '#F5EDFB';
   const pillBorder = torchOn ? `${palette.accent}55` : `${palette.lilac}66`;
+
+  const gradients = torchOn
+    ? { base: ['#FCF7F1', '#FFFCF7'] as [string, string], bl: ['#F4B98F33', 'transparent'] as [string, string], tr: ['#F8C99A2E', 'transparent'] as [string, string] }
+    : { base: ['#F8F8FB', '#FBFBFD'] as [string, string], bl: ['#C5C8E12E', 'transparent'] as [string, string], tr: ['#CCD2E229', 'transparent'] as [string, string] };
+
+  // Animated dot
+  const dotScale = useSharedValue(reduced ? 1 : 1);
+  const dotOpacity = useSharedValue(reduced ? 1 : 1);
+
+  useEffect(() => {
+    cancelAnimation(dotScale);
+    cancelAnimation(dotOpacity);
+    if (reduced) {
+      dotScale.value = 1;
+      dotOpacity.value = 1;
+      return;
+    }
+    if (torchOn) {
+      dotScale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.85, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
+      dotOpacity.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.85, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      dotScale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.85, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      );
+      dotOpacity.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.45, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      );
+    }
+    return () => {
+      cancelAnimation(dotScale);
+      cancelAnimation(dotOpacity);
+    };
+  }, [torchOn, reduced, dotScale, dotOpacity]);
+
+  const dotAnimStyle = useAnimatedStyle(() => ({
+    opacity: dotOpacity.value,
+    transform: [{ scale: dotScale.value }],
+  }));
+
+  const dotColor = torchOn ? palette.accent : palette.lilac;
 
   return (
     <View style={styles.well}>
-      <PhaseStrip current={0} />
-      <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
-      <Text style={styles.headline}>{copy.headline}</Text>
-      <Text style={styles.sub}>{copy.sub}</Text>
+      <PeekIn delay={0}><PhaseStrip current={0} /></PeekIn>
+      <PeekIn delay={80}><Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text></PeekIn>
+      <PeekIn delay={140}><Text style={styles.headline}>{copy.headline}</Text></PeekIn>
+      <PeekIn delay={200}><Text style={styles.sub}>{copy.sub}</Text></PeekIn>
 
-      <View style={styles.spacer} />
+      <PeekIn delay={260}><View style={styles.spacer} /></PeekIn>
 
       {showFallback && (
-        <View style={styles.fallback}>
-          <PressableButton
-            label="tap if it's hot enough"
-            variant="ghost"
-            fullWidth={false}
-            onPress={onForceAdvance}
-          />
-        </View>
+        <PeekIn delay={320}>
+          <View style={styles.fallback}>
+            <PressableButton
+              label="tap if it's hot enough"
+              variant="ghost"
+              fullWidth={false}
+              onPress={onForceAdvance}
+            />
+          </View>
+        </PeekIn>
       )}
 
-      <View style={[styles.pill, { backgroundColor: pillBg, borderColor: pillBorder }]}>
-        <View style={styles.pillLeft}>
-          <View style={styles.pillLabelRow}>
-            <View style={[styles.dot, { backgroundColor: dotColor }]} />
-            <Text style={styles.pillLabel}>{pillLabel}</Text>
+      <PeekIn delay={380}>
+      <View style={[styles.pill, { borderColor: pillBorder, overflow: 'hidden' }]}>
+        <LinearGradient
+          colors={gradients.base}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
+        />
+        <LinearGradient
+          colors={gradients.bl}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 0.6, y: 0.4 }}
+          style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
+        />
+        <LinearGradient
+          colors={gradients.tr}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0.4, y: 0.6 }}
+          style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
+        />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={styles.pillLeft}>
+            <View style={styles.pillLabelRow}>
+              <Animated.View style={[styles.dot, { backgroundColor: dotColor }, dotAnimStyle]} />
+              <Text style={styles.pillLabel}>{pillLabel}</Text>
+            </View>
+            <Text style={styles.pillSub}>{pillSub.toUpperCase()}</Text>
           </View>
-          <Text style={styles.pillSub}>{pillSub.toUpperCase()}</Text>
-        </View>
-        <View style={styles.pillRight}>
-          <Text style={styles.secondsValue}>{secondsLeft}</Text>
-          <Text style={styles.secondsUnit}>SEC</Text>
+          <View style={styles.pillRight}>
+            <Text style={styles.secondsValue}>{secondsLeft}</Text>
+            <Text style={styles.secondsUnit}>SEC</Text>
+          </View>
         </View>
       </View>
+      </PeekIn>
     </View>
   );
 }

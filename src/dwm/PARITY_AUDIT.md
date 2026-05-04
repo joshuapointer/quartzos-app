@@ -383,3 +383,42 @@ $ npx tsc --noEmit
 (0 errors, exit 0)
 ```
 
+---
+
+## 2026-05-03 — Pass #3 (deferral resolution)
+
+Implemented every actionable Pass #2 deferral. Items left as deferred are either deliberate UX divergence or constrained by the immutable data layer.
+
+### Resolved
+
+- **N-P2-1 · Session-phase Bub size `lg → xl`**
+  - `flow/DwmFlow.tsx`: `BUB_BY_PHASE` heating/window/dabbing/swab/dunk all bumped to `'xl'`. `ORB_TARGET_Y_BY_PHASE` decremented by 25 for the same five phases (heating 440→415, window 410→385, dabbing 520→495, swab 510→485, dunk 510→485) so `orbCenterY + r` stays constant — content well clearance is preserved while Bub gains 50px of presence.
+- **N-P2-2 · Heat banner dot pulse animation**
+  - `screens/HeatScreen.tsx`: dot wrapped in `Animated.View` driven by Reanimated. Torch-on: scale + opacity loop 0.85↔1.15 / 0.85↔1, 500ms each half, `Easing.inOut(Easing.ease)`. Listening: scale 0.85↔1.15 + opacity 0.45↔1, 700ms each half, `Easing.inOut(Easing.sin)`. Reduced-motion aware. Cleanup on `torchOn` flip.
+- **N-P2-3 · Heat banner radial-gradient backgrounds**
+  - `screens/HeatScreen.tsx`: replaced solid `pillBg` with three stacked `LinearGradient` layers (base 140deg + bottom-left peach/cool overlay + top-right peach/cool overlay). Color set switches by `torchOn` — warm cream/peach when on, cool lilac/blue when listening. Approximates the prototype's `radial-gradient(...) + radial-gradient(...) + linear-gradient(...)` stack within RN's gradient capabilities.
+- **N-P2-6 · Per-child `peek-in` stagger on session screens**
+  - New primitive: `primitives/PeekIn.tsx` — opacity 0→1, translateY 18→0, scale 0.95→1 over 540ms with `Easing.bezier(0.34, 1.56, 0.64, 1)`, delayed by `delay` prop. Reduced-motion mounts in final state.
+  - Wrapped session-screen children: `screens/HeatScreen.tsx` (7 children, delays 0/80/140/200/260/320/380), `screens/WindowScreen.tsx` (6 children, 0/80/140/200/260/320), `screens/{Dab,Swab,Dunk}Screen.tsx` (4 children each, 0/80/140/200). Each phase entry replays the cadence because `ScreenSlot`'s switch remounts the screen on phase change.
+- **N-P2-9 · Hold-hint visual treatment (peach dashed pill + translateY pulse)**
+  - `primitives/HintLabel.tsx`: rebuilt as `Animated.View` pill chip (paddingV 4 / paddingH 10, `borderRadius: 999`, `borderStyle: 'dashed'`, peach border `rgba(245,178,145,0.7)`, peach-tinted bg `rgba(252,234,222,0.8)`) wrapping `Animated.Text`. Animation: opacity 0.6↔1 + translateY 0↔-2 over 1.8s (900ms each half, `Easing.inOut(Easing.sin)`). Text 10px mono uppercase, color `palette.accentDeep`. Reduced-motion friendly.
+
+### Still deferred (genuinely)
+
+- **N-P2-4 · CompleteScreen `another one` → `ready` (RN) vs `choose` (proto)** — Deliberate UX choice; one-tap restart preserves "same banger same hash" intent better than forcing a re-pick. No fix.
+- **N-P2-5 · Review/ready Bub `xl` (RN) vs `lg` (proto)** — Deliberate emphasis at the commitment moment; `xl` reads as "the moment of truth". No fix.
+- **N-P2-7 · Carousel category chip taxonomy mismatch** — Driven by immutable `src/data/bangers.ts` + `src/data/concentrates.ts` taxonomies (`classic|slurper|specialty|premium` vs proto `quartz|thermochromic`; `solventless|hydrocarbon` vs proto `rosin|resin|diamonds`). Outside the audit's allowed edit scope. No fix.
+- **ChooseScreen preset-card glyph** — Proto uses preset-specific icons; RN uses generic `PlusIcon` because preset rows are the immutable data layer. No fix.
+- **Heating fallback wait window 8s** — No signal it needs retuning. Left as-is.
+
+### File count
+
+Started this pass: 85. Now: 86. New file: `primitives/PeekIn.tsx`. No deletions. 7 files modified: `flow/DwmFlow.tsx`, `screens/HeatScreen.tsx`, `screens/WindowScreen.tsx`, `screens/DabScreen.tsx`, `screens/SwabScreen.tsx`, `screens/DunkScreen.tsx`, `primitives/HintLabel.tsx`.
+
+### Verified clean
+
+```
+$ npx tsc --noEmit
+(0 errors, exit 0)
+```
+

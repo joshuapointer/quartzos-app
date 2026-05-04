@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { PressableButton } from '../primitives/PressableButton';
 import { PhaseStrip } from '../primitives/PhaseStrip';
 import { PHASE_COPY } from '../flow/copy';
+import { PeekIn } from '../primitives/PeekIn';
 
 export interface WindowScreenProps {
   liveTempF: number;
@@ -53,48 +54,52 @@ export default function WindowScreen({
 
   return (
     <View style={styles.well}>
-      <PhaseStrip current={1} />
+      <PeekIn delay={0}><PhaseStrip current={1} /></PeekIn>
 
-      <View style={[styles.tempBanner, { borderColor, backgroundColor: bgColor }]}>
-        <View style={styles.tempNumRow}>
-          <Text style={styles.tempNumValue}>{displayTemp}</Text>
-          <Text style={styles.tempNumUnit}>{unit}</Text>
-        </View>
-        <View style={styles.tempSep} />
-        <Text
-          style={[
-            styles.tempLbl,
-            inWindow && styles.tempLblWindow,
-            lifted && styles.tempLblLifted,
-          ]}
-        >
-          {lblText}
-        </Text>
-        <View style={styles.tempFillTrack}>
-          <View style={[styles.tempFillBar, { width: `${fillPct * 100}%` }]}>
-            <LinearGradient
-              colors={fillGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
+      <PeekIn delay={80}>
+        <View style={[styles.tempBanner, { borderColor, backgroundColor: bgColor }]}>
+          <View style={styles.tempNumRow}>
+            <Text style={styles.tempNumValue}>{displayTemp}</Text>
+            <Text style={styles.tempNumUnit}>{unit}</Text>
+          </View>
+          <View style={styles.tempSep} />
+          <Text
+            style={[
+              styles.tempLbl,
+              inWindow && styles.tempLblWindow,
+              lifted && styles.tempLblLifted,
+            ]}
+          >
+            {lblText}
+          </Text>
+          <View style={styles.tempFillTrack}>
+            <View style={[styles.tempFillBar, { width: `${fillPct * 100}%` }]}>
+              <LinearGradient
+                colors={fillGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
           </View>
         </View>
-      </View>
+      </PeekIn>
 
-      <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
-      <Text style={styles.headline}>{copy.headline}</Text>
-      {copy.sub.length > 0 && <Text style={styles.sub}>{copy.sub}</Text>}
+      <PeekIn delay={140}><Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text></PeekIn>
+      <PeekIn delay={200}><Text style={styles.headline}>{copy.headline}</Text></PeekIn>
+      {copy.sub.length > 0 && <PeekIn delay={260}><Text style={styles.sub}>{copy.sub}</Text></PeekIn>}
 
       {showStuckFallback && (
-        <View style={styles.fallback}>
-          <PressableButton
-            label="tap to dab now"
-            variant="ghost"
-            fullWidth={false}
-            onPress={onForceAdvance}
-          />
-        </View>
+        <PeekIn delay={320}>
+          <View style={styles.fallback}>
+            <PressableButton
+              label="tap to dab now"
+              variant="ghost"
+              fullWidth={false}
+              onPress={onForceAdvance}
+            />
+          </View>
+        </PeekIn>
       )}
     </View>
   );

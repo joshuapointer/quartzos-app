@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { palette, fontStack, layout } from '../tokens';
 import { PhaseStrip } from '../primitives/PhaseStrip';
 import { PHASE_COPY } from '../flow/copy';
+import { PeekIn } from '../primitives/PeekIn';
 
 interface Props {
   sessionElapsedS: number;
@@ -21,10 +22,10 @@ export default function SwabScreen({ sessionElapsedS }: Props) {
   const eyebrow = `${copy.eyebrow} · ${fmtSession(sessionElapsedS)}`;
   return (
     <View style={styles.well}>
-      <PhaseStrip current={3} />
-      <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
-      <Text style={styles.headline}>{copy.headline}</Text>
-      {copy.sub.length > 0 && <Text style={styles.sub}>{copy.sub}</Text>}
+      <PeekIn delay={0}><PhaseStrip current={3} /></PeekIn>
+      <PeekIn delay={80}><Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text></PeekIn>
+      <PeekIn delay={140}><Text style={styles.headline}>{copy.headline}</Text></PeekIn>
+      {copy.sub.length > 0 && <PeekIn delay={200}><Text style={styles.sub}>{copy.sub}</Text></PeekIn>}
     </View>
   );
 }
