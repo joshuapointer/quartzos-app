@@ -16,6 +16,7 @@ import { PhaseStrip } from '../primitives/PhaseStrip';
 import { PHASE_COPY } from '../flow/copy';
 import { useReducedMotion } from '../../design/hooks/useReducedMotion';
 import { PeekIn } from '../primitives/PeekIn';
+import { SkeuSlider } from '../../design/components/SkeuSlider';
 
 export interface HeatScreenProps {
   secondsLeft: number;
@@ -25,7 +26,23 @@ export interface HeatScreenProps {
   showFallback: boolean;
   onForceAdvance: () => void;
   sessionElapsedS: number;
+  // Adjustable values — sliders write back via the setters
+  torchS: number;
+  dabF: number;
+  dunkF: number;
+  onTorchSChange: (s: number) => void;
+  onDabFChange: (f: number) => void;
+  onDunkFChange: (f: number) => void;
 }
+
+const TORCH_MIN_S = 10;
+const TORCH_MAX_S = 180;
+const TORCH_STEP_S = 5;
+const DAB_MIN_F = 200;
+const DAB_MAX_F = 750;
+const DAB_STEP_F = 5;
+const DUNK_MIN_F = 100;
+const DUNK_STEP_F = 5;
 
 function fmtSession(s: number): string {
   const m = Math.floor(s / 60);
@@ -39,6 +56,12 @@ export default function HeatScreen({
   showFallback,
   onForceAdvance,
   sessionElapsedS,
+  torchS,
+  dabF,
+  dunkF,
+  onTorchSChange,
+  onDabFChange,
+  onDunkFChange,
 }: HeatScreenProps) {
   const reduced = useReducedMotion();
   const copy = PHASE_COPY.heating;
@@ -51,7 +74,6 @@ export default function HeatScreen({
     ? { base: ['#FCF7F1', '#FFFCF7'] as [string, string], bl: ['#F4B98F33', 'transparent'] as [string, string], tr: ['#F8C99A2E', 'transparent'] as [string, string] }
     : { base: ['#F8F8FB', '#FBFBFD'] as [string, string], bl: ['#C5C8E12E', 'transparent'] as [string, string], tr: ['#CCD2E229', 'transparent'] as [string, string] };
 
-  // Animated dot
   const dotScale = useSharedValue(reduced ? 1 : 1);
   const dotOpacity = useSharedValue(reduced ? 1 : 1);
 
@@ -111,6 +133,9 @@ export default function HeatScreen({
 
   const dotColor = torchOn ? palette.accent : palette.lilac;
 
+  // Cross-field rule: dunk must sit at least 10°F below dab.
+  const dunkMaxF = Math.max(DUNK_MIN_F, dabF - 10);
+
   return (
     <View style={styles.well}>
       <PeekIn delay={0}><PhaseStrip current={0} /></PeekIn>
@@ -118,10 +143,81 @@ export default function HeatScreen({
       <PeekIn delay={140}><Text style={styles.headline}>{copy.headline}</Text></PeekIn>
       <PeekIn delay={200}><Text style={styles.sub}>{copy.sub}</Text></PeekIn>
 
-      <PeekIn delay={260}><View style={styles.spacer} /></PeekIn>
+      <PeekIn delay={260}>
+        <View style={[styles.pill, { borderColor: pillBorder, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={gradients.base}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
+          />
+          <LinearGradient
+            colors={gradients.bl}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 0.6, y: 0.4 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
+          />
+          <LinearGradient
+            colors={gradients.tr}
+            start={{ x: 1, y: 0 }}
+            end={{ x: 0.4, y: 0.6 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={styles.pillLeft}>
+              <View style={styles.pillLabelRow}>
+                <Animated.View style={[styles.dot, { backgroundColor: dotColor }, dotAnimStyle]} />
+                <Text style={styles.pillLabel}>{pillLabel}</Text>
+              </View>
+              <Text style={styles.pillSub}>{pillSub.toUpperCase()}</Text>
+            </View>
+            <View style={styles.pillRight}>
+              <Text style={styles.secondsValue}>{secondsLeft}</Text>
+              <Text style={styles.secondsUnit}>SEC</Text>
+            </View>
+          </View>
+        </View>
+      </PeekIn>
+
+      <PeekIn delay={320}>
+        <View style={styles.sliders}>
+          <SkeuSlider
+            value={torchS}
+            min={TORCH_MIN_S}
+            max={TORCH_MAX_S}
+            step={TORCH_STEP_S}
+            onValueChange={onTorchSChange}
+            label="TORCH"
+            unit="s"
+            accessibilityLabel="torch duration seconds"
+            variant="secondary"
+          />
+          <SkeuSlider
+            value={dabF}
+            min={DAB_MIN_F}
+            max={DAB_MAX_F}
+            step={DAB_STEP_F}
+            onValueChange={onDabFChange}
+            label="DAB"
+            unit="°F"
+            accessibilityLabel="dab alarm temperature"
+          />
+          <SkeuSlider
+            value={Math.min(dunkF, dunkMaxF)}
+            min={DUNK_MIN_F}
+            max={dunkMaxF}
+            step={DUNK_STEP_F}
+            onValueChange={onDunkFChange}
+            label="DUNK"
+            unit="°F"
+            accessibilityLabel="dunk alarm temperature"
+            variant="secondary"
+          />
+        </View>
+      </PeekIn>
 
       {showFallback && (
-        <PeekIn delay={320}>
+        <PeekIn delay={380}>
           <View style={styles.fallback}>
             <PressableButton
               label="tap if it's hot enough"
@@ -132,42 +228,6 @@ export default function HeatScreen({
           </View>
         </PeekIn>
       )}
-
-      <PeekIn delay={380}>
-      <View style={[styles.pill, { borderColor: pillBorder, overflow: 'hidden' }]}>
-        <LinearGradient
-          colors={gradients.base}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
-        />
-        <LinearGradient
-          colors={gradients.bl}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 0.6, y: 0.4 }}
-          style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
-        />
-        <LinearGradient
-          colors={gradients.tr}
-          start={{ x: 1, y: 0 }}
-          end={{ x: 0.4, y: 0.6 }}
-          style={[StyleSheet.absoluteFill, { borderRadius: radii.lg }]}
-        />
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={styles.pillLeft}>
-            <View style={styles.pillLabelRow}>
-              <Animated.View style={[styles.dot, { backgroundColor: dotColor }, dotAnimStyle]} />
-              <Text style={styles.pillLabel}>{pillLabel}</Text>
-            </View>
-            <Text style={styles.pillSub}>{pillSub.toUpperCase()}</Text>
-          </View>
-          <View style={styles.pillRight}>
-            <Text style={styles.secondsValue}>{secondsLeft}</Text>
-            <Text style={styles.secondsUnit}>SEC</Text>
-          </View>
-        </View>
-      </View>
-      </PeekIn>
     </View>
   );
 }
@@ -200,13 +260,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.01 * 14,
     marginTop: 2,
   },
-  spacer: {
-    flex: 1,
-    minHeight: 8,
-  },
   fallback: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginTop: 4,
   },
   pill: {
     flexDirection: 'row',
@@ -220,6 +276,7 @@ const styles = StyleSheet.create({
     shadowRadius: 9,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
+    marginTop: 8,
   },
   pillLeft: {
     flex: 1,
@@ -265,5 +322,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: palette.muted,
     letterSpacing: 0.18 * 10,
+  },
+  sliders: {
+    gap: 14,
+    marginTop: 12,
   },
 });

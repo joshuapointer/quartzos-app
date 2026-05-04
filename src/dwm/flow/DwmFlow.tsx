@@ -17,12 +17,15 @@ import { useSettingsStore } from '../../state/settingsStore';
 import { bleManager } from '../../ble/BleManager';
 import { torchDetector } from '../../utils/TorchDetector';
 import * as moltenRecents from '../../db/moltenRecents';
+import * as presetsDb from '../../db/presets';
 import { springs } from '../tokens';
 import type { Preset } from '../../db/presets';
 import type { MoltenRecent } from '../../db/moltenRecents';
 import { BANGERS, findBanger } from '../../data/bangers';
 import { CONCENTRATES, findConcentrate } from '../../data/concentrates';
+import { findSensor } from '../../data/sensors';
 import { findWallThickness } from '../../data/wallThicknesses';
+import { computeDisplayedTarget } from '../../utils/calibration';
 
 import { PhaseBackground } from '../backgrounds/PhaseBackground';
 import type { DwmPhase } from '../backgrounds/PhaseBackground';
@@ -164,7 +167,54 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
   );
 
   const optimalF = concentrate?.surface_temp_optimal_f ?? 480;
-  const torchDurationS = useMemo(() => torchDurationFor(selections.bangerId), [selections.bangerId]);
+  const catalogTorchS = useMemo(() => torchDurationFor(selections.bangerId), [selections.bangerId]);
+
+  // ---------------------------------------------------------------------------
+  // Heat-screen slider state — lifted here so adjustments persist across
+  // remounts within a session AND can flush to settings/BLE/preset/history.
+  // ---------------------------------------------------------------------------
+  const settingsDabF = useSettingsStore((s) => s.settings.dabAlarmF);
+  const settingsDunkF = useSettingsStore((s) => s.settings.dunkAlarmF);
+
+  const [heatTorchS, setHeatTorchSState] = useState<number>(catalogTorchS);
+  const [heatDabF, setHeatDabFState] = useState<number>(settingsDabF);
+  const [heatDunkF, setHeatDunkFState] = useState<number>(settingsDunkF);
+  const sliderAdjustedRef = useRef<boolean>(false);
+
+  // Re-seed local slider state when entering heating from a different selection.
+  useEffect(() => {
+    setHeatTorchSState(catalogTorchS);
+  }, [catalogTorchS]);
+
+  useEffect(() => {
+    setHeatDabFState(settingsDabF);
+    setHeatDunkFState(settingsDunkF);
+  }, [settingsDabF, settingsDunkF]);
+
+  const torchDurationS = heatTorchS;
+
+  const handleHeatTorchSChange = useCallback((s: number) => {
+    setHeatTorchSState(s);
+    sliderAdjustedRef.current = true;
+  }, []);
+
+  const handleHeatDabFChange = useCallback((f: number) => {
+    setHeatDabFState(f);
+    sliderAdjustedRef.current = true;
+    const currentSettings = useSettingsStore.getState().settings;
+    const next = { ...currentSettings, dabAlarmF: f };
+    useSettingsStore.getState().setSettings(next);
+    void bleManager.writeSettings(next).catch(() => { /* offline write deferred */ });
+  }, []);
+
+  const handleHeatDunkFChange = useCallback((f: number) => {
+    setHeatDunkFState(f);
+    sliderAdjustedRef.current = true;
+    const currentSettings = useSettingsStore.getState().settings;
+    const next = { ...currentSettings, dunkAlarmF: f };
+    useSettingsStore.getState().setSettings(next);
+    void bleManager.writeSettings(next).catch(() => { /* offline write deferred */ });
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Orb position spring
@@ -376,33 +426,48 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
     return () => { cancelled = true; };
   }, [selections.presetId, onApplyPreset]);
 
-  // Picker-path BLE write when reaching review/ready without a preset
+  // Picker-path: when entering 'heating' from the picker (no preset),
+  // compute the calibrated dab + dunk targets via the v2 engine and
+  // push them to settings + BLE so the heat-screen sliders open at the
+  // derived values, AlarmService fires correctly, and history captures
+  // the canonical defaults if the user doesn't adjust.
   const lastWrittenRef = useRef<string | null>(null);
   useEffect(() => {
-    const isReady = phase === 'review' || phase === 'ready';
-    if (!isReady) { lastWrittenRef.current = null; return; }
+    if (phase !== 'heating') { lastWrittenRef.current = null; return; }
     if (selections.presetId !== null) return;
-    if (selections.bangerId === null || selections.concentrateId === null) return;
-    if (concentrate === null || concentrate.surface_temp_optimal_f === null) return;
-    const key = `${selections.bangerId}:${selections.concentrateId}`;
+    if (selections.bangerId === null || selections.concentrateId === null || selections.wallId === null) return;
+    if (banger === null || concentrate === null || wall === null) return;
+    if (concentrate.surface_temp_optimal_f === null || concentrate.blocked != null) return;
+    const key = `${selections.bangerId}:${selections.concentrateId}:${selections.wallId}`;
     if (lastWrittenRef.current === key) return;
+    const sensor = findSensor('ir');
+    if (sensor == null) return;
     let cancelled = false;
     void (async () => {
+      const calibration = computeDisplayedTarget({ concentrate, banger, sensor, wall });
       const currentSettings = useSettingsStore.getState().settings;
+      const next = { ...currentSettings, dabAlarmF: calibration.displayedF, dunkAlarmF: calibration.dunkF };
+      useSettingsStore.getState().setSettings(next);
       try {
-        await bleManager.writeSettings({ ...currentSettings, dabAlarmF: concentrate.surface_temp_optimal_f as number });
+        await bleManager.writeSettings(next);
       } catch {
         if (!cancelled) return;
       }
       if (cancelled) return;
       lastWrittenRef.current = key;
-      useSettingsStore.getState().updateSetting('dabAlarmF', concentrate.surface_temp_optimal_f as number);
+      // Re-seed slider local state from the freshly derived values.
+      setHeatDabFState(calibration.displayedF);
+      setHeatDunkFState(calibration.dunkF);
+      sliderAdjustedRef.current = false;
     })();
     return () => { cancelled = true; };
-  }, [phase, selections.presetId, selections.bangerId, selections.concentrateId, concentrate]);
+  }, [phase, selections.presetId, selections.bangerId, selections.concentrateId, selections.wallId, banger, concentrate, wall]);
 
   // ---------------------------------------------------------------------------
-  // Save moltenRecent on entry to 'complete'
+  // Save moltenRecent on entry to 'complete' — captures the adjusted dab/dunk/
+  // torch values so history can replay (or audit) the actual session settings.
+  // If a preset was active and the user adjusted any slider, persist the
+  // adjusted values back to the preset.
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (phase !== 'complete') return;
@@ -414,8 +479,23 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
       bangerId: selections.bangerId,
       concentrateId: selections.concentrateId,
       peakF: peakToSave,
+      dabAlarmF: heatDabF,
+      dunkAlarmF: heatDunkF,
+      torchS: heatTorchS,
     }).catch(() => { /* silent */ });
-  }, [phase, selections.bangerId, selections.concentrateId]);
+
+    // If a preset was driving this session and the user touched a slider,
+    // persist the new dab/dunk into the preset's settings. Torch duration
+    // stays catalog-derived; persisting it would require schema change.
+    const activePresetId = useSettingsStore.getState().activePresetId;
+    if (sliderAdjustedRef.current && activePresetId != null && selections.presetId === activePresetId) {
+      const currentSettings = useSettingsStore.getState().settings;
+      void presetsDb.update(activePresetId, {
+        settings: { ...currentSettings, dabAlarmF: heatDabF, dunkAlarmF: heatDunkF },
+      }).catch(() => { /* silent */ });
+    }
+    sliderAdjustedRef.current = false;
+  }, [phase, selections.bangerId, selections.concentrateId, selections.presetId, heatDabF, heatDunkF, heatTorchS]);
 
   // ---------------------------------------------------------------------------
   // Callbacks
@@ -532,6 +612,12 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             heatSecondsTotal={torchDurationS}
             torchOn={torchOn}
             showHeatFallback={heatingFallback}
+            heatTorchS={heatTorchS}
+            heatDabF={heatDabF}
+            heatDunkF={heatDunkF}
+            onHeatTorchSChange={handleHeatTorchSChange}
+            onHeatDabFChange={handleHeatDabFChange}
+            onHeatDunkFChange={handleHeatDunkFChange}
             liveTempF={liveTempF}
             targetF={optimalF}
             useCelsius={useCelsius}

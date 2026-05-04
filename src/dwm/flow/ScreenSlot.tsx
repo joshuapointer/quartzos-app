@@ -36,6 +36,13 @@ export interface ScreenSlotProps {
   heatSecondsTotal: number;
   torchOn: boolean;
   showHeatFallback: boolean;
+  // heat-screen sliders
+  heatTorchS: number;
+  heatDabF: number;
+  heatDunkF: number;
+  onHeatTorchSChange: (s: number) => void;
+  onHeatDabFChange: (f: number) => void;
+  onHeatDunkFChange: (f: number) => void;
   // window phase
   liveTempF: number;
   targetF: number;
@@ -73,6 +80,12 @@ export function ScreenSlot({
   heatSecondsTotal,
   torchOn,
   showHeatFallback,
+  heatTorchS,
+  heatDabF,
+  heatDunkF,
+  onHeatTorchSChange,
+  onHeatDabFChange,
+  onHeatDunkFChange,
   liveTempF,
   targetF,
   useCelsius,
@@ -165,6 +178,12 @@ export function ScreenSlot({
           showFallback={showHeatFallback}
           onForceAdvance={onForceAdvanceHeat}
           sessionElapsedS={sessionElapsedS}
+          torchS={heatTorchS}
+          dabF={heatDabF}
+          dunkF={heatDunkF}
+          onTorchSChange={onHeatTorchSChange}
+          onDabFChange={onHeatDabFChange}
+          onDunkFChange={onHeatDunkFChange}
         />
       );
 

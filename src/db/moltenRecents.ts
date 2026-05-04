@@ -26,6 +26,12 @@ export interface MoltenRecent {
   concentrateId: string;
   peakF: number;
   completedAt: number;
+  /** Adjusted dab alarm at session complete (sensor-display space). */
+  dabAlarmF: number | null;
+  /** Adjusted dunk alarm at session complete. */
+  dunkAlarmF: number | null;
+  /** Adjusted torch duration at session complete (seconds). */
+  torchS: number | null;
 }
 
 interface MoltenRecentRow {
@@ -34,6 +40,9 @@ interface MoltenRecentRow {
   concentrate_id: string;
   peak_f: number;
   completed_at: number;
+  dab_alarm_f: number | null;
+  dunk_alarm_f: number | null;
+  torch_s: number | null;
 }
 
 function rowToRecent(row: MoltenRecentRow): MoltenRecent {
@@ -43,6 +52,9 @@ function rowToRecent(row: MoltenRecentRow): MoltenRecent {
     concentrateId: row.concentrate_id,
     peakF: row.peak_f,
     completedAt: row.completed_at,
+    dabAlarmF: row.dab_alarm_f,
+    dunkAlarmF: row.dunk_alarm_f,
+    torchS: row.torch_s,
   };
 }
 
@@ -59,6 +71,20 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_molten_recents_completed_at
       ON molten_recents (completed_at DESC);
   `);
+  // Additive migration: add adjusted-value columns. SQLite throws if column
+  // already exists — swallow that specific error so the migration is idempotent.
+  for (const col of [
+    'dab_alarm_f INTEGER',
+    'dunk_alarm_f INTEGER',
+    'torch_s INTEGER',
+  ]) {
+    try {
+      await db.execAsync(`ALTER TABLE molten_recents ADD COLUMN ${col};`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/duplicate column name/i.test(msg)) throw err;
+    }
+  }
 }
 
 export async function getRecent(limit = 4): Promise<MoltenRecent[]> {
@@ -74,6 +100,9 @@ export async function record(input: {
   bangerId: string;
   concentrateId: string;
   peakF: number;
+  dabAlarmF?: number | null;
+  dunkAlarmF?: number | null;
+  torchS?: number | null;
 }): Promise<MoltenRecent> {
   const db = await getDb();
   // Dedupe head: if the most recent has same banger+concentrate, skip.
@@ -89,9 +118,12 @@ export async function record(input: {
   }
   const id = uuidv4();
   const now = Date.now();
+  const dabAlarmF = input.dabAlarmF ?? null;
+  const dunkAlarmF = input.dunkAlarmF ?? null;
+  const torchS = input.torchS ?? null;
   await db.runAsync(
-    'INSERT INTO molten_recents (id, banger_id, concentrate_id, peak_f, completed_at) VALUES (?, ?, ?, ?, ?)',
-    [id, input.bangerId, input.concentrateId, input.peakF, now]
+    'INSERT INTO molten_recents (id, banger_id, concentrate_id, peak_f, completed_at, dab_alarm_f, dunk_alarm_f, torch_s) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, input.bangerId, input.concentrateId, input.peakF, now, dabAlarmF, dunkAlarmF, torchS]
   );
   // Cap at 50 rows (defense against unbounded growth)
   await db.runAsync(
@@ -103,5 +135,8 @@ export async function record(input: {
     concentrateId: input.concentrateId,
     peakF: input.peakF,
     completedAt: now,
+    dabAlarmF,
+    dunkAlarmF,
+    torchS,
   };
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBleStore } from '../../state/bleStore';
+import { useSettingsStore } from '../../state/settingsStore';
 import * as presetsDb from '../../db/presets';
 import { bleManager } from '../../ble/BleManager';
 import { toast } from '../../design/components/Toast';
@@ -39,9 +40,8 @@ export interface UseDwmPhaseResult {
 // ---------------------------------------------------------------------------
 
 const CONNECTION_PHASES = new Set<DwmPhase>(['cold', 'connecting', 'connected']);
-const PICKER_PHASES = new Set<DwmPhase>(['presets', 'banger', 'concentrate', 'wall', 'review']);
+const PICKER_PHASES = new Set<DwmPhase>(['presets', 'banger', 'concentrate', 'wall']);
 const SESSION_PHASES = new Set<DwmPhase>([
-  'ready',
   'heating',
   'window',
   'dabbing',
@@ -49,7 +49,6 @@ const SESSION_PHASES = new Set<DwmPhase>([
   'dunk',
 ]);
 const DISCONNECT_GUARD_PHASES = new Set<DwmPhase>([
-  'ready',
   'heating',
   'window',
   'dabbing',
@@ -59,18 +58,18 @@ const DISCONNECT_GUARD_PHASES = new Set<DwmPhase>([
 ]);
 
 // ---------------------------------------------------------------------------
-// Phase thresholds (ported verbatim from useMoltenPhase)
+// Phase thresholds — runtime-only constants (NOT the dab/dunk/torch values
+// themselves; those derive from settingsStore + the calibration engine).
 // ---------------------------------------------------------------------------
 
 const PHASE_THRESHOLDS = {
   ringSize: 6,
   ringMinSamples: 4,
+  /** Window→Dabbing trigger: temp drops faster than this = banger lifted. */
   windowVelocityF_per_s: -50,
-  swabBandLowF: 200,
-  swabBandHighF: 320,
-  dunkSafeF: 250,
-  completeBelowF: 180,
-  completeHoldMs: 4500,
+  /** Dabbing→Swab trigger: temp must climb this far above dunkF for the
+   *  reading to count as "banger placed back on rite (still warm)". */
+  swabReturnDeltaF: 50,
   scanTimeoutMs: 30000,
   connectedDelayMs: 1500,
   wallAdvanceMs: 240,
@@ -122,9 +121,10 @@ export function useDwmPhase(): UseDwmPhaseResult {
 
   const connectedTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wallTimerRef         = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dunkCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const presetTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recentTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Last non-zero temp seen during dunk phase — used for zero-edge detection. */
+  const dunkLastTempRef      = useRef<number>(0);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { selectionsRef.current = selections; }, [selections]);
@@ -250,34 +250,38 @@ export function useDwmPhase(): UseDwmPhaseResult {
         return;
       }
 
+      // The dab→dunk leg mirrors the heating→window leg: watch the temp
+      // descend through a derived target, then advance on a clear user-action
+      // signal (banger lifted off the thermometer = reading drops to 0).
+      const dunkF = useSettingsStore.getState().settings.dunkAlarmF;
+
       if (current === 'dabbing') {
-        if (tempF > PHASE_THRESHOLDS.swabBandLowF && tempF < PHASE_THRESHOLDS.swabBandHighF) {
+        // Banger placed back on the DabRite — reading climbs above
+        // dunkF + safety margin (still warm, definitely on the pad).
+        if (tempF > 0 && tempF > dunkF + PHASE_THRESHOLDS.swabReturnDeltaF) {
           setPhase('swab');
         }
         return;
       }
 
       if (current === 'swab') {
-        if (tempF < PHASE_THRESHOLDS.dunkSafeF) {
+        // Mirror the cool-down: surface temp descends through derived dunkF
+        // — alarm point. Advance to the dunk-now screen.
+        if (tempF > 0 && tempF <= dunkF) {
           setPhase('dunk');
         }
         return;
       }
 
       if (current === 'dunk') {
-        if (tempF < PHASE_THRESHOLDS.completeBelowF) {
-          if (dunkCompleteTimerRef.current === null) {
-            dunkCompleteTimerRef.current = setTimeout(() => {
-              const latestTemp = useBleStore.getState().liveTempF;
-              if (phaseRef.current === 'dunk' && latestTemp < PHASE_THRESHOLDS.completeBelowF) {
-                setPhase('complete');
-              }
-              dunkCompleteTimerRef.current = null;
-            }, PHASE_THRESHOLDS.completeHoldMs);
-          }
-        } else if (dunkCompleteTimerRef.current !== null) {
-          clearTimeout(dunkCompleteTimerRef.current);
-          dunkCompleteTimerRef.current = null;
+        // Banger removed from the thermometer for iso-dunk = sensor
+        // returns 0 (or invalid). We require we'd seen a non-zero reading
+        // first so a momentary 0 at entry doesn't bypass the alarm.
+        if (tempF > 0) {
+          dunkLastTempRef.current = tempF;
+        } else if (dunkLastTempRef.current > 0) {
+          dunkLastTempRef.current = 0;
+          setPhase('complete');
         }
         return;
       }
@@ -289,10 +293,7 @@ export function useDwmPhase(): UseDwmPhaseResult {
   useEffect(() => {
     if (phase !== 'heating') ringRef.current = [];
     if (phase !== 'window') velocityRef.current = null;
-    if (phase !== 'dunk' && dunkCompleteTimerRef.current !== null) {
-      clearTimeout(dunkCompleteTimerRef.current);
-      dunkCompleteTimerRef.current = null;
-    }
+    if (phase !== 'dunk') dunkLastTempRef.current = 0;
   }, [phase]);
 
   // Window-duration capture
@@ -313,15 +314,9 @@ export function useDwmPhase(): UseDwmPhaseResult {
     }
   }, [phase, windowDurationMs]);
 
-  useEffect(() => {
-    return () => {
-      if (dunkCompleteTimerRef.current !== null) clearTimeout(dunkCompleteTimerRef.current);
-    };
-  }, []);
-
   // ---------------------------------------------------------------------------
-  // 2. Wall auto-advance: wall pick → review after 240ms
-  // (New flow: banger→concentrate, concentrate→wall, wall→review)
+  // 2. Wall auto-advance: wall pick → heating after 240ms
+  // (No verify step — adjustments happen on the heat screen via sliders.)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     return () => {
@@ -361,7 +356,7 @@ export function useDwmPhase(): UseDwmPhaseResult {
     if (wallTimerRef.current !== null) clearTimeout(wallTimerRef.current);
     wallTimerRef.current = setTimeout(() => {
       if (phaseRef.current === 'wall') {
-        setPhase('review');
+        setPhase('heating');
       }
       wallTimerRef.current = null;
     }, PHASE_THRESHOLDS.wallAdvanceMs);
@@ -385,7 +380,7 @@ export function useDwmPhase(): UseDwmPhaseResult {
       });
       if (presetTimerRef.current !== null) clearTimeout(presetTimerRef.current);
       presetTimerRef.current = setTimeout(() => {
-        setPhase('ready');
+        setPhase('heating');
         presetTimerRef.current = null;
       }, PHASE_THRESHOLDS.presetAdvanceMs);
     })();
@@ -402,7 +397,7 @@ export function useDwmPhase(): UseDwmPhaseResult {
       });
       if (recentTimerRef.current !== null) clearTimeout(recentTimerRef.current);
       recentTimerRef.current = setTimeout(() => {
-        setPhase('ready');
+        setPhase('heating');
         recentTimerRef.current = null;
       }, PHASE_THRESHOLDS.recentAdvanceMs);
     },

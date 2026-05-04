@@ -24,8 +24,8 @@ export const PHASE_COPY: Record<DwmPhase, PhaseCopy> = {
   heating:     { eyebrow: 'phase 1 · heat',  headline: 'torch your banger.',                          sub: 'low & even sweeps until the timer hits zero. tap me to skip.' },
   window:      { eyebrow: 'phase 2 · cool',  headline: 'let me cool. lift when i turn green.',       sub: "red → orange → yellow → green. lift it and i'll feel it leave the pad." },
   dabbing:     { eyebrow: 'phase 3 · dab',   headline: 'lift, dab, breathe in.',                     sub: "slow inhale beats a hot rip. place it back when you're done — i'll catch it." },
-  swab:        { eyebrow: 'phase 4 · dunk',  headline: 'time for a swim.',                           sub: 'one swipe, no scrubbing. residue lifts while the quartz is still warm.' },
-  dunk:        { eyebrow: 'phase 5 · clean', headline: 'final swab. cap it.',                        sub: 'last pass. drop the cap. next sesh starts cleaner this way.' },
+  swab:        { eyebrow: 'phase 4 · cool',  headline: 'put me back. let me cool again.',           sub: "i'll alarm when we hit the dunk temp." },
+  dunk:        { eyebrow: 'phase 5 · dunk',  headline: 'time for a swim.',                           sub: 'lift me to dunk in iso — i\'ll log the sesh when you do.' },
   complete:    { eyebrow: 'sesh logged',     headline: 'that was nice.',                             sub: 'i saved it. you can pull up this exact sesh from the home screen any time — or tweak it.' },
 };
 
