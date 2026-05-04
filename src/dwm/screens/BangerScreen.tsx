@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { palette, fontStack, layout } from '../tokens';
 import { Carousel } from '../primitives/Carousel';
 import { Pill } from '../primitives/Pill';
 import { Stepper } from '../primitives/Stepper';
+import { BackChip } from '../primitives/BackChip';
 import { getBangerIllustration } from '../illustrations';
 import { BANGERS } from '../../data/bangers';
 import type { Banger, BangerCategory } from '../../data/bangers';
 import { PHASE_COPY } from '../flow/copy';
+import type { DwmPhase } from '../backgrounds/PhaseBackground';
 
 const CATEGORY_CHIPS: { id: BangerCategory; label: string }[] = [
   { id: 'classic',   label: 'classic' },
@@ -16,12 +18,15 @@ const CATEGORY_CHIPS: { id: BangerCategory; label: string }[] = [
   { id: 'premium',   label: 'premium' },
 ];
 
+const STEP_TO_PHASE: ReadonlyArray<DwmPhase> = ['banger', 'concentrate', 'wall', 'review'];
+
 export interface BangerScreenProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onSetPhase: (phase: DwmPhase) => void;
 }
 
-export default function BangerScreen({ selectedId, onSelect }: BangerScreenProps) {
+export default function BangerScreen({ selectedId, onSelect, onSetPhase }: BangerScreenProps) {
   const copy = PHASE_COPY.banger;
   const [activeChip, setActiveChip] = useState<string>('classic');
 
@@ -29,12 +34,24 @@ export default function BangerScreen({ selectedId, onSelect }: BangerScreenProps
     ? BANGERS.filter((b) => b.category === activeChip)
     : BANGERS;
 
+  const handleTapStep = useCallback(
+    (idx: number) => {
+      const target = STEP_TO_PHASE[idx];
+      if (target != null) onSetPhase(target);
+    },
+    [onSetPhase],
+  );
+
+  const handleBack = useCallback(() => onSetPhase('presets'), [onSetPhase]);
+
   return (
     <View style={styles.well}>
       <View style={styles.header}>
-        <Stepper count={3} current={0} />
+        <Stepper count={4} current={0} onTapStep={handleTapStep} />
+        <BackChip label="home" onPress={handleBack} />
         <Text style={styles.eyebrow}>{copy.eyebrow.toUpperCase()}</Text>
         <Text style={styles.headline}>{copy.headline}</Text>
+        {copy.sub.length > 0 && <Text style={styles.sub}>{copy.sub}</Text>}
       </View>
 
       <Carousel
@@ -83,9 +100,15 @@ const styles = StyleSheet.create({
   },
   headline: {
     fontFamily: fontStack.display,
-    fontSize: 20,
-    letterSpacing: -0.03 * 20,
+    fontSize: 22,
+    letterSpacing: -0.035 * 22,
     color: palette.fg,
+  },
+  sub: {
+    fontFamily: fontStack.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: palette.muted,
   },
   card: {
     flex: 1,

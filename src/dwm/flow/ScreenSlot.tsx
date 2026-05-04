@@ -41,6 +41,9 @@ export interface ScreenSlotProps {
   targetF: number;
   useCelsius: boolean;
   showWindowFallback: boolean;
+  windowDwellPct: number;
+  // running session timer (drives session-phase eyebrows)
+  sessionElapsedS: number;
   // complete phase
   peakF: number;
   windowDurationLabel: string | null;
@@ -58,6 +61,8 @@ export interface ScreenSlotProps {
   onForceAdvanceWindow: () => void;
   onAgain: () => void;
   onNew: () => void;
+  // Free-form phase navigation — used for build-stepper back-tap and back-chip
+  onSetPhase: (phase: DwmPhase) => void;
 }
 
 export function ScreenSlot({
@@ -76,6 +81,8 @@ export function ScreenSlot({
   targetF,
   useCelsius,
   showWindowFallback,
+  windowDwellPct,
+  sessionElapsedS,
   peakF,
   windowDurationLabel,
   onHoldComplete,
@@ -91,6 +98,7 @@ export function ScreenSlot({
   onForceAdvanceWindow,
   onAgain,
   onNew,
+  onSetPhase,
 }: ScreenSlotProps) {
   switch (phase) {
     case 'cold':
@@ -118,6 +126,7 @@ export function ScreenSlot({
         <BangerScreen
           selectedId={selections.bangerId}
           onSelect={onSelectBanger}
+          onSetPhase={onSetPhase}
         />
       );
 
@@ -126,6 +135,7 @@ export function ScreenSlot({
         <ConcentrateScreen
           selectedId={selections.concentrateId}
           onSelect={onSelectConcentrate}
+          onSetPhase={onSetPhase}
         />
       );
 
@@ -134,6 +144,7 @@ export function ScreenSlot({
         <WallScreen
           selectedId={selections.wallId}
           onSelect={onSelectWall}
+          onSetPhase={onSetPhase}
         />
       );
 
@@ -146,6 +157,7 @@ export function ScreenSlot({
             concentrate={concentrate}
             wall={wall}
             onHoldComplete={onHoldComplete}
+            onSetPhase={onSetPhase}
           />
         );
       }
@@ -160,6 +172,7 @@ export function ScreenSlot({
           onSkip={onSkipHeat}
           showFallback={showHeatFallback}
           onForceAdvance={onForceAdvanceHeat}
+          sessionElapsedS={sessionElapsedS}
         />
       );
 
@@ -171,17 +184,19 @@ export function ScreenSlot({
           useCelsius={useCelsius}
           showStuckFallback={showWindowFallback}
           onForceAdvance={onForceAdvanceWindow}
+          dwellPct={windowDwellPct}
+          sessionElapsedS={sessionElapsedS}
         />
       );
 
     case 'dabbing':
-      return <DabScreen />;
+      return <DabScreen sessionElapsedS={sessionElapsedS} />;
 
     case 'swab':
-      return <SwabScreen />;
+      return <SwabScreen sessionElapsedS={sessionElapsedS} />;
 
     case 'dunk':
-      return <DunkScreen />;
+      return <DunkScreen sessionElapsedS={sessionElapsedS} />;
 
     case 'complete':
       return (

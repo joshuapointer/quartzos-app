@@ -26,9 +26,11 @@ export function PhaseBackground({ phase, heatProgress = 0, torchOn = 0 }: PhaseB
       return <HeatFillBg progress={heatProgress} torchOn={torchOn} />;
     case 'window':
       return <VaporBg />;
-    case 'dunk':
-      return <WaterBg />;
+    // Phase 4 (impl 'swab') — prototype's `dunk` phase: water + rising bubbles
     case 'swab':
+      return <WaterBg />;
+    // Phase 5 (impl 'dunk') — prototype's `clean` phase: drifting soap specks
+    case 'dunk':
       return <SudsBg />;
     case 'dabbing':
       return <DabBg />;

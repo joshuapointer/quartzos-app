@@ -113,15 +113,17 @@ const BUB_BY_PHASE: Record<DwmPhase, BubState> = {
   heating:     { mood: 'heat',    eye: 'concentrating',  extras: ['flames', 'torch', 'sweat'], size: 'lg' },
   window:      { mood: 'cool',    eye: 'wide',           extras: [],                          size: 'lg' },
   dabbing:     { mood: 'dab',     eye: 'surprised',      extras: ['sparkles'],                size: 'lg' },
-  swab:        { mood: 'clean',   eye: 'tidy',           extras: ['suds'],                    size: 'lg' },
-  dunk:        { mood: 'dunk',    eye: 'happy',          extras: ['bubbles', 'wave'],          size: 'lg' },
+  // Phase 4 (impl 'swab') — prototype's `dunk` phase: water + bubbles + wave, smiling
+  swab:        { mood: 'dunk',    eye: 'happy',          extras: ['bubbles', 'wave'],         size: 'lg' },
+  // Phase 5 (impl 'dunk') — prototype's `clean` phase: suds, tidy
+  dunk:        { mood: 'clean',   eye: 'tidy',           extras: ['suds'],                    size: 'lg' },
   complete:    { mood: 'done',    eye: 'starry',         extras: ['sparkles'],                size: 'lg' },
 };
 
 // Phases where Bub is the hold-gesture target
 const HOLD_BUB_PHASES = new Set<DwmPhase>(['cold', 'review', 'ready']);
 const HOLD_HINT: Partial<Record<DwmPhase, string>> = {
-  cold:   'hold to find your dabrite',
+  cold:   'hold to scan',
   review: 'hold to light it up',
   ready:  'hold to light it up',
 };
@@ -325,6 +327,70 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
   }, [phase]);
 
   // ---------------------------------------------------------------------------
+  // Window dwell-fill bar — visualizes "how long we've been in-window".
+  // Drives a 0..1 progress value that ticks while liveTempF is within ±15F of
+  // optimalF. Caps at 1.0 (~1.7s); BLE state machine is what actually advances.
+  // ---------------------------------------------------------------------------
+  const [windowDwellPct, setWindowDwellPct] = useState(0);
+  const inWindowSinceRef = useRef<number | null>(null);
+  const DWELL_MS_TARGET = 1700;
+  useEffect(() => {
+    if (phase !== 'window') {
+      inWindowSinceRef.current = null;
+      setWindowDwellPct(0);
+      return;
+    }
+    const id = setInterval(() => {
+      const inWindow = Math.abs(liveTempF - optimalF) <= 15;
+      if (!inWindow) {
+        if (inWindowSinceRef.current !== null) {
+          inWindowSinceRef.current = null;
+          setWindowDwellPct(0);
+        }
+        return;
+      }
+      if (inWindowSinceRef.current === null) {
+        inWindowSinceRef.current = Date.now();
+      }
+      const dwellMs = Date.now() - inWindowSinceRef.current;
+      const pct = Math.min(1, dwellMs / DWELL_MS_TARGET);
+      setWindowDwellPct(pct);
+    }, 100);
+    return () => clearInterval(id);
+  }, [phase, liveTempF, optimalF]);
+
+  // ---------------------------------------------------------------------------
+  // Session timer — running M:SS shown in session-phase eyebrows. Starts the
+  // moment we enter the first session phase ('heating'); resets when we leave
+  // session phases via cold/presets.
+  // ---------------------------------------------------------------------------
+  const sessionStartedAtRef = useRef<number | null>(null);
+  const [sessionElapsedS, setSessionElapsedS] = useState(0);
+  useEffect(() => {
+    const sessionPhases: ReadonlyArray<DwmPhase> = [
+      'heating', 'window', 'dabbing', 'swab', 'dunk',
+    ];
+    const isSession = sessionPhases.includes(phase);
+    if (!isSession) {
+      // Reset on hard exits to picker / cold; preserve elapsed for 'complete' display
+      if (phase === 'cold' || phase === 'presets') {
+        sessionStartedAtRef.current = null;
+        setSessionElapsedS(0);
+      }
+      return;
+    }
+    if (sessionStartedAtRef.current === null) {
+      sessionStartedAtRef.current = Date.now();
+    }
+    const id = setInterval(() => {
+      const startedAt = sessionStartedAtRef.current;
+      if (startedAt == null) return;
+      setSessionElapsedS(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // ---------------------------------------------------------------------------
   // Preset application side-effect
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -417,6 +483,13 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
     router.push('/(connected)/settings');
   }, [router]);
 
+  const handleDisconnect = useCallback(() => {
+    bleManager.cancelReconnect();
+    void bleManager.disconnect().catch(() => { /* ignore */ });
+    clearSelections();
+    setPhase('cold');
+  }, [clearSelections, setPhase]);
+
   // ---------------------------------------------------------------------------
   // Derived display values
   // ---------------------------------------------------------------------------
@@ -453,6 +526,7 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
           isOnline={isOnline}
           connectionLabel={isOnline ? 'online' : 'offline'}
           onLongPressBrand={handleLongPressBrand}
+          onDisconnect={handleDisconnect}
         />
 
         {/* Orb — absolutely positioned, springs to per-phase Y */}
@@ -494,8 +568,10 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             targetF={optimalF}
             useCelsius={useCelsius}
             showWindowFallback={windowFallback}
+            windowDwellPct={windowDwellPct}
             peakF={peakF}
             windowDurationLabel={windowDurationLabel}
+            sessionElapsedS={sessionElapsedS}
             onHoldComplete={handleHoldComplete}
             onCancelScan={handleCancelScan}
             onPickPreset={selectPreset}
@@ -509,6 +585,7 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             onForceAdvanceWindow={() => setPhase('dabbing')}
             onAgain={handleAgain}
             onNew={handleNew}
+            onSetPhase={setPhase}
           />
         </View>
       </SafeAreaView>

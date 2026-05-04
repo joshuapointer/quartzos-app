@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { palette, fontStack, layout } from '../tokens';
 import { Card } from '../primitives/Card';
 import { Pill } from '../primitives/Pill';
-import { PressableButton } from '../primitives/PressableButton';
 import { PHASE_COPY } from '../flow/copy';
 import type { Preset } from '../../db/presets';
 import type { MoltenRecent } from '../../db/moltenRecents';
@@ -27,9 +27,27 @@ function timeAgoLabel(completedAt: number): string {
   return new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(completedAt)).toLowerCase();
 }
 
+function PlusIcon({ color }: { color: string }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function Divider({ label }: { label: string }) {
+  return (
+    <View style={styles.divider}>
+      <View style={styles.dividerRule} />
+      <Text style={styles.dividerLabel}>{label.toUpperCase()}</Text>
+      <View style={styles.dividerRule} />
+    </View>
+  );
+}
+
 export default function ChooseScreen({ presets, recents, onPickPreset, onPickRecent, onBuildFresh }: ChooseScreenProps) {
   const copy = PHASE_COPY.presets;
-  const hasContent = recents.length > 0 || presets.length > 0;
+  const hasSeshes = recents.length > 0 || presets.length > 0;
 
   return (
     <ScrollView
@@ -43,64 +61,53 @@ export default function ChooseScreen({ presets, recents, onPickPreset, onPickRec
         {copy.sub.length > 0 && <Text style={styles.sub}>{copy.sub}</Text>}
       </View>
 
-      {recents.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{'RECENT'}</Text>
-          <View style={styles.cardList}>
-            {recents.slice(0, 4).map((r) => {
-              const banger = findBanger(r.bangerId);
-              const concentrate = findConcentrate(r.concentrateId);
-              if (!banger || !concentrate) return null;
-              const Illustration = getBangerIllustration(r.bangerId);
-              return (
-                <Card
-                  key={r.id}
-                  glyph={
-                    Illustration
-                      ? { tint: 'peach', icon: <Illustration size={32} /> }
-                      : undefined
-                  }
-                  title={banger.name}
-                  sub={
-                    <View style={styles.recentSubRow}>
-                      <Text style={styles.recentSubText}>{concentrate.name}</Text>
-                      <Pill label={timeAgoLabel(r.completedAt)} variant="neutral" />
-                    </View>
-                  }
-                  chevron
-                  onPress={() => onPickRecent(r.id)}
-                />
-              );
-            })}
-          </View>
-        </View>
-      )}
-
-      {presets.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{'SAVED'}</Text>
-          <View style={styles.cardList}>
-            {presets.map((p) => (
-              <Card
-                key={p.id}
-                title={p.name}
-                chevron
-                onPress={() => onPickPreset(p.id)}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-
-      {!hasContent && <View style={styles.spacer} />}
-
-      <View style={styles.buildRow}>
-        <PressableButton
-          label="build a fresh sesh"
-          variant="primary"
-          showArrow
+      <View style={styles.cardList}>
+        {/* Fresh sesh — always first, peach glyph */}
+        <Card
+          glyph={{ tint: 'peach', icon: <PlusIcon color={palette.fg} /> }}
+          title="a fresh sesh"
+          sub="tell me your banger and what you're dabbing."
+          chevron
           onPress={onBuildFresh}
         />
+
+        {hasSeshes && <Divider label="your saved seshes" />}
+
+        {recents.slice(0, 4).map((r) => {
+          const banger = findBanger(r.bangerId);
+          const concentrate = findConcentrate(r.concentrateId);
+          if (!banger || !concentrate) return null;
+          const Illustration = getBangerIllustration(r.bangerId);
+          return (
+            <Card
+              key={r.id}
+              glyph={
+                Illustration
+                  ? { tint: 'mint', icon: <Illustration size={32} accent={palette.fg} /> }
+                  : undefined
+              }
+              title={banger.name}
+              sub={
+                <View style={styles.subRow}>
+                  <Text style={styles.subText}>{concentrate.name}</Text>
+                  <Pill label={timeAgoLabel(r.completedAt)} variant="neutral" />
+                </View>
+              }
+              chevron
+              onPress={() => onPickRecent(r.id)}
+            />
+          );
+        })}
+
+        {presets.map((p) => (
+          <Card
+            key={p.id}
+            glyph={{ tint: 'lilac', icon: <PlusIcon color={palette.fg} /> }}
+            title={p.name}
+            chevron
+            onPress={() => onPickPreset(p.id)}
+          />
+        ))}
       </View>
     </ScrollView>
   );
@@ -113,7 +120,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: layout.screenPaddingX,
     paddingBottom: 24,
-    gap: 20,
+    gap: 16,
   },
   copyBlock: {
     alignItems: 'center',
@@ -124,13 +131,13 @@ const styles = StyleSheet.create({
     fontFamily: fontStack.mono,
     fontSize: 10,
     letterSpacing: 0.24 * 10,
-    color: palette.accentDeep,
+    color: palette.muted,
     textTransform: 'uppercase',
   },
   headline: {
-    fontFamily: fontStack.display,
-    fontSize: 22,
-    letterSpacing: -0.03 * 22,
+    fontFamily: fontStack.displayHeavy,
+    fontSize: 28,
+    letterSpacing: -0.035 * 28,
     color: palette.fg,
     textAlign: 'center',
   },
@@ -142,34 +149,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  section: {
-    gap: 8,
+  cardList: {
+    gap: 10,
   },
-  sectionLabel: {
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+  },
+  dividerRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: palette.border,
+  },
+  dividerLabel: {
     fontFamily: fontStack.mono,
     fontSize: 9.5,
     letterSpacing: 0.18 * 9.5,
     color: palette.muted,
     textTransform: 'uppercase',
   },
-  cardList: {
-    gap: 8,
-  },
-  recentSubRow: {
+  subRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
   },
-  recentSubText: {
+  subText: {
     fontFamily: fontStack.body,
     fontSize: 12.5,
     color: palette.muted,
-  },
-  spacer: {
-    height: 16,
-  },
-  buildRow: {
-    marginTop: 4,
   },
 });

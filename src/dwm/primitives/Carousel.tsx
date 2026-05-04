@@ -5,17 +5,16 @@ import {
   Pressable,
   Text,
   StyleSheet,
-  Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { palette, fontStack, radii, layout } from '../tokens';
-
-const { width: SCREEN_W } = Dimensions.get('window');
 
 const DEFAULT_ITEM_W = 280;
 const DEFAULT_ITEM_H = 320;
 const DEFAULT_SPACING = 12;
+const FADE_W = 24;
 
 interface ChipDef {
   id: string;
@@ -50,9 +49,7 @@ export function Carousel<T>({
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const scrollRef = useRef<ScrollView>(null);
 
-  // bleed: negative horizontal margin equal to screen padding so cards reach edges
   const sidePad = layout.screenPaddingX;
-  // center the active item: offset so item center aligns with screen center
   const snapInterval = itemWidth + itemSpacing;
 
   const onScroll = useCallback(
@@ -119,6 +116,22 @@ export function Carousel<T>({
             </Pressable>
           ))}
         </ScrollView>
+
+        {/* Edge fades — mirror prototype `.carousel-wrap::before/::after` (lines 1316-1333) */}
+        <LinearGradient
+          colors={[palette.bg, `${palette.bg}00`]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          pointerEvents="none"
+          style={[styles.fade, { left: 0, width: FADE_W }]}
+        />
+        <LinearGradient
+          colors={[`${palette.bg}00`, palette.bg]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          pointerEvents="none"
+          style={[styles.fade, { right: 0, width: FADE_W }]}
+        />
       </View>
     </View>
   );
@@ -173,5 +186,11 @@ const styles = StyleSheet.create({
     shadowRadius: 9,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
+  },
+  fade: {
+    position: 'absolute',
+    top: 0,
+    bottom: 14,
+    zIndex: 2,
   },
 });

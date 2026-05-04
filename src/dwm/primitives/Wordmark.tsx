@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -6,10 +6,11 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  withSpring,
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { palette, wordmark, fontStack, radii } from '../tokens';
+import { palette, springs, wordmark, fontStack, radii } from '../tokens';
 import { useReducedMotion } from '../../design/hooks/useReducedMotion';
 
 interface Props {
@@ -17,7 +18,10 @@ interface Props {
   connectionLabel?: string;
   isOnline?: boolean;
   onLongPressBrand?: () => void;
+  onDisconnect?: () => void;
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function OnlineDot({ reduced }: { reduced: boolean }) {
   const opacity = useSharedValue(0.7);
@@ -59,11 +63,41 @@ function OnlineDot({ reduced }: { reduced: boolean }) {
   );
 }
 
+function DisconnectChip({ reduced, onPress }: { reduced: boolean; onPress: () => void }) {
+  const pressed = useSharedValue(0);
+
+  const onPressIn = useCallback(() => {
+    pressed.value = withSpring(1, springs.squish);
+  }, []);
+  const onPressOut = useCallback(() => {
+    pressed.value = withSpring(0, springs.squish);
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: 1 - pressed.value * 0.1 }, { scaleX: 1 + pressed.value * 0.02 }],
+  }));
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      accessibilityRole="button"
+      accessibilityLabel="disconnect"
+      style={[styles.chip, animStyle]}
+    >
+      <OnlineDot reduced={reduced} />
+      <Text style={styles.chipLabel}>{'disconnect'}</Text>
+    </AnimatedPressable>
+  );
+}
+
 export function Wordmark({
   size = 'header',
   connectionLabel = 'online',
   isOnline = true,
   onLongPressBrand,
+  onDisconnect,
 }: Props) {
   const reduced = useReducedMotion();
   const tokens = wordmark[size];
@@ -78,14 +112,18 @@ export function Wordmark({
         </Text>
       </Pressable>
 
-      <View style={styles.chip}>
-        {isOnline ? (
-          <OnlineDot reduced={reduced} />
-        ) : (
-          <View style={styles.offlineDot} />
-        )}
-        <Text style={styles.chipLabel}>{connectionLabel}</Text>
-      </View>
+      {isOnline && onDisconnect != null ? (
+        <DisconnectChip reduced={reduced} onPress={onDisconnect} />
+      ) : (
+        <View style={styles.chip}>
+          {isOnline ? (
+            <OnlineDot reduced={reduced} />
+          ) : (
+            <View style={styles.offlineDot} />
+          )}
+          <Text style={styles.chipLabel}>{connectionLabel}</Text>
+        </View>
+      )}
     </View>
   );
 }
