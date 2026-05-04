@@ -501,6 +501,15 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
   // Callbacks
   // ---------------------------------------------------------------------------
 
+  // Auto-start the scan as soon as we're in 'cold' with the BLE central idle.
+  // No tap-and-hold required — the app reaches for the DabRite on its own.
+  // Manual hold remains as a re-trigger after a failed scan / explicit cancel.
+  useEffect(() => {
+    if (phase !== 'cold') return;
+    if (connectionState !== 'IDLE') return;
+    bleManager.startScan();
+  }, [phase, connectionState]);
+
   const handleHoldComplete = useCallback(() => {
     if (phase === 'cold') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});

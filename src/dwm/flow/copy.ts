@@ -12,7 +12,7 @@ export interface PhaseCopy {
 // the prototype's `dunk` phase content (post-dab while warm). Phase 5 (impl
 // id 'dunk') maps to the prototype's `clean` phase content (final swab + cap).
 export const PHASE_COPY: Record<DwmPhase, PhaseCopy> = {
-  cold:        { eyebrow: "no device · let's pair", headline: 'hey. wake up your dabrite.',          sub: "press & hold bub to start the scan. flick the IR thermometer on and i'll do the rest." },
+  cold:        { eyebrow: 'no device · scanning',  headline: 'reaching for your dabrite…',          sub: "flick the IR thermometer on and i'll catch the handshake. hold bub if you want to retry." },
   connecting:  { eyebrow: 'no device · pairing',    headline: 'looking for your dabrite…',           sub: "flick the IR thermometer on. i'll catch the bluetooth handshake and we're live." },
   connected:   { eyebrow: 'linked',                 headline: 'we good.',                            sub: '' },
   presets:     { eyebrow: 'ready when you are',     headline: 'pick a sesh.',                        sub: '' },
