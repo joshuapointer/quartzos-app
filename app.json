@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "dabwith.me",
-    "slug": "dabwithme",
+    "slug": "quartzos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,10 +14,7 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "dabwith.me connects to your Dab Rite to read temperature and sync settings.",
         "NSBluetoothPeripheralUsageDescription": "dabwith.me connects to your Dab Rite to read temperature and sync settings.",
-        "UIBackgroundModes": [
-          "bluetooth-central",
-          "fetch"
-        ],
+        "UIBackgroundModes": ["bluetooth-central", "fetch"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -60,9 +57,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": true,
-          "modes": [
-            "central"
-          ],
+          "modes": ["central"],
           "bluetoothAlwaysPermission": "Quartzie needs Bluetooth to communicate with your Dab Rite."
         }
       ],
@@ -83,9 +78,7 @@
       [
         "expo-notifications",
         {
-          "sounds": [
-            "./assets/sounds/dab_alarm.wav"
-          ]
+          "sounds": ["./assets/sounds/dab_alarm.wav"]
         }
       ]
     ],
