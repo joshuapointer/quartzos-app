@@ -385,6 +385,41 @@ $ npx tsc --noEmit
 
 ---
 
+## 2026-05-03 — Pass #4 (device-test bug fixes)
+
+Real-device screenshots surfaced 5 layout/visual bugs not catchable by static reading. The biggest was a stale `ORB_SIZE_BY_PHASE` constant that desynced from `BUB_BY_PHASE.size` after the size bumps in passes #2/#3 — `contentWellTopFor` was using the OLD smaller sizes for content-well clearance, so content rendered ON TOP of the actual (larger) Bub on device.
+
+### Fixed
+
+- **D-1 · `ORB_SIZE_BY_PHASE` desynced from `BUB_BY_PHASE.size`** *(root cause of every overlap)*
+  - `flow/DwmFlow.tsx`: deleted the legacy `ORB_SIZE_BY_PHASE` constant. `contentWellTopFor` now reads `BUB_SIZE_PX[BUB_BY_PHASE[phase].size] / 2` for the radius. Single source of truth.
+- **D-2 · HoldBub hint label clipped by content well**
+  - Cold/review/ready render a peach pill chip below Bub via `HoldBub`. The `extra` of 28 didn't account for hint marginTop (12) + height (~30) + breathing room → hint text overlapped the screen's eyebrow.
+  - `flow/DwmFlow.tsx:contentWellTopFor`: HOLD_BUB phases now use `extra = 80` (clears the hint pill).
+- **D-3 · Picker phase content well overlapped Bub**
+  - Picker phases (presets/banger/concentrate/wall) had a hardcoded `return 240`. With Bub bumped to lg (170, r=85) at Y=150, Bub bottom = 235, content at 240 = 5px gap → stepper overlapped Bub.
+  - `flow/DwmFlow.tsx:contentWellTopFor`: picker phases added to `ORB_ABOVE` for dynamic computation. Now `150 + 85 + 28 = 263` content-well top.
+- **D-4 · Heat phase had spurious `'flames'` extra not in prototype**
+  - Prototype heating extras (line 3004-3009): `shimmer + sweat + torch SVG`. No standalone flame element — the torch SVG paints its own flame at the nozzle. Impl had `extras: ['flames', 'torch', 'sweat']`, painting a giant orange triangle above Bub disconnected from the torch.
+  - `flow/DwmFlow.tsx:BUB_BY_PHASE.heating`: extras → `['torch', 'sweat']`. `bub/extras/Flames.tsx` left in place (unused; preserves file count).
+- **D-5 · Choose screen list cut off at bottom**
+  - `screens/ChooseScreen.tsx:styles.content.paddingBottom`: `24 → 80`. Last card (e.g. "HE Control Tower Hydrocarbon") now scrolls fully into view above the parent's `bottom: 80` clipping.
+- **D-6 · Carousel cards too wide — only 1 visible at a time**
+  - `primitives/Carousel.tsx`: `DEFAULT_ITEM_W: 280 → 196` (closer to prototype's 168, with room for the 120px illo). `DEFAULT_ITEM_H: 320 → 260` (more vertical headroom). Carousel callers use defaults — no per-screen override needed.
+
+### File count
+
+Started this pass: 86. Now: 86. No new files, none deleted. 3 files modified: `flow/DwmFlow.tsx`, `screens/ChooseScreen.tsx`, `primitives/Carousel.tsx`.
+
+### Verified clean
+
+```
+$ npx tsc --noEmit
+(0 errors, exit 0)
+```
+
+---
+
 ## 2026-05-03 — Pass #3 (deferral resolution)
 
 Implemented every actionable Pass #2 deferral. Items left as deferred are either deliberate UX divergence or constrained by the immutable data layer.

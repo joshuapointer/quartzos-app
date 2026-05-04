@@ -43,24 +43,6 @@ import { torchDurationFor } from './copy';
 
 const REF_HEIGHT = layoutTokens.phoneRefHeight;
 
-const ORB_SIZE_BY_PHASE: Record<DwmPhase, BubSize> = {
-  cold:        'lg',
-  connecting:  'lg',
-  connected:   'lg',
-  presets:     'sm',
-  banger:      'sm',
-  concentrate: 'sm',
-  wall:        'sm',
-  review:      'xl',
-  ready:       'xl',
-  heating:     'xl',
-  window:      'xl',
-  dabbing:     'xl',
-  swab:        'xl',
-  dunk:        'xl',
-  complete:    'lg',
-};
-
 const ORB_TARGET_Y_BY_PHASE: Record<DwmPhase, number> = {
   cold:        300,
   connecting:  300,
@@ -79,23 +61,6 @@ const ORB_TARGET_Y_BY_PHASE: Record<DwmPhase, number> = {
   complete:    300,
 };
 
-// Content well top — mirrors MoltenSurface contentWellTop logic
-function contentWellTopFor(phase: DwmPhase, screenH: number): number {
-  const ORB_ABOVE: ReadonlyArray<DwmPhase> = [
-    'cold', 'connecting', 'connected', 'review', 'ready',
-    'heating', 'window', 'dabbing', 'swab', 'dunk', 'complete',
-  ];
-  if (ORB_ABOVE.includes(phase)) {
-    const orbCenterY = (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH;
-    const r = BUB_SIZE_PX[ORB_SIZE_BY_PHASE[phase]] / 2;
-    // Heating's torch extra extends below the orb bounding box; add extra clearance.
-    const extra = phase === 'heating' ? 56 : 28;
-    return orbCenterY + r + extra;
-  }
-  // picker phases
-  return 240;
-}
-
 // ---------------------------------------------------------------------------
 // Bub state per phase
 // ---------------------------------------------------------------------------
@@ -112,7 +77,7 @@ const BUB_BY_PHASE: Record<DwmPhase, BubState> = {
   wall:        { mood: 'curious', eye: 'wide',          extras: [],                          size: 'lg' },
   review:      { mood: 'eager',   eye: 'wide',          extras: [],                          size: 'xl' },
   ready:       { mood: 'eager',   eye: 'wide',          extras: [],                          size: 'xl' },
-  heating:     { mood: 'heat',    eye: 'concentrating', extras: ['flames', 'torch', 'sweat'], size: 'xl' },
+  heating:     { mood: 'heat',    eye: 'concentrating', extras: ['torch', 'sweat'],           size: 'xl' },
   window:      { mood: 'cool',    eye: 'wide',          extras: [],                          size: 'xl' },
   dabbing:     { mood: 'dab',     eye: 'surprised',     extras: ['sparkles'],                size: 'xl' },
   swab:        { mood: 'dunk',    eye: 'happy',         extras: ['bubbles', 'wave'],         size: 'xl' },
@@ -127,6 +92,28 @@ const HOLD_HINT: Partial<Record<DwmPhase, string>> = {
   review: 'hold to light it up',
   ready:  'hold to light it up',
 };
+
+// Content well top — mirrors MoltenSurface contentWellTop logic
+function contentWellTopFor(phase: DwmPhase, screenH: number): number {
+  const ORB_ABOVE: ReadonlyArray<DwmPhase> = [
+    'cold', 'connecting', 'connected',
+    'presets', 'banger', 'concentrate', 'wall',
+    'review', 'ready',
+    'heating', 'window', 'dabbing', 'swab', 'dunk', 'complete',
+  ];
+  if (ORB_ABOVE.includes(phase)) {
+    const orbCenterY = (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH;
+    const r = BUB_SIZE_PX[BUB_BY_PHASE[phase].size] / 2;
+    const HOLD_BUB_PHASES_LOCAL: ReadonlyArray<DwmPhase> = ['cold', 'review', 'ready'];
+    const isHold = HOLD_BUB_PHASES_LOCAL.includes(phase);
+    // Heating's torch extra extends below the orb bounding box; HOLD phases render
+    // a hint pill below Bub via HoldBub.
+    const extra = phase === 'heating' ? 56 : isHold ? 80 : 28;
+    return orbCenterY + r + extra;
+  }
+  // Fallback (every phase is now in ORB_ABOVE; kept for safety)
+  return 240;
+}
 
 // ---------------------------------------------------------------------------
 // Public props

@@ -11,8 +11,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { palette, fontStack, radii, layout } from '../tokens';
 
-const DEFAULT_ITEM_W = 280;
-const DEFAULT_ITEM_H = 320;
+const DEFAULT_ITEM_W = 196;
+const DEFAULT_ITEM_H = 260;
 const DEFAULT_SPACING = 12;
 const FADE_W = 24;
 

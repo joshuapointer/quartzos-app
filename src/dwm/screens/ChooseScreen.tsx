@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: layout.screenPaddingX,
-    paddingBottom: 24,
+    paddingBottom: 80,
     gap: 16,
   },
   copyBlock: {
