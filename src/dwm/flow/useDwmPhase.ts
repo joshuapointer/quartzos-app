@@ -200,11 +200,10 @@ export function useDwmPhase(): UseDwmPhaseResult {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!DISCONNECT_GUARD_PHASES.has(phaseRef.current)) return;
-    if (
-      connectionState === 'IDLE' ||
-      connectionState === 'ERROR' ||
-      connectionState === 'RECONNECTING'
-    ) {
+    if (connectionState === 'ERROR') {
+      toast.error('DabRite stopped responding — power-cycle it');
+      setPhase('cold');
+    } else if (connectionState === 'IDLE' || connectionState === 'RECONNECTING') {
       toast.error('Lost connection to Dabrite');
       setPhase('cold');
     }

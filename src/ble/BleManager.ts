@@ -18,9 +18,12 @@ import { ConnectionStateMachine } from './ConnectionStateMachine';
 import {
   CHAR_FF01_UUID,
   CHAR_FF02_UUID,
+  DISCONNECT_STORM_THRESHOLD,
+  DISCONNECT_STORM_WINDOW_MS,
   FRAME_SETTINGS_LEN,
   FRAME_TEMP_LEN,
   MAX_RECONNECT_ATTEMPTS,
+  POST_RECONNECT_QUIET_MS,
   QUERY_INTERVAL_MS,
   RECONNECT_DELAYS_MS,
   SERVICE_UUID,
@@ -170,6 +173,15 @@ export class BleManager {
   private querySettingsReceived = false;
   private lastDeviceId: string | null = null;
   private intentionalDisconnect = false;
+  /** Tracks recent disconnect timestamps for storm detection. Older entries
+   *  age out of the window; if length crosses the threshold we bail to ERROR
+   *  rather than keep flapping against a wedged device. */
+  private recentDisconnects: number[] = [];
+  /** True for connect attempts triggered by `scheduleReconnect`. The connect
+   *  path applies a longer post-READY quiet period in this case so a
+   *  freshly-booted device firmware has time to finish initializing GATT
+   *  before the first QUERY_SETTINGS frame hits it. */
+  private isReconnectAttempt = false;
 
   private idleTempSince: number | null = null;
   private currentSessionId: string | null = null;
@@ -202,12 +214,15 @@ export class BleManager {
   }
 
   startScan(): void {
-    // Allow takeover from RECONNECTING — otherwise the user's "tap to pair"
-    // tap is silently swallowed during a flap.
-    if (this.sm.current === 'RECONNECTING') {
+    // Allow takeover from RECONNECTING (mid-flap) and ERROR (storm-bail or
+    // exhausted backoff). Without these the user's "tap to retry" tap is
+    // silently swallowed and the only recovery is killing the app.
+    if (this.sm.current === 'RECONNECTING' || this.sm.current === 'ERROR') {
       this.clearReconnect();
       this.intentionalDisconnect = true;
-      this.setState('IDLE');
+      this.recentDisconnects = [];
+      this.reconnectAttempts = 0;
+      if (this.sm.canTransition('IDLE')) this.setState('IDLE');
     }
     if (this.sm.current !== 'IDLE') return;
     this.intentionalDisconnect = false;
@@ -295,7 +310,9 @@ export class BleManager {
     if (this.sm.current === 'SCANNING') {
       this.rnBle.stopDeviceScan();
     }
-    if (this.sm.current === 'RECONNECTING') {
+    const fromReconnect = this.sm.current === 'RECONNECTING';
+    this.isReconnectAttempt = fromReconnect;
+    if (fromReconnect) {
       this.setState('CONNECTING');
     } else if (this.sm.current !== 'CONNECTING') {
       // from SCANNING or IDLE
@@ -303,6 +320,19 @@ export class BleManager {
         this.setState('CONNECTING');
       } else {
         return;
+      }
+    }
+
+    // Pre-cancel any cached iOS connection state for this device id. When a
+    // DabRite power-cycles, CoreBluetooth keeps the old connection cached and
+    // a subsequent `connectToDevice` may return stale service handles from
+    // before the device rebooted. Forcing a cancel here clears the cache so
+    // discoverAllServicesAndCharacteristicsForDevice rediscovers fresh GATT.
+    if (fromReconnect) {
+      try {
+        await this.rnBle.cancelDeviceConnection(deviceId);
+      } catch {
+        /* device may already be disconnected — that's the goal */
       }
     }
 
@@ -345,12 +375,15 @@ export class BleManager {
 
       this.setState('READY');
       this.reconnectAttempts = 0;
+      this.recentDisconnects = [];
       this.querySettingsReceived = false;
 
-      // Quiet period before the very first frame post-READY: the firmware
-      // has just finished MTU/connection-priority negotiation and benefits
-      // from the same settle window we use between frames.
-      await new Promise<void>((r) => setTimeout(r, POST_ACK_QUIET_MS));
+      // Quiet period before the very first frame post-READY. On reconnect,
+      // a freshly-booted device firmware needs longer to finish GATT init —
+      // hitting it with QUERY_SETTINGS too early can wedge the device.
+      const quietMs = this.isReconnectAttempt ? POST_RECONNECT_QUIET_MS : POST_ACK_QUIET_MS;
+      this.isReconnectAttempt = false;
+      await new Promise<void>((r) => setTimeout(r, quietMs));
 
       // Kick off QUERY_SETTINGS and start polling.
       await this.enqueueQuerySettings();
@@ -634,6 +667,14 @@ export class BleManager {
     this.teardownCharacteristicSubs();
     this.device = null;
     useBleStore.getState().setConnectedDevice(null);
+
+    // Flush any in-memory session — leaving it active across a disconnect
+    // confuses downstream consumers (alarmService, sessionStore.peakF) when
+    // the device returns and resumes streaming temps.
+    if (useSessionStore.getState().active) {
+      void this.endSession().catch(() => { /* ignore */ });
+    }
+
     if (this.intentionalDisconnect) {
       this.intentionalDisconnect = false;
       this.disconnectSub?.remove();
@@ -642,6 +683,30 @@ export class BleManager {
     }
     this.disconnectSub?.remove();
     this.disconnectSub = null;
+
+    // Disconnect-storm detection. If we've been flapping faster than the
+    // device can recover, the firmware is likely wedged — bail to ERROR so
+    // the user gets a clear "power-cycle the DabRite" signal instead of
+    // looping silently for the full backoff schedule.
+    const now = Date.now();
+    this.recentDisconnects = this.recentDisconnects.filter(
+      (t) => now - t < DISCONNECT_STORM_WINDOW_MS,
+    );
+    this.recentDisconnects.push(now);
+    if (this.recentDisconnects.length >= DISCONNECT_STORM_THRESHOLD) {
+      console.warn(
+        `[BLE] disconnect storm (${this.recentDisconnects.length} in ${DISCONNECT_STORM_WINDOW_MS}ms) — bailing to ERROR`,
+      );
+      this.recentDisconnects = [];
+      this.clearReconnect();
+      // CONNECTING/DISCOVERING/SUBSCRIBING can't jump straight to ERROR per
+      // the state machine — route via RECONNECTING which is legal from each.
+      if (this.sm.canTransition('RECONNECTING')) this.setState('RECONNECTING');
+      if (this.sm.canTransition('ERROR')) this.setState('ERROR');
+      else if (this.sm.canTransition('IDLE')) this.setState('IDLE');
+      return;
+    }
+
     this.scheduleReconnect();
   }
 

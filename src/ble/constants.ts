@@ -33,8 +33,22 @@ export const QUARTZ_DUNK_ALARM_F = 250;
 export const OPAQUE_DAB_ALARM_F  = 530;
 export const OPAQUE_DUNK_ALARM_F = 275;
 
-export const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000, 60000];
+// First entry bumped 1000 → 3000ms: when the DabRite power-cycles
+// (idle auto-off then user re-powers it), the device needs ~3-5s to
+// bring its BLE stack back up + start advertising. A 1s retry hits the
+// device before it's ready to negotiate, which can wedge its firmware.
+export const RECONNECT_DELAYS_MS = [3000, 5000, 8000, 16000, 30000, 60000];
 export const MAX_RECONNECT_ATTEMPTS = 10;
+/** Quiet period after reconnect READY before the first frame goes out.
+ *  Longer than the inter-frame quiet (POST_ACK_QUIET_MS=80ms) because a
+ *  freshly-booted device is still finishing GATT init when READY transitions
+ *  in — slamming it with QUERY_SETTINGS too soon can lock up the firmware. */
+export const POST_RECONNECT_QUIET_MS = 500;
+/** Maximum disconnects we'll absorb in a rolling window before bailing to
+ *  ERROR. If we hit this, the firmware is likely stuck — surface to the
+ *  user with a "power-cycle the DabRite" toast instead of looping forever. */
+export const DISCONNECT_STORM_THRESHOLD = 3;
+export const DISCONNECT_STORM_WINDOW_MS = 60_000;
 // Bumped from 1500ms — stressed firmware (torch heat, RF noise) can be slow to ACK.
 // A short timeout combined with retries was causing duplicate frames to be
 // re-sent while the device was still committing the previous one.
