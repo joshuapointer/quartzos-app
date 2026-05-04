@@ -22,10 +22,13 @@ import {
   GeistMono_400Regular,
   GeistMono_500Medium,
 } from '@expo-google-fonts/geist-mono';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import {
-  InstrumentSerif_400Regular,
-  InstrumentSerif_400Regular_Italic,
-} from '@expo-google-fonts/instrument-serif';
+  JetBrainsMono_300Light,
+  JetBrainsMono_400Regular,
+  JetBrainsMono_500Medium,
+  JetBrainsMono_700Bold,
+} from '@expo-google-fonts/jetbrains-mono';
 
 import { initDb } from '../src/db';
 import { setupNotificationChannels } from '../src/notifications/channels';
@@ -60,8 +63,11 @@ export default function RootLayout() {
     GeistMono_300Light,
     GeistMono_400Regular,
     GeistMono_500Medium,
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
+    BebasNeue_400Regular,
+    JetBrainsMono_300Light,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
   });
   const [dbReady, setDbReady] = useState(false);
   const fontsLoaded = geistLoaded ?? false;

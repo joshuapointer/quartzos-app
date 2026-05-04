@@ -1,21 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="dabwith.me — Android adaptive background">
-  <title>dabwith.me — Android adaptive background (lilac-cream paper)</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432" role="img" aria-label="dabwith.me · Shatterbox · Android adaptive background">
+  <title>DABWITH.ME · Shatterbox · Android adaptive background (432×432)</title>
+  
   <defs>
-    <radialGradient id="ab_bg1" cx="30%" cy="14%" r="55%">
-      <stop offset="0" stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="ab_bg2" cx="80%" cy="92%" r="55%">
-      <stop offset="0" stop-color="oklch(92% 0.08 30)" stop-opacity="0.45"/>
-      <stop offset="1" stop-color="oklch(92% 0.08 30)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="ab_bg3" cx="50%" cy="55%" r="50%">
-      <stop offset="0" stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
-      <stop offset="1" stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="abg_gA" x1="0" y1="0" x2="100%" y2="100%">
+      <stop offset="0" stop-color="oklch(78% 0.18 70)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(40% 0.10 55)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="abg_gB" x1="0" y1="0" x2="100%" y2="0">
+      <stop offset="0" stop-color="oklch(70% 0.18 65)" stop-opacity="0.40"/>
+      <stop offset="1" stop-color="oklch(70% 0.18 65)" stop-opacity="0"/>
+    </linearGradient>
   </defs>
-  <rect x="0" y="0" width="1024" height="1024" fill="oklch(97% 0.025 320)"/>
-  <rect x="0" y="0" width="1024" height="1024" fill="url(#ab_bg1)"/>
-  <rect x="0" y="0" width="1024" height="1024" fill="url(#ab_bg2)"/>
-  <rect x="0" y="0" width="1024" height="1024" fill="url(#ab_bg3)"/>
+  <rect x="0" y="0" width="432" height="432" fill="oklch(15% 0.014 60)"/>
+  <polygon points="0,0 201.6,11.52 57.599999999999994,74.88 0,51.839999999999996" fill="url(#abg_gA)"/>
+  <polygon points="201.6,11.52 432.0,0 432.0,40.32 252.0,51.839999999999996" fill="url(#abg_gB)" opacity="0.7"/>
+  <polygon points="57.599999999999994,74.88 252.0,51.839999999999996 144.0,149.76" fill="oklch(58% 0.16 60)" opacity="0.18"/>
+  <polygon points="252.0,51.839999999999996 432.0,40.32 345.59999999999997,149.76 201.6,144.0" fill="oklch(46% 0.12 58)" opacity="0.22"/>
+  <polygon points="0,51.839999999999996 57.599999999999994,74.88 0,149.76" fill="oklch(38% 0.10 55)" opacity="0.35"/>
+  <polygon points="0,149.76 144.0,149.76 201.6,144.0 158.4,236.15999999999997 0,247.67999999999998" fill="oklch(30% 0.07 55)" opacity="0.5"/>
+  <polygon points="201.6,144.0 345.59999999999997,149.76 432.0,40.32 432.0,270.71999999999997 273.59999999999997,311.03999999999996" fill="oklch(22% 0.05 55)" opacity="0.55"/>
+  <polygon points="0,247.67999999999998 158.4,236.15999999999997 273.59999999999997,311.03999999999996 144.0,431.99999999999994 0,431.99999999999994" fill="oklch(18% 0.04 55)" opacity="0.7"/>
+  <polygon points="273.59999999999997,311.03999999999996 432.0,270.71999999999997 432.0,431.99999999999994 144.0,431.99999999999994" fill="oklch(15% 0.03 55)" opacity="0.75"/>
+  <g stroke="oklch(85% 0.14 70)" stroke-width="0.6" fill="none" opacity="0.30">
+    <path d="M 0 51.839999999999996 L 201.6 11.52"/>
+    <path d="M 57.599999999999994 74.88 L 252.0 51.839999999999996"/>
+    <path d="M 0 149.76 L 144.0 149.76 L 201.6 144.0 L 345.59999999999997 149.76 L 432.0 40.32"/>
+    <path d="M 158.4 236.15999999999997 L 273.59999999999997 311.03999999999996 L 432.0 270.71999999999997"/>
+    <path d="M 0 247.67999999999998 L 158.4 236.15999999999997"/>
+    <path d="M 273.59999999999997 311.03999999999996 L 144.0 431.99999999999994"/>
+    <path d="M 252.0 51.839999999999996 L 345.59999999999997 149.76"/>
+  </g>
 </svg>

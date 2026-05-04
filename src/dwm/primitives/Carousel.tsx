@@ -149,8 +149,8 @@ const styles = StyleSheet.create({
   chip: {
     paddingVertical: 5,
     paddingHorizontal: 12,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(251,241,244,0.6)',
+    borderRadius: radii.chip,
+    backgroundColor: palette.surface,
     borderWidth: 1,
     borderColor: palette.border,
   },

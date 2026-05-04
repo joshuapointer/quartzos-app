@@ -10,42 +10,29 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { moodPalette } from '../tokens';
 import type { Mood } from './types';
 
 interface Props {
   size: number;
+  // `mood` preserved on the API for back-compat. Halo colour is unified
+  // amber-glass per shatterbox spec — the orb does not modulate per phase.
   mood: Mood;
   paused: boolean;
 }
 
 const OUTSET = 28;
+const HALO_HEX = '#f5a44a';
+const HALO_ALPHA = 0.55;
 
-// Parse rgba(r, g, b, a) → { hex: '#RRGGBB', alpha: number }
-// react-native-svg stopColor does not support rgba() or 8-char hex;
-// alpha must come from stopOpacity.
-function parseHaloColor(rgba: string): { hex: string; alpha: number } {
-  const m = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-  if (!m) return { hex: '#F3C4A8', alpha: 0.35 };
-  const r = parseInt(m[1], 10);
-  const g = parseInt(m[2], 10);
-  const b = parseInt(m[3], 10);
-  const a = m[4] != null ? parseFloat(m[4]) : 1;
-  const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  return { hex, alpha: a };
-}
-
-export function BubHalo({ size, mood, paused }: Props) {
+export function BubHalo({ size, paused }: Props) {
   const opacity = useSharedValue(0.7);
-  const scale = useSharedValue(0.95);
 
   useEffect(() => {
     if (paused) {
       cancelAnimation(opacity);
-      cancelAnimation(scale);
       return;
     }
-    const dur = 4000;
+    const dur = 4500; // matches body wobble per spec
     const easing = Easing.inOut(Easing.ease);
     opacity.value = withRepeat(
       withSequence(
@@ -55,28 +42,18 @@ export function BubHalo({ size, mood, paused }: Props) {
       -1,
       false,
     );
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.02, { duration: dur / 2, easing }),
-        withTiming(0.95, { duration: dur / 2, easing }),
-      ),
-      -1,
-      false,
-    );
     return () => {
       cancelAnimation(opacity);
-      cancelAnimation(scale);
     };
   }, [paused]);
 
-  const { hex: haloHex, alpha: haloAlpha } = parseHaloColor(moodPalette[mood].halo);
   const haloSize = size + OUTSET * 2;
   const cx = haloSize / 2;
   const cy = haloSize / 2;
 
+  // Spec: no scaling on the orb. Halo only modulates opacity.
   const animStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }],
   }));
 
   return (
@@ -97,8 +74,8 @@ export function BubHalo({ size, mood, paused }: Props) {
         <Svg width={haloSize} height={haloSize}>
           <Defs>
             <RadialGradient id="bubHaloGrad" cx="50%" cy="50%" r="50%">
-              <Stop offset="0%"   stopColor={haloHex} stopOpacity={haloAlpha} />
-              <Stop offset="100%" stopColor={haloHex} stopOpacity={0} />
+              <Stop offset="0%"   stopColor={HALO_HEX} stopOpacity={HALO_ALPHA} />
+              <Stop offset="100%" stopColor={HALO_HEX} stopOpacity={0} />
             </RadialGradient>
           </Defs>
           <Ellipse cx={cx} cy={cy} rx={cx} ry={cy} fill="url(#bubHaloGrad)" />

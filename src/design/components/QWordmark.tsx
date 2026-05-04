@@ -70,7 +70,10 @@ export function QWordmark({ connected = true, state = 'idle' }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.wordmark}>quartzie</Text>
+      <Text style={styles.wordmark}>
+        <Text style={styles.wordmarkBone}>{'DABWITH'}</Text>
+        <Text style={styles.wordmarkAmber}>{'.ME'}</Text>
+      </Text>
       <View style={styles.statusRow}>
         {connected && (
           <View style={styles.dotWrap}>
@@ -105,14 +108,19 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
   },
-  // Wordmark logotype — Georgia italic is an intentional brand exception (the
-  // only non-Geist surface in the app). Keep in sync with DESIGN.md (logotype).
+  // Wordmark logotype — Bebas Neue condensed-black UPPERCASE per shatterbox
+  // spec. Italic is banned in this register; the .ME suffix carries amber.
   wordmark: {
-    fontFamily: 'Georgia',
-    fontStyle: 'italic',
+    fontFamily: 'BebasNeue_400Regular',
     fontSize: 22,
     color: colors.bone100,
-    letterSpacing: -0.2,
+    letterSpacing: 0.13, // +0.6% * 22
+  },
+  wordmarkBone: {
+    color: colors.bone100,
+  },
+  wordmarkAmber: {
+    color: colors.firedAmber,
   },
   statusRow: {
     flexDirection: 'row',
