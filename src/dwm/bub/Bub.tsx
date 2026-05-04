@@ -13,7 +13,6 @@ import Animated, {
 import { BubBody }  from './BubBody';
 import { BubFace }  from './BubFace';
 import { BubHalo }  from './BubHalo';
-import { Flames }   from './extras/Flames';
 import { Torch }    from './extras/Torch';
 import { Bubbles }  from './extras/Bubbles';
 import { Wave }     from './extras/Wave';
@@ -199,7 +198,6 @@ export function Bub({
     ],
   }));
 
-  const hasFlames   = extras.includes('flames');
   const hasTorch    = extras.includes('torch');
   const hasBubbles  = extras.includes('bubbles');
   const hasWave     = extras.includes('wave');
@@ -210,8 +208,6 @@ export function Bub({
   const inner = (
     <>
       <BubHalo size={px} mood={mood} paused={paused} />
-
-      {hasFlames && <Flames size={px} paused={paused} />}
 
       {/* transform-origin 50% 60% approximated by nesting; Reanimated v4 supports
           the transformOrigin style key on web but on native we accept 50% 50% — close enough

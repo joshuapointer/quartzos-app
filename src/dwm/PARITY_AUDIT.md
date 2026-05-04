@@ -457,3 +457,55 @@ $ npx tsc --noEmit
 (0 errors, exit 0)
 ```
 
+---
+
+## 2026-05-03 — Pass #5 (Ralph completion deslop)
+
+Post-architect-approval deslop pass scoped to the 29 files touched in the
+parity-audit ralph session. Removed dead code surfaced by full re-read.
+
+### Removed
+
+- **`bub/extras/Flames.tsx`** (file deleted, 218 LoC) — no phase ever passed
+  `'flames'` in `BUB_BY_PHASE.heating.extras` after D-4 (heating extras
+  switched to `['torch', 'sweat']`). Component had no live consumer.
+- **`bub/Bub.tsx`** — dropped `import { Flames }`, the `hasFlames` derived
+  flag, and the `{hasFlames && <Flames…/>}` render branch.
+- **`bub/types.ts`** — dropped `'flames'` literal from the `BubProps.extras`
+  union (orphan type member after the consumer was deleted).
+- **`screens/ConnectScreen.tsx`** — removed `ConnectScreenProps`/`onHoldComplete`.
+  The hold-Bub gesture is owned by `DwmFlow`'s `<HoldBub>` wrapper around the
+  orb, not the screen body. Component now takes no props.
+- **`screens/ConnectingScreen.tsx`** — removed `ConnectingScreenProps`/`onCancelScan`.
+  Cancel-scan button was deleted in P0-8; the prop went unused (`_props` flag
+  in the signature was the giveaway). BLE state machine resets to `cold` on
+  scan timeout.
+- **`screens/ReviewScreen.tsx`** — removed `onHoldComplete` from
+  `ReviewScreenProps`. Same pattern: the hold-bub commit is wired in `DwmFlow`,
+  not the screen.
+- **`screens/CompleteScreen.tsx`** — removed `bangerName` from
+  `CompleteScreenProps`. Component never destructured it; the stat row uses
+  `targetF`/`sessionElapsedS` only.
+- **`flow/ScreenSlot.tsx`** — removed `onHoldComplete` and `onCancelScan` from
+  `ScreenSlotProps` (no remaining consumer); dropped the corresponding
+  `bangerName={…}` pass-through to `CompleteScreen`.
+- **`flow/DwmFlow.tsx`** — removed the `handleCancelScan` callback (no
+  consumer after the cancel-scan prop chain was removed) and dropped the
+  `onHoldComplete={handleHoldComplete}` + `onCancelScan={…}` pass-throughs at
+  the `<ScreenSlot>` call site. `handleHoldComplete` itself stays — it is the
+  active handler for the `<HoldBub>` ring around the orb.
+
+### File count
+
+Started this pass: 86 (84 `.ts`/`.tsx` + `PARITY_AUDIT.md`). Now: 85 (83
+`.ts`/`.tsx` + `PARITY_AUDIT.md`). One file deleted (`Flames.tsx`).
+Justification: zero live consumers, no future need (heating extras spec is
+locked to `['torch', 'sweat']`). Above the 81-file floor.
+
+### Verified clean
+
+```
+$ npx tsc --noEmit
+(0 errors, exit 0)
+```
+

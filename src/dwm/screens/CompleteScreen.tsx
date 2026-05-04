@@ -12,7 +12,6 @@ import { PHASE_COPY } from '../flow/copy';
 
 export interface CompleteScreenProps {
   targetF: number;
-  bangerName: string;
   sessionElapsedS: number;
   onAgain: () => void;
   onNew: () => void;

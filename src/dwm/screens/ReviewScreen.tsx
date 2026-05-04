@@ -16,7 +16,6 @@ export interface ReviewScreenProps {
   banger: Banger;
   concentrate: Concentrate;
   wall: WallThickness;
-  onHoldComplete: () => void;
   onSetPhase: (phase: DwmPhase) => void;
 }
 

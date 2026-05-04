@@ -15,7 +15,7 @@ export interface BubProps {
   size?: BubSize;
   coreOverride?: string;
   edgeOverride?: string;
-  extras?: ReadonlyArray<'flames' | 'torch' | 'bubbles' | 'wave' | 'suds' | 'sparkles' | 'sweat'>;
+  extras?: ReadonlyArray<'torch' | 'bubbles' | 'wave' | 'suds' | 'sparkles' | 'sweat'>;
   torchLit?: boolean;
   squish?: boolean;
   onPress?: () => void;

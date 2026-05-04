@@ -5,11 +5,7 @@ import { PHASE_COPY } from '../flow/copy';
 
 // Prototype `renderConnect` scanning branch (lines 2622–2630): no cancel button.
 // The BLE state machine resets to `cold` on scan timeout (30 s) anyway.
-export interface ConnectingScreenProps {
-  onCancelScan: () => void;
-}
-
-export default function ConnectingScreen(_props: ConnectingScreenProps) {
+export default function ConnectingScreen() {
   const copy = PHASE_COPY.connecting;
   return (
     <View style={styles.well}>

@@ -3,11 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { palette, fontStack, layout } from '../tokens';
 import { PHASE_COPY } from '../flow/copy';
 
-export interface ConnectScreenProps {
-  onHoldComplete: () => void;
-}
-
-export default function ConnectScreen(_props: ConnectScreenProps) {
+export default function ConnectScreen() {
   const copy = PHASE_COPY.cold;
   return (
     <View style={styles.well}>

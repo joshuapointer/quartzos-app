@@ -45,8 +45,6 @@ export interface ScreenSlotProps {
   // running session timer (drives session-phase eyebrows)
   sessionElapsedS: number;
   // callbacks
-  onHoldComplete: () => void;
-  onCancelScan: () => void;
   onPickPreset: (id: string) => void;
   onPickRecent: (id: string) => void;
   onBuildFresh: () => void;
@@ -80,8 +78,6 @@ export function ScreenSlot({
   showWindowFallback,
   windowDwellPct,
   sessionElapsedS,
-  onHoldComplete,
-  onCancelScan,
   onPickPreset,
   onPickRecent,
   onBuildFresh,
@@ -97,10 +93,10 @@ export function ScreenSlot({
 }: ScreenSlotProps) {
   switch (phase) {
     case 'cold':
-      return <ConnectScreen onHoldComplete={onHoldComplete} />;
+      return <ConnectScreen />;
 
     case 'connecting':
-      return <ConnectingScreen onCancelScan={onCancelScan} />;
+      return <ConnectingScreen />;
 
     case 'connected':
       return <ConnectedScreen />;
@@ -151,7 +147,6 @@ export function ScreenSlot({
             banger={banger}
             concentrate={concentrate}
             wall={wall}
-            onHoldComplete={onHoldComplete}
             onSetPhase={onSetPhase}
           />
         );
@@ -197,7 +192,6 @@ export function ScreenSlot({
       return (
         <CompleteScreen
           targetF={targetF}
-          bangerName={banger?.name ?? 'Banger'}
           sessionElapsedS={sessionElapsedS}
           onAgain={onAgain}
           onNew={onNew}

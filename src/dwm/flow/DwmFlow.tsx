@@ -430,12 +430,6 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
     }
   }, [phase, setPhase]);
 
-  const handleCancelScan = useCallback(() => {
-    bleManager.stopScan();
-    bleManager.cancelReconnect();
-    setPhase('cold');
-  }, [setPhase]);
-
   const handlePickRecent = useCallback((id: string) => {
     const recent = recents.find((r) => r.id === id);
     if (!recent) return;
@@ -540,8 +534,6 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             showWindowFallback={windowFallback}
             windowDwellPct={windowDwellPct}
             sessionElapsedS={sessionElapsedS}
-            onHoldComplete={handleHoldComplete}
-            onCancelScan={handleCancelScan}
             onPickPreset={selectPreset}
             onPickRecent={handlePickRecent}
             onBuildFresh={handleBuildFresh}
