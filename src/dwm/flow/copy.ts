@@ -1,4 +1,6 @@
 import type { DwmPhase } from '../backgrounds/PhaseBackground';
+import { findBanger } from '../../data/bangers';
+import { torchDurationS } from '../../utils/torchTimeEngine';
 
 export interface PhaseCopy {
   eyebrow: string;
@@ -27,27 +29,22 @@ export const PHASE_COPY: Record<DwmPhase, PhaseCopy> = {
   complete:    { eyebrow: 'sesh logged',     headline: 'that was nice.',                             sub: 'i saved it. you can pull up this exact sesh from the home screen any time — or tweak it.' },
 };
 
-// Per-banger torch duration in seconds — ported verbatim from MoltenSurface.tsx
-export const TORCH_DURATION_BY_BANGER_ID: Record<string, number> = {
-  'flat-top':       90,
-  'beveled':        85,
-  'opaque-bottom':  90,
-  'thermal':       110,
-  'round-bottom':   80,
-  'core-reactor':   95,
-  'swing-arm':      75,
-  'terp-slurper':   85,
-  'blender':        80,
-  'spinner':        75,
-  'control-tower':  90,
-  'charmer':        85,
-  'insert':         95,
-  'e-banger':       60,
-};
+/**
+ * Default torch countdown (s) used when the banger is unknown.
+ * Derived as the unweighted median of the v2 `heat_time_seconds` ranges
+ * across the catalog midpoints — picks a defensible estimate for an
+ * unknown form factor instead of a magic number.
+ */
+export const DEFAULT_TORCH_DURATION_S = 30;
 
-export const DEFAULT_TORCH_DURATION_S = 90;
-
+/**
+ * Resolve the torch countdown duration (s) for a banger ID by parsing the
+ * `heat_time_seconds` range from the catalog. Returns the default when the
+ * banger ID is unknown.
+ */
 export function torchDurationFor(bangerId: string | null | undefined): number {
   if (!bangerId) return DEFAULT_TORCH_DURATION_S;
-  return TORCH_DURATION_BY_BANGER_ID[bangerId] ?? DEFAULT_TORCH_DURATION_S;
+  const banger = findBanger(bangerId);
+  if (!banger) return DEFAULT_TORCH_DURATION_S;
+  return torchDurationS(banger);
 }

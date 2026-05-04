@@ -1,7 +1,9 @@
 /**
  * Barrel module re-exporting the four perfect-dab catalogs plus the META block
  * (units, calibration formula, data sources, confidence levels, examples) and
- * enum constants — sourced verbatim from docs/perfect_dab/schema.json.
+ * enum constants.
+ *
+ * Source: docs/perfect_dab/schema.json (v2.0.0).
  */
 
 export {
@@ -16,10 +18,10 @@ export {
   type InsertBanger,
   type EnailBanger,
   type ColdStartCompatibility,
-  type IrOffsetSign,
   type TorchPattern,
   type TorchZone,
   type HeatTimeStage,
+  type CoolingProfile,
 } from './bangers';
 
 export {
@@ -30,8 +32,6 @@ export {
   type ConcentrateId,
   type ConcentrateCategory,
   type TerpeneProfile,
-  type SolventlessConcentrate,
-  type HydrocarbonConcentrate,
 } from './concentrates';
 
 export {
@@ -48,8 +48,14 @@ export {
   type WallThicknessId,
 } from './wallThicknesses';
 
+export {
+  CALIBRATION_CONSTANTS,
+  type CalibrationConstants,
+  type FusedSilicaProperties,
+} from './calibrationConstants';
+
 // ---------------------------------------------------------------------------
-// META — sourced from schema.json (meta + calibration blocks)
+// META — sourced from schema.json (meta + calibration blocks, v2.0.0)
 // ---------------------------------------------------------------------------
 
 export interface CalibrationExample {
@@ -81,10 +87,10 @@ export interface DabMeta {
 
 export const META: DabMeta = {
   name: 'QuartzOS Reference Data',
-  version: '1.0.0',
-  release_date: '2026-04-27',
+  version: '2.0.0',
+  release_date: '2026-04-28',
   description:
-    'Production-grade reference data for cannabis concentrate dabbing — banger form factors, concentrates, sensors, and temperature calibrations. Sourced from manufacturer documentation (Dab Rite, Highly Educated, Quave, Honeybee Herb), brand guidance (710 Labs, Mood, Press Club), and 2025-2026 community consensus.',
+    'Production-grade reference data for cannabis concentrate dabbing. The v2 four-term metrology model derives every dab parameter from physical constants and per-banger / per-concentrate / per-sensor / per-wall coefficients, replacing the v1 fused single-offset.',
   license:
     'Open data for non-commercial integration. Verify temperature recommendations against current community testing before production deployment.',
   units: {
@@ -94,40 +100,47 @@ export const META: DabMeta = {
     wall_thickness: 'millimeters',
   },
   temperature_convention:
-    'All concentrate.surface_temp_f values are INTERIOR SURFACE temperatures (probe-truth, Terpometer V1 contact). Sensor readings on instruments differ — use the sensor + banger.ir_offset_f + banger.ir_offset_sign math to convert.',
+    'Two anchors: surface_temp_optimal_f (interior probe-truth) and fluid_target_optimal_f (boiling target of oil; surface − phase_change_load).',
   calibration_formula:
-    'displayed_temp = interior_surface_temp + (banger.ir_offset_sign * banger.ir_offset_f) + wall.modifier_f',
+    'T_IR_Setpoint = T_Ideal + dT_Load + (banger.gradient_lag_f × wall.gradient_multiplier) + (sensor.emissivity_bias_f × banger.emissivity_bias_multiplier)',
   calibration_explanation: [
-    '1. Start with concentrate.surface_temp_optimal_f (interior surface — what the dab actually contacts)',
-    '2. Apply wall.modifier_f (thicker walls hold more heat, target slightly higher)',
-    '3. Multiply banger.ir_offset_f by banger.ir_offset_sign (-1 for bucket-class, +1 for slurper-class, 0 for e-nail)',
-    "4. Add result to surface temp to get the displayed temp on the user's instrument",
+    '1. T_Ideal := concentrate.fluid_target_optimal_f (boiling target of the oil itself).',
+    '2. dT_Load := CALIBRATION_CONSTANTS.phase_change_load_f (cold-mass + cap heat-sink, ~65°F).',
+    '3. dT_Gradient := banger.gradient_lag_f × wall.gradient_multiplier (Fourier conduction lag).',
+    '4. dT_emissivity := sensor.emissivity_bias_f × banger.emissivity_bias_multiplier (firmware ε vs. material ε).',
+    '5. Contact probe: setpoint = surface_temp_optimal_f directly.',
+    '6. E-nail PID: setpoint = surface_temp_optimal_f + sensor.emissivity_bias_f (coil-vs-surface midpoint).',
   ],
   calibration_examples: [
     {
-      scenario: 'Live Resin + Flat Top + IR + Standard wall',
-      math: '510 (interior) + 0 (wall) + (-1 * 35) (bucket-class IR offset) = 475°F displayed on Dab Rite',
-      displayed_target_f: 475,
+      scenario: 'Live Rosin · Flat Top · Dab Rite IR · Std (4mm clear)',
+      math: '415 + 65 + 25 (gradient) + 15 (emissivity) = 520°F',
+      displayed_target_f: 520,
     },
     {
-      scenario: 'Live Resin + Blender + IR + Standard wall',
-      math: '510 (interior) + 0 (wall) + (+1 * 20) (slurper-class IR offset) = 530°F displayed on Dab Rite',
-      displayed_target_f: 530,
+      scenario: 'Live Rosin · Opaque Bottom · Dab Rite IR (Opaque preset) · Std',
+      math: '415 + 65 + 35 (gradient) + 3 (emissivity, Opaque preset) = 518°F',
+      displayed_target_f: 518,
     },
     {
-      scenario: 'Cold Cure Rosin + Terp Slurper + IR + Standard wall',
-      math: '460 (interior) + 0 (wall) + (+1 * 20) (slurper-class IR offset) = 480°F displayed on Dab Rite',
+      scenario: 'Cured Shatter · Flat Top · Dab Rite IR · Thin (2mm)',
+      math: '480 + 65 + 13 (25 × 0.5) + 15 (emissivity) ≈ 573°F',
+      displayed_target_f: 573,
+    },
+    {
+      scenario: 'Live Rosin · Flat Top · Terpometer V1 contact probe',
+      math: '480 (surface) = 480°F displayed',
       displayed_target_f: 480,
     },
     {
-      scenario: 'Live Resin + Flat Top + Probe + Standard wall',
-      math: '510 (interior) + 0 (wall) + 0 (probe is contact, no offset) = 510°F displayed on Terpometer',
+      scenario: 'Live Rosin · Blender slurper · Dab Rite IR · Std',
+      math: '415 + 65 + 15 (gradient) + 15 (emissivity) = 510°F',
       displayed_target_f: 510,
     },
     {
-      scenario: 'Live Resin + E-Banger + PID + Standard wall',
-      math: '510 (interior) + 0 (wall) + 50 (PID midpoint coil offset) = 560°F PID setpoint',
-      displayed_target_f: 560,
+      scenario: 'Live Rosin · E-Banger PID · Std',
+      math: '480 (surface) + 50 (PID coil offset) = 530°F',
+      displayed_target_f: 530,
     },
   ],
   calibration_workflow_note:
@@ -142,7 +155,9 @@ export const META: DabMeta = {
     'Press Club temple ball / hash temp guidance',
     'Quave Club Banger product documentation',
     'Hashwriter community Terpometer averages',
-    'Reddit r/Dabs, r/QuartzBangers technique threads (2024-2026)',
+    'Reddit r/Dabs, r/QuartzBangers, r/COents technique threads (2024-2026)',
+    'Thermophysical properties of fused silica (k=1.4 W/m·K, ρ=2200 kg/m³, Cp=730 J/kg·K, ε≈0.92 at 400-600°F)',
+    'Stefan-Boltzmann radiometric analysis of Dab Rite Pro v2.2 firmware (ε_set=0.95)',
   ],
   confidence_levels: {
     S: 'peer-reviewed scientific source',
@@ -164,7 +179,7 @@ export interface EnumOption {
 }
 
 export interface BangerGeometryOption extends EnumOption {
-  readonly ir_offset_direction: 'negative' | 'positive' | 'none';
+  readonly gradient_lag_direction: 'positive' | 'positive_small' | 'none';
   readonly description: string;
 }
 
@@ -179,33 +194,37 @@ export const BANGER_GEOMETRIES: readonly BangerGeometryOption[] = [
   {
     id: 'bucket',
     label: 'Bucket-class',
-    ir_offset_direction: 'negative',
-    description: 'IR display reads LOWER than interior surface',
+    gradient_lag_direction: 'positive',
+    description:
+      'Exterior measurement face cools faster than interior — IR reads lower than dab interface during cooldown.',
   },
   {
     id: 'slurper',
     label: 'Slurper-class',
-    ir_offset_direction: 'positive',
-    description:
-      'IR display reads HIGHER than interior surface (thin column wall, direct flame)',
+    gradient_lag_direction: 'positive_small',
+    description: 'Side-of-column aim. Thin wall, small gradient lag.',
   },
   {
     id: 'insert',
     label: 'Insert workflow',
-    ir_offset_direction: 'negative',
-    description: 'Read host banger temp, not insert directly',
+    gradient_lag_direction: 'positive',
+    description: 'Read host banger temp + extra gradient through insert.',
   },
   {
     id: 'enail',
     label: 'E-nail (electric)',
-    ir_offset_direction: 'none',
-    description: 'PID setpoint, no torch, no IR needed',
+    gradient_lag_direction: 'none',
+    description:
+      'PID setpoint; coil-vs-surface offset handled in sensor.emissivity_bias_f.',
   },
 ] as const;
 
 export const CONCENTRATE_CATEGORIES: readonly EnumOption[] = [
   { id: 'solventless', label: 'Solventless' },
+  { id: 'hash', label: 'Hash' },
   { id: 'hydrocarbon', label: 'Hydrocarbon' },
+  { id: 'distillate', label: 'Distillate' },
+  { id: 'novel', label: 'Novel / 2026' },
 ] as const;
 
 export const TORCH_PATTERNS: readonly EnumOption[] = [

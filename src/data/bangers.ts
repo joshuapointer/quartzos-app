@@ -1,16 +1,21 @@
 /**
  * Quartz banger form factors in active 2025-2026 production.
  *
- * Source: docs/perfect_dab/bangers.json
+ * Source: docs/perfect_dab/bangers.json (v2.0.0).
  *
- * Every field in the source JSON is preserved here. The `geometry` field is
- * the discriminator for IR offset math (bucket-class subtracts, slurper-class
- * adds, insert reads host, e-nail does not use IR).
+ * v2 fields (replace the v1 fused single-offset model):
+ *   - `gradient_lag_f` — Fourier-law conduction lag (interior → exterior face).
+ *     Anchored at standard 3-4 mm wall; scaled by `wall.gradient_multiplier`.
+ *   - `emissivity_bias_multiplier` — scales `sensor.emissivity_bias_f`.
+ *     1.0 = clear quartz (full firmware bias).
+ *     0.2 = opaque quartz with Dab Rite "Opaque Quartz" preset.
+ *     0   = no IR (e-nail).
+ *
+ * Heat-time / cooldown / cooling.k_per_second drive the dab-window engine.
  */
 
 export type BangerCategory = 'classic' | 'slurper' | 'specialty' | 'premium';
 export type BangerGeometry = 'bucket' | 'slurper' | 'insert' | 'enail';
-export type IrOffsetSign = -1 | 0 | 1;
 export type ColdStartCompatibility = 'YES' | 'NO' | 'OPTIONAL';
 export type TorchPattern =
   | 'circular_sweep'
@@ -30,20 +35,25 @@ export interface HeatTimeStage {
   readonly duration_seconds: number;
 }
 
+export interface CoolingProfile {
+  readonly k_per_second: number | null;
+  readonly thermal_class: string;
+}
+
 interface BangerBase {
   readonly id: string;
   readonly name: string;
   readonly category: BangerCategory;
   readonly description: string;
   readonly surface_temp_range_f: readonly [number, number];
-  readonly ir_offset_f: number;
-  readonly ir_offset_sign: IrOffsetSign;
+  readonly gradient_lag_f: number;
+  readonly emissivity_bias_multiplier: number;
   readonly ir_aim_location: string;
   readonly heat_time_seconds: string;
   readonly heat_time_breakdown?: readonly HeatTimeStage[];
   readonly heat_method?: string;
   readonly cooldown_seconds: string;
-  readonly cooling: { readonly k_per_second: number | null; readonly thermal_class: string };
+  readonly cooling: CoolingProfile;
   readonly torch_pattern: TorchPattern;
   readonly torch_zones: readonly TorchZone[];
   readonly torch_distance_inches: string | null;
@@ -83,8 +93,8 @@ export const BANGERS: readonly Banger[] = [
     geometry: 'bucket',
     description: 'Universal default. Cylindrical bucket, flat rim. ~80% of bangers in market.',
     surface_temp_range_f: [500, 600],
-    ir_offset_f: 35,
-    ir_offset_sign: -1,
+    gradient_lag_f: 25,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Center underside of bucket bottom, 1/2" away',
     heat_time_seconds: '20-40',
     cooldown_seconds: '30-45',
@@ -99,13 +109,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'OPTIONAL',
     tags: ['CLASSIC'],
     notable_manufacturers: [
-      'Quave',
-      'Toro',
-      'Highly Educated',
-      'Evan Shore',
-      'Honeybee Herb',
-      'Pulsar',
-      'MJ Arsenal',
+      'Quave', 'Toro', 'Highly Educated', 'Evan Shore', 'Honeybee Herb', 'Pulsar', 'MJ Arsenal',
     ],
   },
   {
@@ -116,8 +120,8 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Inward-cut bevel for flush bubble cap seal. Better seal lets you target 20-40°F lower than non-beveled flat top.',
     surface_temp_range_f: [480, 580],
-    ir_offset_f: 35,
-    ir_offset_sign: -1,
+    gradient_lag_f: 25,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Center underside of bucket bottom, 1/2" away',
     heat_time_seconds: '25-35',
     cooldown_seconds: '35-50',
@@ -132,11 +136,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'OPTIONAL',
     tags: ['CLASSIC', 'BETTER_SEAL'],
     notable_manufacturers: [
-      'Quave',
-      'Highly Educated Gavel',
-      'Evan Shore',
-      'Pulsar Beveled Edge',
-      'Honeybee Herb Original Bevel',
+      'Quave', 'Highly Educated Gavel', 'Evan Shore', 'Pulsar Beveled Edge', 'Honeybee Herb Original Bevel',
     ],
   },
   {
@@ -145,10 +145,10 @@ export const BANGERS: readonly Banger[] = [
     category: 'premium',
     geometry: 'bucket',
     description:
-      'Sandblasted/frosted bottom disc. Best IR accuracy of any banger. Use Dab Rite "Opaque Quartz" emissivity preset.',
+      'Sandblasted/frosted bottom disc with nucleated silica. Air pockets boost surface area for boil but also act as a strong thermal barrier (large gradient lag). Use Dab Rite "Opaque Quartz" preset to cancel most emissivity bias.',
     surface_temp_range_f: [480, 560],
-    ir_offset_f: 25,
-    ir_offset_sign: -1,
+    gradient_lag_f: 35,
+    emissivity_bias_multiplier: 0.2,
     ir_aim_location:
       'Center of opaque bottom underside, 1/2" away (Dab Rite: switch to Opaque Quartz preset)',
     heat_time_seconds: '30-40',
@@ -162,12 +162,9 @@ export const BANGERS: readonly Banger[] = [
     torch_distance_inches: '1-2',
     visual_cue: 'Faint side-wall glow only — opaque hides bottom glow',
     cold_start_compatible: 'OPTIONAL',
-    tags: ['BEST_IR_ACCURACY'],
+    tags: ['BEST_IR_ACCURACY', 'HIGH_GRADIENT_LAG'],
     notable_manufacturers: [
-      'Evan Shore Opaque ESB',
-      'Highly Educated Gavel V3',
-      'Lavatech XL Opaque',
-      'Honeybee Herb Honey & Milk',
+      'Evan Shore Opaque ESB', 'Highly Educated Gavel V3', 'Lavatech XL Opaque', 'Honeybee Herb Honey & Milk',
     ],
   },
   {
@@ -176,10 +173,10 @@ export const BANGERS: readonly Banger[] = [
     category: 'specialty',
     geometry: 'bucket',
     description:
-      'Air gap between walls insulates inner cup. IR reads cooler than actual oil contact temp because IR sees outer wall — compensate via timing.',
+      'Air gap between walls insulates inner cup. IR reads dramatically cooler than oil contact temp because IR sees the outer wall across an air gap.',
     surface_temp_range_f: [500, 600],
-    ir_offset_f: 60,
-    ir_offset_sign: -1,
+    gradient_lag_f: 60,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Outer base of bucket, 1/2" away (manufacturer-correct aim)',
     heat_time_seconds: '30-45',
     cooldown_seconds: '45-60',
@@ -192,13 +189,9 @@ export const BANGERS: readonly Banger[] = [
     torch_distance_inches: '0.5-1',
     visual_cue: 'No glow / faint outer corner glow only',
     cold_start_compatible: 'YES',
-    tags: ['IR_READS_LOW'],
+    tags: ['IR_READS_LOW', 'DOUBLE_WALL'],
     notable_manufacturers: [
-      'AFM Thermal',
-      'Pukinbeagle',
-      'Pulsar Thermal',
-      'Honeybee Herb',
-      'Ooze Quartz Thermal',
+      'AFM Thermal', 'Pukinbeagle', 'Pulsar Thermal', 'Honeybee Herb', 'Ooze Quartz Thermal',
     ],
   },
   {
@@ -209,8 +202,8 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Hemispherical interior, no corners. Best shape for terp pearls (rolls freely) and cold start (oil pools center).',
     surface_temp_range_f: [500, 600],
-    ir_offset_f: 35,
-    ir_offset_sign: -1,
+    gradient_lag_f: 25,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Lowest curve apex (= bottom center), 1/2" away',
     heat_time_seconds: '30-45',
     cooldown_seconds: '30-50',
@@ -225,10 +218,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'YES',
     tags: ['CLASSIC', 'COLD_START_IDEAL'],
     notable_manufacturers: [
-      'AFM Round Bottom',
-      'Bear Quartz Round V2',
-      'VapeBrat Full-Weld',
-      'Joel Halen artisan',
+      'AFM Round Bottom', 'Bear Quartz Round V2', 'VapeBrat Full-Weld', 'Joel Halen artisan',
     ],
   },
   {
@@ -237,10 +227,10 @@ export const BANGERS: readonly Banger[] = [
     category: 'specialty',
     geometry: 'bucket',
     description:
-      'Central pillar increases surface area + thermal mass. Cold-start compatible per Honeybee Herb.',
+      'Central pillar increases surface area + thermal mass. Larger gradient lag than plain bucket due to extra mass. Cold-start compatible per Honeybee Herb.',
     surface_temp_range_f: [500, 580],
-    ir_offset_f: 45,
-    ir_offset_sign: -1,
+    gradient_lag_f: 30,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Inner bucket floor around pillar, 1/2" away',
     heat_time_seconds: '25-30',
     cooldown_seconds: '45-60',
@@ -255,10 +245,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'YES',
     tags: ['HEAT_MASS', 'COLD_START_OK'],
     notable_manufacturers: [
-      'VapeBrat Core Reactor',
-      'Yo Dabba Dabba',
-      'Honeybee Herb Honey & Milk Core Reactor',
-      'Termini',
+      'VapeBrat Core Reactor', 'Yo Dabba Dabba', 'Honeybee Herb Honey & Milk Core Reactor', 'Termini',
     ],
   },
   {
@@ -269,8 +256,8 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Legacy form factor — heat dome out of chamber, swing back in. NOT cold-start compatible.',
     surface_temp_range_f: [500, 600],
-    ir_offset_f: 40,
-    ir_offset_sign: -1,
+    gradient_lag_f: 28,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Outside of dome in heating position, ~1" away',
     heat_time_seconds: '15-30',
     cooldown_seconds: '10-30',
@@ -289,10 +276,10 @@ export const BANGERS: readonly Banger[] = [
     category: 'slurper',
     geometry: 'slurper',
     description:
-      'Bottom dish + slotted column + bucket. Marble cap. Hot-start required — vortex needs preheat.',
+      'Bottom dish + slotted column + bucket. Marble cap. Hot-start required — vortex needs preheat. IR aimed at side of column, NOT dish underside.',
     surface_temp_range_f: [420, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location:
       'Side of cup ~1/2" above the dish (column, NOT dish underside) — Dab Rite 2025 spec',
     heat_time_seconds: '55-90',
@@ -314,13 +301,8 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'NO',
     tags: ['SLURPER_CLASS', 'NO_COLD_START'],
     notable_manufacturers: [
-      'Toro (originator)',
-      'Highly Educated',
-      'Evan Shore',
-      'MJ Arsenal',
-      'Pulsar Bubble Barrel',
-      'Bear Quartz',
-      'Campfire Quartz',
+      'Toro (originator)', 'Highly Educated', 'Evan Shore', 'MJ Arsenal',
+      'Pulsar Bubble Barrel', 'Bear Quartz', 'Campfire Quartz',
     ],
   },
   {
@@ -328,10 +310,10 @@ export const BANGERS: readonly Banger[] = [
     name: 'Blender / Vector',
     category: 'slurper',
     geometry: 'slurper',
-    description: 'Slotted hurricane disc spins pearls automatically. Tighter temp window than slurper.',
+    description: 'Slotted hurricane disc spins pearls automatically. Tighter temp window than slurper. Side-of-tower aim — thin wall, small gradient lag.',
     surface_temp_range_f: [500, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Side of the tower at mid-height (slurper-class aim — NOT disc underside)',
     heat_time_seconds: '25-35',
     cooldown_seconds: '30-45',
@@ -346,10 +328,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'OPTIONAL',
     tags: ['SLURPER_CLASS', 'AUTO_SPIN'],
     notable_manufacturers: [
-      'Bear Quartz V2 Blender',
-      'Pulsar Quartz Blender',
-      'Campfire V2 Blender',
-      'VapeBrat Swirl',
+      'Bear Quartz V2 Blender', 'Pulsar Quartz Blender', 'Campfire V2 Blender', 'VapeBrat Swirl',
     ],
   },
   {
@@ -360,8 +339,8 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Angled airflow holes drive pearl spin via inhale velocity. Pearl spin is airflow-driven, not temperature-driven.',
     surface_temp_range_f: [500, 600],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Side of bucket wall mid-height (avoid drilled holes — radial crack risk)',
     heat_time_seconds: '25-40',
     cooldown_seconds: '45-60',
@@ -376,10 +355,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'OPTIONAL',
     tags: ['SLURPER_CLASS', 'AUTO_SPIN'],
     notable_manufacturers: [
-      'Yo Dabba Dabba Auto-Spinner',
-      'VapeBrat Cyclone',
-      'aLeaf Deep Dish Auto-Spin',
-      'IC Glass',
+      'Yo Dabba Dabba Auto-Spinner', 'VapeBrat Cyclone', 'aLeaf Deep Dish Auto-Spin', 'IC Glass',
     ],
   },
   {
@@ -390,8 +366,8 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Highly Educated proprietary slurper with SE Pillar (Surface Enhanced micro-textured quartz). Manufacturer targets: 450°F solventless / 550°F hydrocarbon (interior surface).',
     surface_temp_range_f: [450, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Side of the chamber, NOT the dish (Highly Educated FAQ)',
     heat_time_seconds: '50-60',
     heat_method:
@@ -404,10 +380,7 @@ export const BANGERS: readonly Banger[] = [
     visual_cue: 'Pillar visibly at temp, faint glow in dim room',
     cold_start_compatible: 'NO',
     tags: ['MFR_SPEC', 'SE_PILLAR'],
-    manufacturer_targets_f: {
-      solventless: 450,
-      hydrocarbon: 550,
-    },
+    manufacturer_targets_f: { solventless: 450, hydrocarbon: 550 },
     notable_manufacturers: ['Highly Educated'],
   },
   {
@@ -418,8 +391,8 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Quave proprietary slurper-blender hybrid. Outer dish with vortex holes, inner cone, three pearls, marble cap.',
     surface_temp_range_f: [450, 580],
-    ir_offset_f: 20,
-    ir_offset_sign: 1,
+    gradient_lag_f: 15,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Side of the cup wall (slurper-class — inferred, no first-party doc)',
     heat_time_seconds: '35-50',
     cooldown_seconds: '30-45',
@@ -441,13 +414,13 @@ export const BANGERS: readonly Banger[] = [
     category: 'specialty',
     geometry: 'insert',
     description:
-      'Drop-in cup. Either heat host first then drop insert, or load insert cold and heat host briefly.',
+      'Drop-in cup. Either heat host first then drop insert, or load insert cold and heat host briefly. IR reads host banger, with extra gradient lag from host-to-insert thermal transfer.',
     surface_temp_range_f: [450, 550],
-    ir_offset_f: 30,
-    ir_offset_sign: -1,
+    gradient_lag_f: 30,
+    emissivity_bias_multiplier: 1.0,
     ir_aim_location: 'Host banger bottom, 1/2" away (read banger temp, not insert directly)',
-    heat_time_seconds: '25-35 host (or 10-25 cold-start)',
-    cooldown_seconds: '10 (Method 3) / full (Method 1)',
+    heat_time_seconds: '25-35',
+    cooldown_seconds: '10-30',
     cooling: { k_per_second: 0.00675, thermal_class: 'fast' },
     torch_pattern: 'circular_sweep',
     torch_zones: [
@@ -459,12 +432,7 @@ export const BANGERS: readonly Banger[] = [
     cold_start_compatible: 'YES',
     tags: ['COLD_START_IDEAL'],
     notable_manufacturers: [
-      'Eternal Quartz (originator)',
-      'Quartz Tech',
-      'Halen',
-      'Hoyes',
-      'Ruby Pearl Co (premium)',
-      'Pulsar RoK',
+      'Eternal Quartz (originator)', 'Quartz Tech', 'Halen', 'Hoyes', 'Ruby Pearl Co (premium)', 'Pulsar RoK',
     ],
   },
   {
@@ -475,11 +443,11 @@ export const BANGERS: readonly Banger[] = [
     description:
       'Coil-wrapped quartz with PID. Coil reads 30-80°F hotter than surface (varies widely by brand). MiniNail-on-MiniNail is factory-calibrated to display surface directly.',
     surface_temp_range_f: [500, 600],
-    ir_offset_f: 0,
-    ir_offset_sign: 0,
+    gradient_lag_f: 0,
+    emissivity_bias_multiplier: 0,
     ir_aim_location: 'PID set point — no IR / no torch needed',
-    heat_time_seconds: '30 stabilize',
-    cooldown_seconds: '0 (PID maintained)',
+    heat_time_seconds: '30',
+    cooldown_seconds: '0',
     cooling: { k_per_second: null, thermal_class: 'constant' },
     torch_pattern: 'none',
     torch_zones: [],
@@ -490,11 +458,7 @@ export const BANGERS: readonly Banger[] = [
     pid_offset_range_f: [30, 80],
     pid_offset_midpoint_f: 50,
     notable_manufacturers: [
-      'MiniNail',
-      'VapeBrat',
-      'Pulsar Elite',
-      'Yo Dabba Dabba',
-      'Galaxy Enails',
+      'MiniNail', 'VapeBrat', 'Pulsar Elite', 'Yo Dabba Dabba', 'Galaxy Enails',
     ],
   },
 ] as const;

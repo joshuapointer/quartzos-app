@@ -1,62 +1,72 @@
 /**
- * Perfect-dab calibration engine.
+ * Perfect-dab calibration engine — v2 metrology model.
  *
- * Converts an (concentrate, banger, sensor, wall) tuple into a *displayed*
- * dab target plus a recommended *dunk* alarm. Reproduces the canonical
- * formula from `docs/perfect_dab/schema.json`:
+ * Source: docs/perfect_dab/schema.json `calibration.formula` (v2.0.0).
  *
- *     displayed = interior_surface_temp
- *               + wall.modifier_f
- *               + sensor_branch_offset
+ * Four-term equation (IR branch):
  *
- * Where `sensor_branch_offset` is:
- *   - contact (probe)  → 0  (reading IS the surface)
- *   - ir               → banger.ir_offset_sign * banger.ir_offset_f
- *   - enail (PID)      → banger.pid_offset_midpoint_f if e-banger,
- *                         else +50°F (community midpoint)
- *   - visual           → same as ir (best estimate)
+ *     T_IR_Setpoint = T_Ideal
+ *                   + dT_Load
+ *                   + (banger.gradient_lag_f × wall.gradient_multiplier)
+ *                   + (sensor.emissivity_bias_f × banger.emissivity_bias_multiplier)
  *
- * All five `schema.calibration.examples` round-trip through this engine.
+ *   T_Ideal       := concentrate.fluid_target_optimal_f
+ *   dT_Load       := CALIBRATION_CONSTANTS.phase_change_load_f
+ *
+ * Sensor branches:
+ *   - contact (Terpometer V1 probe) → setpoint = surface_temp_optimal_f
+ *   - ir / visual                   → four-term equation above
+ *   - enail (PID)                   → setpoint = surface_temp_optimal_f + sensor.emissivity_bias_f
+ *
+ * The engine returns:
+ *   - displayedF : final number user sees on their device.
+ *   - dunkF      : derived from `dunkTempEngine` (surface 202 °F → sensor display).
+ *   - trace      : per-term breakdown for the calibration UI.
+ *   - warnings   : soft flags (interior outside concentrate's documented range).
+ *
+ * Every schema worked example reproduces within ±3 °F.
  */
 
 import type { Banger } from '../data/bangers';
 import type { Concentrate } from '../data/concentrates';
 import type { Sensor } from '../data/sensors';
 import type { WallThickness } from '../data/wallThicknesses';
+import { CALIBRATION_CONSTANTS } from '../data/calibrationConstants';
+import { dunkDisplayedF } from './dunkTempEngine';
 
-export const ENAIL_DEFAULT_MIDPOINT_F = 50;
-const ENAIL_DUNK_F = 250;
-const DUNK_DROP_F = 280;
-const DUNK_MIN_F = 200;
-const DUNK_MAX_F = 320;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface CalibrationInput {
   readonly concentrate: Concentrate;
   readonly banger: Banger;
   readonly sensor: Sensor;
   readonly wall: WallThickness;
-  /** Optional ±°F nudge on top of the computed displayed target. */
+  /** Optional ±°F nudge applied to the final displayed target. */
   readonly tuneOffsetF?: number;
 }
 
 export interface CalibrationResult {
-  /** Interior surface temp the dab actually contacts (concentrate optimum). */
-  readonly interiorF: number;
-  /** Wall modifier in °F. */
-  readonly wallModF: number;
-  /**
-   * Sensor branch offset in °F. For IR / visual this is
-   * `banger.ir_offset_sign * banger.ir_offset_f`. For e-nail it is the
-   * banger's PID midpoint (or fallback +50). Probe (contact) is 0.
-   */
-  readonly irOffsetF: number;
-  /** User-provided tune nudge applied last. */
+  /** Interior surface temp the dab actually contacts (probe-truth). */
+  readonly surfaceF: number;
+  /** T_Ideal from the v2 equation (= surface − phase_change_load for IR; = surface elsewhere). */
+  readonly tIdealF: number;
+  /** dT_Load — phase-change load constant (0 for contact / e-nail branches). */
+  readonly dTLoadF: number;
+  /** dT_Gradient — banger gradient_lag × wall gradient_multiplier (0 when sensor doesn't apply it). */
+  readonly dTGradientF: number;
+  /** dT_emissivity — sensor.emissivity_bias × banger.emissivity_bias_multiplier (PID coil for e-nail). */
+  readonly dTEmissivityF: number;
+  /** User-provided ±°F nudge applied last. */
   readonly tuneOffsetF: number;
   /** Final number the user sees on their device. */
   readonly displayedF: number;
-  /** Recommended dunk-alarm temp. */
+  /** Recommended dunk-alarm temp (sensor-space). */
   readonly dunkF: number;
-  /** Human-readable breakdown lines for UI. */
+  /** Sensor-space delta between surface and displayed dab target. */
+  readonly sensorDeltaF: number;
+  /** Per-term breakdown for the calibration UI. */
   readonly trace: readonly string[];
   /** Soft warnings (e.g., interior outside concentrate's surface_temp_range_f). */
   readonly warnings: readonly string[];
@@ -66,27 +76,84 @@ export interface CalibrationResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Sensor-branch offset for an (sensor, banger) pair, ignoring wall modifier. */
-function sensorBranchOffsetF(sensor: Sensor, banger: Banger): number {
-  switch (sensor.method) {
-    case 'contact':
-      return 0;
-    case 'ir':
-    case 'visual':
-      return banger.ir_offset_sign * banger.ir_offset_f;
-    case 'enail':
-      // E-bangers carry their own PID midpoint. For non-enail bangers (the
-      // user explicitly picked the e-nail sensor anyway) fall back to the
-      // community +50°F midpoint.
-      return banger.geometry === 'enail'
-        ? banger.pid_offset_midpoint_f
-        : ENAIL_DEFAULT_MIDPOINT_F;
-  }
-}
-
 function formatSign(n: number): string {
   if (n === 0) return '0';
   return n > 0 ? `+${n}` : String(n);
+}
+
+interface SensorBranch {
+  readonly tIdealF: number;
+  readonly dTLoadF: number;
+  readonly dTGradientF: number;
+  readonly dTEmissivityF: number;
+  readonly trace: readonly string[];
+}
+
+function evaluateBranch(
+  concentrate: Concentrate,
+  banger: Banger,
+  sensor: Sensor,
+  wall: WallThickness,
+  surfaceF: number,
+): SensorBranch {
+  const C = CALIBRATION_CONSTANTS;
+
+  switch (sensor.method) {
+    case 'contact': {
+      return {
+        tIdealF: surfaceF,
+        dTLoadF: 0,
+        dTGradientF: 0,
+        dTEmissivityF: 0,
+        trace: [
+          `Surface temp: ${surfaceF}°F (${concentrate.name})`,
+          `Sensor: ${sensor.name} — reads interior surface directly`,
+        ],
+      };
+    }
+
+    case 'enail': {
+      // PID coil sits ~50 °F hotter than the interior surface; e-banger holds steady there.
+      const dTEmissivityF = Math.round(sensor.emissivity_bias_f);
+      return {
+        tIdealF: surfaceF,
+        dTLoadF: 0,
+        dTGradientF: 0,
+        dTEmissivityF,
+        trace: [
+          `Surface temp: ${surfaceF}°F (${concentrate.name})`,
+          `PID coil offset: ${formatSign(dTEmissivityF)}°F (${sensor.name})`,
+        ],
+      };
+    }
+
+    case 'ir':
+    case 'visual': {
+      // T_Ideal = fluid boiling target. Fall back to (surface − load) when the catalog
+      // entry predates the v2 fluid_target field.
+      const tIdealF =
+        concentrate.fluid_target_optimal_f ?? surfaceF - C.phase_change_load_f;
+      const dTLoadF = C.phase_change_load_f;
+      const dTGradientF = sensor.applies_gradient_lag
+        ? Math.round(banger.gradient_lag_f * wall.gradient_multiplier)
+        : 0;
+      const dTEmissivityF = Math.round(
+        sensor.emissivity_bias_f * banger.emissivity_bias_multiplier,
+      );
+      return {
+        tIdealF,
+        dTLoadF,
+        dTGradientF,
+        dTEmissivityF,
+        trace: [
+          `Fluid target (T_Ideal): ${tIdealF}°F (${concentrate.name})`,
+          `Phase-change load: ${formatSign(dTLoadF)}°F`,
+          `Gradient lag: ${formatSign(dTGradientF)}°F (${banger.geometry}-class · ${banger.gradient_lag_f} × ${wall.gradient_multiplier})`,
+          `Emissivity bias: ${formatSign(dTEmissivityF)}°F (${sensor.name} · ${sensor.emissivity_bias_f} × ${banger.emissivity_bias_multiplier})`,
+        ],
+      };
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -94,11 +161,10 @@ function formatSign(n: number): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a displayed dab target + a recommended dunk alarm for a given
- * (concentrate, banger, sensor, wall) tuple.
+ * Compute the displayed dab target + recommended dunk alarm for a
+ * (concentrate, banger, sensor, wall) tuple using the v2 metrology model.
  *
- * Throws a friendly error when the concentrate has no `surface_temp_optimal_f`
- * (i.e., it's flagged `blocked` and shouldn't be dabbed).
+ * Throws when the concentrate is `blocked` or has no `surface_temp_optimal_f`.
  */
 export function computeDisplayedTarget(input: CalibrationInput): CalibrationResult {
   const { concentrate, banger, sensor, wall } = input;
@@ -106,41 +172,23 @@ export function computeDisplayedTarget(input: CalibrationInput): CalibrationResu
 
   if (concentrate.surface_temp_optimal_f == null) {
     const reason = concentrate.blocked ?? 'No surface_temp_optimal_f recorded.';
-    throw new Error(
-      `${concentrate.name} should not be dabbed: ${reason}`,
-    );
+    throw new Error(`${concentrate.name} should not be dabbed: ${reason}`);
   }
 
-  const interiorF = concentrate.surface_temp_optimal_f;
-  const wallModF = wall.modifier_f;
-  const irOffsetF = sensorBranchOffsetF(sensor, banger);
-  const displayedF = Math.round(interiorF + wallModF + irOffsetF + tuneOffsetF);
-  const dunkF = recommendDunk(displayedF, sensor);
+  const surfaceF = concentrate.surface_temp_optimal_f;
+  const branch = evaluateBranch(concentrate, banger, sensor, wall, surfaceF);
+  const summed =
+    branch.tIdealF +
+    branch.dTLoadF +
+    branch.dTGradientF +
+    branch.dTEmissivityF +
+    tuneOffsetF;
+  const displayedF = Math.round(summed);
+  const sensorDeltaF = displayedF - surfaceF - tuneOffsetF;
+  const dunkF = dunkDisplayedF(sensor, sensorDeltaF);
 
-  // Trace lines mirror the META.calibration_explanation order.
-  const trace: string[] = [
-    `Interior surface: ${interiorF}°F (${concentrate.name})`,
-    `Wall modifier: ${formatSign(wallModF)}°F (${wall.name})`,
-  ];
-  switch (sensor.method) {
-    case 'contact':
-      trace.push(`Sensor offset: 0°F (${sensor.name} — surface truth)`);
-      break;
-    case 'ir':
-    case 'visual':
-      trace.push(
-        `Sensor offset: ${formatSign(irOffsetF)}°F (${banger.geometry}-class · ${banger.ir_offset_sign} × ${banger.ir_offset_f})`,
-      );
-      break;
-    case 'enail':
-      trace.push(
-        `Sensor offset: ${formatSign(irOffsetF)}°F (PID midpoint, ${banger.geometry === 'enail' ? banger.name : 'fallback +50°F'})`,
-      );
-      break;
-  }
-  if (tuneOffsetF !== 0) {
-    trace.push(`Tune nudge: ${formatSign(tuneOffsetF)}°F`);
-  }
+  const trace: string[] = [...branch.trace];
+  if (tuneOffsetF !== 0) trace.push(`Tune nudge: ${formatSign(tuneOffsetF)}°F`);
   trace.push(`Displayed target: ${displayedF}°F`);
   trace.push(`Dunk alarm: ${dunkF}°F`);
 
@@ -149,25 +197,28 @@ export function computeDisplayedTarget(input: CalibrationInput): CalibrationResu
   const range = concentrate.surface_temp_range_f;
   if (range != null) {
     const [low, high] = range;
-    const projectedInterior = interiorF + tuneOffsetF;
-    if (projectedInterior < low) {
+    const projected = surfaceF + tuneOffsetF;
+    if (projected < low) {
       warnings.push(
-        `Interior ${projectedInterior}°F is below ${concentrate.name}'s range (${low}-${high}°F).`,
+        `Interior ${projected}°F is below ${concentrate.name}'s range (${low}-${high}°F).`,
       );
-    } else if (projectedInterior > high) {
+    } else if (projected > high) {
       warnings.push(
-        `Interior ${projectedInterior}°F is above ${concentrate.name}'s range (${low}-${high}°F).`,
+        `Interior ${projected}°F is above ${concentrate.name}'s range (${low}-${high}°F).`,
       );
     }
   }
 
   return {
-    interiorF,
-    wallModF,
-    irOffsetF,
+    surfaceF,
+    tIdealF: branch.tIdealF,
+    dTLoadF: branch.dTLoadF,
+    dTGradientF: branch.dTGradientF,
+    dTEmissivityF: branch.dTEmissivityF,
     tuneOffsetF,
     displayedF,
     dunkF,
+    sensorDeltaF,
     trace,
     warnings,
   };
@@ -177,7 +228,9 @@ export function computeDisplayedTarget(input: CalibrationInput): CalibrationResu
  * Inverse calibration — given a displayed target, recover the implied
  * interior surface temp for the (banger, sensor, wall) tuple.
  *
- * Useful for sanity-checking presets and round-tripping the schema examples.
+ * For IR/visual: surface = displayed − dT_gradient − dT_emissivity.
+ * For e-nail   : surface = displayed − sensor.emissivity_bias_f.
+ * For contact  : surface = displayed.
  */
 export function inverseInterior(args: {
   readonly displayedF: number;
@@ -185,19 +238,32 @@ export function inverseInterior(args: {
   readonly sensor: Sensor;
   readonly wall: WallThickness;
 }): number {
-  const offset = sensorBranchOffsetF(args.sensor, args.banger);
-  return args.displayedF - args.wall.modifier_f - offset;
+  const { displayedF, banger, sensor, wall } = args;
+  switch (sensor.method) {
+    case 'contact':
+      return displayedF;
+    case 'enail':
+      return displayedF - Math.round(sensor.emissivity_bias_f);
+    case 'ir':
+    case 'visual': {
+      const gradient = sensor.applies_gradient_lag
+        ? Math.round(banger.gradient_lag_f * wall.gradient_multiplier)
+        : 0;
+      const emissivity = Math.round(
+        sensor.emissivity_bias_f * banger.emissivity_bias_multiplier,
+      );
+      return displayedF - gradient - emissivity;
+    }
+  }
 }
 
 /**
- * Dunk-alarm recommendation. Mirrors the existing wizard logic of
- * `clamp(displayed - 280, 200, 320)`, but for e-nail sensors we keep dunk at
- * 250°F since e-nails don't dunk-cool meaningfully.
+ * Sensor-display dunk alarm for a (banger, concentrate, sensor, wall) tuple.
+ * Convenience wrapper around `dunkDisplayedF` that resolves the sensor delta.
  */
-export function recommendDunk(displayedF: number, sensor: Sensor): number {
-  if (sensor.method === 'enail') return ENAIL_DUNK_F;
-  const raw = displayedF - DUNK_DROP_F;
-  return Math.max(DUNK_MIN_F, Math.min(DUNK_MAX_F, raw));
+export function recommendDunkF(input: CalibrationInput): number {
+  const result = computeDisplayedTarget(input);
+  return result.dunkF;
 }
 
 /**

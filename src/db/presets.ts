@@ -7,6 +7,7 @@ import { findConcentrate } from '../data/concentrates';
 import { findSensor } from '../data/sensors';
 import { findWallThickness } from '../data/wallThicknesses';
 import { computeDisplayedTarget } from '../utils/calibration';
+import { CALIBRATION_CONSTANTS } from '../data/calibrationConstants';
 import type { Banger } from '../data/bangers';
 import type { Concentrate } from '../data/concentrates';
 import type { Sensor } from '../data/sensors';
@@ -195,12 +196,11 @@ function mustFindWall(id: string): WallThickness {
 
 /**
  * Compute `{ dabAlarmF, dunkAlarmF }` from a calibration tuple, rounding
- * `dabAlarmF` to the nearest 5°F as the spec requires.
+ * `dabAlarmF` to the nearest 5°F.
  *
- * Pass `overrideInteriorF` for the two Control Tower presets whose
- * manufacturer_targets_f values replace the concentrate's
- * `surface_temp_optimal_f`. The override is applied by cloning the concentrate
- * with the manufacturer target as `surface_temp_optimal_f`.
+ * Pass `overrideInteriorF` for manufacturer-target presets (Control Tower):
+ * the override replaces both surface_temp_optimal_f and fluid_target_optimal_f
+ * (= override − phase_change_load_f) so the v2 IR formula stays consistent.
  */
 function computeAlarms(
   concentrateId: string,
@@ -214,11 +214,13 @@ function computeAlarms(
   const sensor = mustFindSensor(sensorId);
   const wall = mustFindWall(wallId);
 
-  // For Control Tower mfr-target overrides, substitute the concentrate's
-  // optimal temp so the calibration engine receives the correct interior value.
   const effectiveConcentrate: Concentrate =
     overrideInteriorF !== undefined
-      ? { ...concentrate, surface_temp_optimal_f: overrideInteriorF }
+      ? {
+          ...concentrate,
+          surface_temp_optimal_f: overrideInteriorF,
+          fluid_target_optimal_f: overrideInteriorF - CALIBRATION_CONSTANTS.phase_change_load_f,
+        }
       : concentrate;
 
   const result = computeDisplayedTarget({
@@ -237,97 +239,98 @@ function computeAlarms(
 // BUILTIN_PRESETS — computed at module load (cheap, readable, regression-safe)
 // ---------------------------------------------------------------------------
 
-// --- Spec examples 1-5: schema.calibration.examples (EXACT) ---
+// --- v2 spec examples 1-6: schema.calibration.examples ---
 //
-// Expected displayed values (before rounding to 5°F):
-//   1. Live Resin · Flat Top · IR · Std     → 475°F  (round-5: 475)
-//   2. Live Resin · Blender · IR · Std      → 530°F  (round-5: 530)
-//   3. Cold Cure Rosin · Slurper · IR · Std → 480°F  (round-5: 480)
-//   4. Live Resin · Flat Top · Probe · Std  → 510°F  (round-5: 510)
-//   5. Live Resin · E-Banger · PID · Std    → 560°F  (round-5: 560)
+// Live Rosin · Flat Top · IR · Std    → 520°F (T_Ideal 415 + load 65 + grad 25 + ε 15)
+// Live Rosin · Opaque Bottom · IR · Std → 518°F (415 + 65 + 35 + 3, Opaque preset)
+// Live Rosin · Blender · IR · Std     → 510°F (415 + 65 + 15 + 15)
+// Live Rosin · Flat Top · Probe · Std → 480°F (surface direct)
+// Live Rosin · E-Banger · PID         → 530°F (480 + 50 PID coil)
+// Cold Cure Rosin · Terp Slurper · IR · Std → 490°F (395 + 65 + 15 + 15)
 
-const _ex1 = computeAlarms('live-resin', 'flat-top', 'ir', 'standard');
-const _ex2 = computeAlarms('live-resin', 'blender', 'ir', 'standard');
-const _ex3 = computeAlarms('cold-cure', 'terp-slurper', 'ir', 'standard');
-const _ex4 = computeAlarms('live-resin', 'flat-top', 'probe', 'standard');
-const _ex5 = computeAlarms('live-resin', 'e-banger', 'enail', 'standard');
+const _ex1 = computeAlarms('live-rosin', 'flat-top', 'ir', 'standard');
+const _ex2 = computeAlarms('live-rosin', 'opaque-bottom', 'ir', 'standard');
+const _ex3 = computeAlarms('live-rosin', 'blender', 'ir', 'standard');
+const _ex4 = computeAlarms('live-rosin', 'flat-top', 'probe', 'standard');
+const _ex5 = computeAlarms('live-rosin', 'e-banger', 'enail', 'standard');
+const _ex6 = computeAlarms('cold-cure', 'terp-slurper', 'ir', 'standard');
+
+// --- Brand-anchored picks ---
+//
+// 7. HE Control Tower Solventless → mfr target 450 surface (slurper IR)
+//    480°F (385 fluid + 65 + 15 + 15)
+// 8. HE Control Tower Hydrocarbon → mfr target 550 surface (slurper IR)
+//    580°F (485 fluid + 65 + 15 + 15)
+// 9. Hashwriter 6-Star (Live Rosin proxy) · Round Bottom · Probe · Std
+//    480°F (probe = surface direct)
+
+const _ex7 = computeAlarms('live-rosin', 'control-tower', 'ir', 'standard', 450);
+const _ex8 = computeAlarms('live-resin', 'control-tower', 'ir', 'standard', 550);
+const _ex9 = computeAlarms('live-rosin', 'round-bottom', 'probe', 'standard');
 
 // --- Spec self-assertion: verifies calibration engine matches worked examples --
 function __verifyExamples(): void {
-  const check = (label: string, computed: number, expected: number) => {
-    if (computed !== expected) {
+  const checkClose = (label: string, computed: number, expected: number, tolF: number) => {
+    if (Math.abs(computed - expected) > tolF) {
       throw new Error(
-        `[presets] Calibration regression: ${label} expected ${expected}°F but got ${computed}°F. ` +
+        `[presets] Calibration regression: ${label} expected ~${expected}°F (±${tolF}) but got ${computed}°F. ` +
         'Check src/utils/calibration.ts for changes.',
       );
     }
   };
-  check('Live Resin · Flat Top · IR · Std (ex1)', _ex1.dabAlarmF, 475);
-  check('Live Resin · Blender · IR · Std (ex2)', _ex2.dabAlarmF, 530);
-  check('Cold Cure Rosin · Slurper · IR · Std (ex3)', _ex3.dabAlarmF, 480);
-  check('Live Resin · Flat Top · Probe · Std (ex4)', _ex4.dabAlarmF, 510);
-  check('Live Resin · E-Banger · PID · Std (ex5)', _ex5.dabAlarmF, 560);
+  checkClose('Live Rosin · Flat Top · IR · Std', _ex1.dabAlarmF, 520, 3);
+  checkClose('Live Rosin · Opaque Bottom · IR · Std', _ex2.dabAlarmF, 518, 3);
+  checkClose('Live Rosin · Blender · IR · Std', _ex3.dabAlarmF, 510, 3);
+  checkClose('Live Rosin · Flat Top · Probe · Std', _ex4.dabAlarmF, 480, 1);
+  checkClose('Live Rosin · E-Banger · PID', _ex5.dabAlarmF, 530, 1);
+  checkClose('Cold Cure · Terp Slurper · IR · Std', _ex6.dabAlarmF, 490, 3);
 }
 
-// --- Brand-anchored picks 6-10 ---
-//
-// 6.  710 Labs Live Rosin · Round Bottom · IR · Std
-//     interior=480, offset=-35 → 445°F (round-5: 445)
-// 7.  Press Club Temple Ball · Round Bottom · IR · Std
-//     interior=400, offset=-35 → 365°F (round-5: 365)
-// 8.  HE Control Tower Solventless · Control Tower · IR · Std
-//     override interior=450 (mfr target), slurper offset=+20 → 470°F (round-5: 470)
-// 9.  HE Control Tower Hydrocarbon · Control Tower · IR · Std
-//     override interior=550 (mfr target), slurper offset=+20 → 570°F (round-5: 570)
-// 10. Hashwriter 6-Star · Round Bottom · Probe · Std
-//     interior=490, probe offset=0 → 490°F (round-5: 490)
-
-const _ex6 = computeAlarms('live-rosin', 'round-bottom', 'ir', 'standard');
-const _ex7 = computeAlarms('live-rosin', 'round-bottom', 'ir', 'standard');
-// Control Tower: manufacturer_targets_f.solventless = 450
-const _ex8 = computeAlarms('live-rosin', 'control-tower', 'ir', 'standard', 450);
-// Control Tower: manufacturer_targets_f.hydrocarbon = 550
-const _ex9 = computeAlarms('live-resin', 'control-tower', 'ir', 'standard', 550);
-const _ex10 = computeAlarms('live-rosin', 'round-bottom', 'probe', 'standard');
-
 const BUILTIN_PRESETS: ReadonlyArray<{ id: string; name: string; settings: DeviceSettings }> = [
-  // 1 — Live Resin · Flat Top · IR · Std → 475°F dab / 200°F dunk
   {
-    id: 'builtin-live-resin-flat-top-ir',
-    name: 'Live Resin · Flat Top · IR',
+    id: 'builtin-live-rosin-flat-top-ir',
+    name: 'Live Rosin · Flat Top · IR',
     settings: { ...DEFAULT_SETTINGS, ..._ex1, opaqueMode: false },
   },
-  // 6 — 710 Labs Live Rosin · Round Bottom · IR · Std → 445°F dab / 200°F dunk
   {
-    id: 'builtin-710-live-rosin-round-ir',
-    name: '710 Labs Live Rosin · Round Bottom · IR',
+    id: 'builtin-live-rosin-opaque-ir',
+    name: 'Live Rosin · Opaque Bottom · IR',
+    settings: { ...DEFAULT_SETTINGS, ..._ex2, opaqueMode: true },
+  },
+  {
+    id: 'builtin-live-rosin-blender-ir',
+    name: 'Live Rosin · Blender · IR',
+    settings: { ...DEFAULT_SETTINGS, ..._ex3, opaqueMode: false },
+  },
+  {
+    id: 'builtin-live-rosin-flat-top-probe',
+    name: 'Live Rosin · Flat Top · Probe',
+    settings: { ...DEFAULT_SETTINGS, ..._ex4, opaqueMode: false },
+  },
+  {
+    id: 'builtin-live-rosin-e-banger',
+    name: 'Live Rosin · E-Banger · PID',
+    settings: { ...DEFAULT_SETTINGS, ..._ex5, opaqueMode: false },
+  },
+  {
+    id: 'builtin-cold-cure-slurper-ir',
+    name: 'Cold Cure · Terp Slurper · IR',
     settings: { ...DEFAULT_SETTINGS, ..._ex6, opaqueMode: false },
   },
-  // 7 — Press Club Temple Ball · Round Bottom · IR · Std → 365°F dab / 200°F dunk
-  {
-    id: 'builtin-temple-ball-round-ir',
-    name: 'Press Club Temple Ball · Round Bottom · IR',
-    settings: { ...DEFAULT_SETTINGS, ..._ex7, opaqueMode: false },
-  },
-  // 8 — HE Control Tower Solventless · Control Tower · IR · Std → 470°F dab / 200°F dunk
-  //     Uses manufacturer_targets_f.solventless = 450°F as interior override
   {
     id: 'builtin-he-control-tower-solventless',
     name: 'HE Control Tower Solventless',
-    settings: { ...DEFAULT_SETTINGS, ..._ex8, opaqueMode: false },
+    settings: { ...DEFAULT_SETTINGS, ..._ex7, opaqueMode: false },
   },
-  // 9 — HE Control Tower Hydrocarbon · Control Tower · IR · Std → 570°F dab / 290°F dunk
-  //     Uses manufacturer_targets_f.hydrocarbon = 550°F as interior override
   {
     id: 'builtin-he-control-tower-hydrocarbon',
     name: 'HE Control Tower Hydrocarbon',
-    settings: { ...DEFAULT_SETTINGS, ..._ex9, opaqueMode: false },
+    settings: { ...DEFAULT_SETTINGS, ..._ex8, opaqueMode: false },
   },
-  // 10 — Hashwriter 6-Star · Round Bottom · Probe · Std → 490°F dab / 210°F dunk
   {
     id: 'builtin-hashwriter-6star-round-probe',
     name: 'Hashwriter 6-Star · Round Bottom · Probe',
-    settings: { ...DEFAULT_SETTINGS, ..._ex10, opaqueMode: false },
+    settings: { ...DEFAULT_SETTINGS, ..._ex9, opaqueMode: false },
   },
 ];
 
@@ -341,8 +344,7 @@ export async function seedBuiltins(): Promise<void> {
   const db = await getDb();
   const now = Date.now();
 
-  // 1. Remove stale builtins not in the current roster (e.g., builtin-default,
-  //    builtin-darby, builtin-quartz-recommended, builtin-opaque-recommended).
+  // 1. Remove stale builtins not in the current roster.
   const existingBuiltins = await db.getAllAsync<{ id: string }>(
     "SELECT id FROM presets WHERE id LIKE 'builtin-%'",
   );
@@ -352,7 +354,7 @@ export async function seedBuiltins(): Promise<void> {
     }
   }
 
-  // 2. Upsert each current builtin — insert if missing, update name+settings if present.
+  // 2. Upsert each current builtin.
   for (const preset of BUILTIN_PRESETS) {
     const existing = await db.getFirstAsync<{ id: string }>(
       'SELECT id FROM presets WHERE id = ?',

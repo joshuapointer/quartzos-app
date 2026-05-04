@@ -1,28 +1,35 @@
 /**
  * Cannabis concentrates in active 2025-2026 rotation.
  *
- * Source: docs/perfect_dab/concentrates.json
+ * Source: docs/perfect_dab/concentrates.json (v2.0.0).
  *
- * `surface_temp_range_f` and `surface_temp_optimal_f` are INTERIOR SURFACE
- * temperatures (Terpometer-equivalent contact probe truth — NOT IR readings).
- * Both are nullable for items that should not be dabbed (`blocked` set).
+ * Two temperature anchors per entry:
+ *   1. `surface_temp_*` — INTERIOR QUARTZ SURFACE temp (probe-truth, Terpometer V1).
+ *      Drives the contact + e-nail calibration branches.
+ *   2. `fluid_target_*` — BOILING TEMP of the oil itself (= surface − phase_change_load).
+ *      Drives `T_Ideal` in the IR / four-term metrology equation.
  *
- * Discriminated union on `category`. The `dabbable` helper resolves to true
- * only when an optimal surface temp exists and the entry is not `blocked`.
+ * `blocked` entries cannot be dabbed — `surface_temp_*` and `fluid_target_*` are null.
  */
 
 export type ConcentrateCategory =
   | 'solventless'
-  | 'hydrocarbon';
+  | 'hash'
+  | 'hydrocarbon'
+  | 'distillate'
+  | 'novel';
 
 export type TerpeneProfile = 'none' | 'low' | 'med' | 'high';
 
-interface ConcentrateBase {
+export interface Concentrate {
   readonly id: string;
   readonly name: string;
+  readonly category: ConcentrateCategory;
   readonly description: string;
   readonly surface_temp_range_f: readonly [number, number] | null;
   readonly surface_temp_optimal_f: number | null;
+  readonly fluid_target_range_f: readonly [number, number] | null;
+  readonly fluid_target_optimal_f: number | null;
   readonly terpene_profile: TerpeneProfile;
   readonly good_for_cold_start: boolean;
   readonly blocked?: string;
@@ -31,18 +38,6 @@ interface ConcentrateBase {
   readonly confidence: string;
   readonly tags: readonly string[];
 }
-
-export interface SolventlessConcentrate extends ConcentrateBase {
-  readonly category: 'solventless';
-}
-
-export interface HydrocarbonConcentrate extends ConcentrateBase {
-  readonly category: 'hydrocarbon';
-}
-
-export type Concentrate =
-  | SolventlessConcentrate
-  | HydrocarbonConcentrate;
 
 export type ConcentrateId = Concentrate['id'];
 
@@ -54,6 +49,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Fresh-frozen pressed solventless. Glossy amber, sappy.',
     surface_temp_range_f: [445, 520],
     surface_temp_optimal_f: 480,
+    fluid_target_range_f: [380, 455],
+    fluid_target_optimal_f: 415,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: [
@@ -71,6 +68,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Live rosin nucleated to creamy badder. Most popular 2026 rosin format.',
     surface_temp_range_f: [375, 510],
     surface_temp_optimal_f: 460,
+    fluid_target_range_f: [310, 445],
+    fluid_target_optimal_f: 395,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: [
@@ -88,6 +87,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Un-cured rosin. Most volatile-rich, terps not yet homogenized.',
     surface_temp_range_f: [440, 510],
     surface_temp_optimal_f: 470,
+    fluid_target_range_f: [375, 445],
+    fluid_target_optimal_f: 405,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: ['Cold start strongly recommended', 'Gentle ramp protects pinene + ocimene'],
@@ -101,6 +102,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'THCa diamonds in terpene-rich rosin sauce. Heterogeneous.',
     surface_temp_range_f: [490, 545],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [425, 480],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: [
@@ -117,6 +120,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Whipped/agitated rosin. Hashwriter avg 520°F Terpometer interior.',
     surface_temp_range_f: [480, 540],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [415, 475],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'high',
     good_for_cold_start: false,
     notes: ['Cold start optional'],
@@ -130,6 +135,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Whipped/cured at 90-225°F. Profile shifts to heavier sesquiterpenes.',
     surface_temp_range_f: [480, 545],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [415, 480],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'med',
     good_for_cold_start: false,
     notes: ['Cold start optional', 'Caryophyllene dominant — needs more heat than fresh'],
@@ -143,6 +150,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Premium hash rosin from highest-grade nugs. Connoisseur tier 2025-26.',
     surface_temp_range_f: [445, 510],
     surface_temp_optimal_f: 475,
+    fluid_target_range_f: [380, 445],
+    fluid_target_optimal_f: 410,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: ['Treat like live rosin', "710 Labs Tier 3, Papa's Select top tier"],
@@ -157,6 +166,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
       'Fresh-frozen hydrocarbon BHO. ~34% of concentrate sales. Yellow-amber sauce/wax.',
     surface_temp_range_f: [480, 545],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [415, 480],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'high',
     good_for_cold_start: false,
     notes: [
@@ -175,6 +186,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
       'BHO from cured flower. General-purpose hydrocarbon. Lost most volatile monoterps.',
     surface_temp_range_f: [520, 580],
     surface_temp_optimal_f: 545,
+    fluid_target_range_f: [455, 515],
+    fluid_target_optimal_f: 480,
     terpene_profile: 'low',
     good_for_cold_start: false,
     notes: ['Cold start NOT typical', 'Sesquiterpene-heavy — takes more heat'],
@@ -188,6 +201,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Glassy BHO. Once dominant, now legacy/budget tier.',
     surface_temp_range_f: [510, 580],
     surface_temp_optimal_f: 545,
+    fluid_target_range_f: [445, 515],
+    fluid_target_optimal_f: 480,
     terpene_profile: 'low',
     good_for_cold_start: false,
     notes: ['Cold start NOT typical', 'Most volatile terps already lost in process'],
@@ -201,6 +216,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Whipped BHO. Stable mid-tier across menus.',
     surface_temp_range_f: [480, 540],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [415, 475],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'med',
     good_for_cold_start: false,
     notes: ['Cold start optional/popular'],
@@ -214,6 +231,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Dry powdery BHO. Lower moisture vaporizes easily.',
     surface_temp_range_f: [480, 550],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [415, 485],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'med',
     good_for_cold_start: false,
     notes: ['Pearls essential to distribute', 'Cold start useful'],
@@ -227,6 +246,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Small THCa crystals in terpene matrix. Sugar/sauce texture.',
     surface_temp_range_f: [480, 545],
     surface_temp_optimal_f: 510,
+    fluid_target_range_f: [415, 480],
+    fluid_target_optimal_f: 445,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: ['Cold start LOVED for this texture'],
@@ -241,6 +262,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
       'High-terpene full-spectrum extract. ~50% terpenes — viscous syrup with diamonds.',
     surface_temp_range_f: [500, 580],
     surface_temp_optimal_f: 530,
+    fluid_target_range_f: [435, 515],
+    fluid_target_optimal_f: 465,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: ['Cold start recommended for HTFSE', 'Slurper geometry designed for this'],
@@ -254,6 +277,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Discrete crystalline gemstones, 95-99% THCa, near-zero terpenes.',
     surface_temp_range_f: [500, 600],
     surface_temp_optimal_f: 545,
+    fluid_target_range_f: [435, 535],
+    fluid_target_optimal_f: 480,
     terpene_profile: 'none',
     good_for_cold_start: false,
     notes: [
@@ -271,6 +296,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Combined product — crystals in terpene-rich sauce.',
     surface_temp_range_f: [510, 570],
     surface_temp_optimal_f: 530,
+    fluid_target_range_f: [445, 505],
+    fluid_target_optimal_f: 465,
     terpene_profile: 'high',
     good_for_cold_start: true,
     notes: ['Slurper preferred', 'Cold start: sauce volatilizes first, then crystals'],
@@ -284,6 +311,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
     description: 'Pure powder, >99% THCa. Zero terpenes — no flavor to preserve.',
     surface_temp_range_f: [525, 600],
     surface_temp_optimal_f: 560,
+    fluid_target_range_f: [460, 535],
+    fluid_target_optimal_f: 495,
     terpene_profile: 'none',
     good_for_cold_start: false,
     notes: [
@@ -301,6 +330,8 @@ export const CONCENTRATES: readonly Concentrate[] = [
       'Live resin + THCa diamonds. Dominant high-potency cart category 2024-26.',
     surface_temp_range_f: [500, 570],
     surface_temp_optimal_f: 530,
+    fluid_target_range_f: [435, 505],
+    fluid_target_optimal_f: 465,
     terpene_profile: 'high',
     good_for_cold_start: false,
     notes: [
@@ -310,7 +341,6 @@ export const CONCENTRATES: readonly Concentrate[] = [
     confidence: 'BRAND',
     tags: ['HYDROCARBON', 'TRENDING'],
   },
-
 ] as const;
 
 /**

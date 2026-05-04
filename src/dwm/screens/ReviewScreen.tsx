@@ -9,6 +9,8 @@ import type { DwmPhase } from '../backgrounds/PhaseBackground';
 import type { Banger } from '../../data/bangers';
 import type { Concentrate } from '../../data/concentrates';
 import type { WallThickness } from '../../data/wallThicknesses';
+import { findSensor } from '../../data/sensors';
+import { computeDisplayedTarget } from '../../utils/calibration';
 
 const STEP_TO_PHASE: ReadonlyArray<DwmPhase> = ['banger', 'concentrate', 'wall', 'review'];
 
@@ -26,9 +28,20 @@ export default function ReviewScreen({
   onSetPhase,
 }: ReviewScreenProps) {
   const copy = PHASE_COPY.review;
-  const dabF = concentrate.surface_temp_optimal_f ?? 480;
-  // Same heuristic as the prototype: dunk ≈ 45% of dab°
-  const dunkF = Math.round(dabF * 0.45);
+  // Default sensor for the review preview is IR — same default the picker
+  // and BLE settings store assume. Both dab and dunk derive from the v2
+  // calibration engine (no magic constants).
+  const sensor = findSensor('ir');
+  let dabF: number;
+  let dunkF: number;
+  if (sensor != null && concentrate.surface_temp_optimal_f != null && concentrate.blocked == null) {
+    const result = computeDisplayedTarget({ concentrate, banger, sensor, wall });
+    dabF = result.displayedF;
+    dunkF = result.dunkF;
+  } else {
+    dabF = concentrate.surface_temp_optimal_f ?? 480;
+    dunkF = 200;
+  }
   const torchS = torchDurationFor(banger.id);
 
   const BangerIllo = getBangerIllustration(banger.id);

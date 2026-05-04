@@ -94,15 +94,22 @@ const LEGACY_NAMES: Readonly<Record<string, string>> = {
 
 const CATEGORY_DEFAULT_COLORS: Readonly<Record<Concentrate['category'], readonly [string, string]>> = {
   solventless: ['#C4A860', '#886030'],
+  hash: ['#A8884C', '#6E5424'],
   hydrocarbon: ['#B8782C', '#704820'],
+  distillate: ['#C8D8E8', '#8898A8'],
+  novel: ['#A88CC8', '#6C5494'],
 };
 
 function legacyTypeForCategory(category: Concentrate['category']): ExtractType {
   switch (category) {
     case 'solventless':
+    case 'hash':
       return 'Solventless';
     case 'hydrocarbon':
       return 'Hydrocarbon';
+    case 'distillate':
+    case 'novel':
+      return 'Isolate';
   }
 }
 
