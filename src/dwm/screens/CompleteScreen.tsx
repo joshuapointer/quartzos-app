@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
   well: {
     paddingHorizontal: layout.screenPaddingX,
     gap: 12,
-    alignItems: 'center',
   },
   eyebrow: {
     fontFamily: fontStack.mono,
@@ -151,7 +150,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     letterSpacing: -0.035 * 28,
     color: palette.fg,
-    textAlign: 'center',
   },
   headlineMark: {
     color: palette.accent,
@@ -161,7 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 20,
     color: palette.muted,
-    textAlign: 'center',
     maxWidth: 320,
   },
   statsRow: {

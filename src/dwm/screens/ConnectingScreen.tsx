@@ -23,7 +23,6 @@ export default function ConnectingScreen(_props: ConnectingScreenProps) {
 const styles = StyleSheet.create({
   well: {
     paddingHorizontal: layout.screenPaddingX,
-    alignItems: 'center',
     gap: 8,
   },
   eyebrow: {
@@ -39,14 +38,12 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     letterSpacing: -0.035 * 26,
     color: palette.fg,
-    textAlign: 'center',
   },
   sub: {
     fontFamily: fontStack.body,
     fontSize: 13,
     lineHeight: 19,
     color: palette.muted,
-    textAlign: 'center',
-    maxWidth: 280,
+    maxWidth: 320,
   },
 });

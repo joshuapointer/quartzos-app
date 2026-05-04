@@ -71,26 +71,28 @@ const ORB_TARGET_Y_BY_PHASE: Record<DwmPhase, number> = {
   wall:        150,
   review:      360,
   ready:       360,
-  heating:     605,
-  window:      400,
-  dabbing:     420,
-  swab:        400,
-  dunk:        400,
+  heating:     440,
+  window:      410,
+  dabbing:     520,
+  swab:        510,
+  dunk:        510,
   complete:    300,
 };
 
 // Content well top — mirrors MoltenSurface contentWellTop logic
 function contentWellTopFor(phase: DwmPhase, screenH: number): number {
   const ORB_ABOVE: ReadonlyArray<DwmPhase> = [
-    'cold', 'connecting', 'connected', 'review', 'ready', 'swab', 'dunk', 'complete',
+    'cold', 'connecting', 'connected', 'review', 'ready',
+    'heating', 'window', 'dabbing', 'swab', 'dunk', 'complete',
   ];
   if (ORB_ABOVE.includes(phase)) {
     const orbCenterY = (ORB_TARGET_Y_BY_PHASE[phase] / REF_HEIGHT) * screenH;
     const r = BUB_SIZE_PX[ORB_SIZE_BY_PHASE[phase]] / 2;
-    return orbCenterY + r + 28;
+    // Heating's torch extra extends below the orb bounding box; add extra clearance.
+    const extra = phase === 'heating' ? 56 : 28;
+    return orbCenterY + r + extra;
   }
-  if (phase === 'heating') return 80;
-  // picker phases + window + dabbing
+  // picker phases
   return 240;
 }
 
@@ -259,9 +261,7 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
       return;
     }
 
-    if (heatingStartedAtRef.current === null) {
-      heatingStartedAtRef.current = Date.now();
-    }
+    // Timer does NOT start until the torch is detected — see torchOn-gated effect below.
 
     // Start torch mic listener to set torchOn
     let cancelled = false;
@@ -295,6 +295,15 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
     };
   }, [phase, torchDurationS]);
 
+  // Start the heating countdown only when the torch is actually heard.
+  useEffect(() => {
+    if (phase !== 'heating') return;
+    if (!torchOn) return;
+    if (heatingStartedAtRef.current !== null) return;
+    heatingStartedAtRef.current = Date.now();
+    setHeatSecondsLeft(torchDurationS);
+  }, [phase, torchOn, torchDurationS]);
+
   // Heating fallback chip — surfaces after torchDurationS + 8s
   useEffect(() => {
     if (phase !== 'heating') {
@@ -308,7 +317,7 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
     const remaining = Math.max(0, waitMs - elapsed);
     const t = setTimeout(() => setHeatingFallback(true), remaining);
     return () => clearTimeout(t);
-  }, [phase, torchDurationS]);
+  }, [phase, torchDurationS, torchOn]);
 
   // heatProgress for PhaseBackground
   const heatProgress = torchDurationS > 0

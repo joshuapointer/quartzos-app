@@ -243,6 +243,44 @@ Started: 81 files under `src/dwm/`. Now: 85 files (84 `.ts`/`.tsx` + `PARITY_AUD
 
 ---
 
+## 2026-05-03 — Session-flow layout overhaul
+
+User-supplied prototype screenshots (heat / cool / dab) showed the implementation had the orb pinned to the bottom and the headline text at the top — inverted from the prototype. Fixed across the session phases.
+
+### Layout
+
+- **`flow/DwmFlow.tsx`** — `ORB_TARGET_Y_BY_PHASE` re-tuned: `heating 605→440`, `window 400→410`, `dabbing 420→520`, `swab 400→510`, `dunk 400→510` so the orb sits at upper-middle and content flows below.
+- **`flow/DwmFlow.tsx`** — `contentWellTopFor`: added `heating`, `window`, `dabbing`, `swab`, `dunk` to `ORB_ABOVE` so each session screen anchors below the orb. Heating gets `+56` clearance for the torch extra; others get `+28`.
+- **`screens/HeatScreen.tsx`** — Full rewrite. Order: `PhaseStrip → eyebrow → headline → sub → flex spacer → "torch on" pill at bottom`. Replaces the vertical `Banner` card. Pill is a horizontal row: bullet dot (peach when torchOn, lilac when listening) + label + mono caps subline on the left, big seconds + `SEC` on the right. Removed the inline progress bar — phase progress now communicated solely by the background gradient + PhaseStrip.
+- **`screens/WindowScreen.tsx`** — Reordered to `PhaseStrip → temp pill → eyebrow → headline → sub` (was strip → eyebrow → headline → pill, no sub). Added `sub` style + copy.
+- **`screens/DabScreen.tsx`**, **`screens/SwabScreen.tsx`**, **`screens/DunkScreen.tsx`** — Removed `alignItems: 'center'` and `textAlign: 'center'`. Headline normalized to 26/28 with consistent `letterSpacing`. Sub style aligned with Heat/Window typography.
+
+### Heat timer gating
+
+- **`flow/DwmFlow.tsx`** — Heating countdown previously started immediately on phase entry. Now gated on `torchOn`: removed auto-start of `heatingStartedAtRef` from the phase effect; added a small effect that sets `heatingStartedAtRef.current = Date.now()` only when `torchOn` becomes true. The heating-fallback effect now also depends on `torchOn` so the fallback chip timing stays correct when the torch fires later than expected.
+
+### Non-session screens (left-alignment pass)
+
+The prototype uses left-aligned text for all screen content. The following had legacy `alignItems: 'center'` / `textAlign: 'center'` that diverged from the prototype:
+
+- **`screens/ConnectScreen.tsx`**, **`screens/ConnectingScreen.tsx`**, **`screens/ConnectedScreen.tsx`** — Stripped center alignment from `well` / `headline` / `sub`. Sub `maxWidth` widened 280→320 where present.
+- **`screens/ChooseScreen.tsx`** — Stripped center alignment from `copyBlock` / `headline` / `sub`. Sub maxWidth 280→320.
+- **`screens/CompleteScreen.tsx`** — Stripped center alignment from `well` / `headline` / `sub`. Existing `statsRow` `alignSelf: 'stretch'` preserved (correct now that the well isn't centering).
+- **`screens/ReviewScreen.tsx`** — Removed a duplicated `<HintLabel>` block that re-rendered `copy.sub` (already shown as `lede`). Removed unused `HintLabel` import + `hintRow` style.
+
+### Verified clean
+
+- `npx tsc --noEmit` → 0 errors.
+
+### Open follow-ups (not fixed in this pass)
+
+- **ChooseScreen preset card glyph** — Cards use a single `PlusIcon` with lilac tint; prototype uses preset-specific icons. Data/illustration gap, not layout.
+- **`flow/DwmFlow.tsx:torchFallback`** — Still computed-but-unread (per caveat verification #4 above). Cheap to delete; left for a focused cleanup.
+- **Bub size for `dabbing`** — The prototype's dab-phase orb visually reads as `xl`; impl is `lg`. `BUB_BY_PHASE.dabbing` not changed in this pass — flag for visual review.
+- **Heating fallback wait window** — `(torchDurationS + 8)s`. Now correctly anchored to torch-on, but the 8s grace might want re-tuning given the gated start.
+
+---
+
 ## Final tsc output
 
 ```

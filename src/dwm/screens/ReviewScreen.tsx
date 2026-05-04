@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { palette, fontStack, layout, radii } from '../tokens';
 import { Stepper } from '../primitives/Stepper';
 import { BackChip } from '../primitives/BackChip';
-import { HintLabel } from '../primitives/HintLabel';
 import { getBangerIllustration, getConcentrateIllustration } from '../illustrations';
 import { PHASE_COPY, torchDurationFor } from '../flow/copy';
 import type { DwmPhase } from '../backgrounds/PhaseBackground';
@@ -89,9 +88,6 @@ export default function ReviewScreen({
         </View>
       </View>
 
-      <View style={styles.hintRow}>
-        <HintLabel label={copy.sub} />
-      </View>
     </View>
   );
 }
@@ -205,9 +201,5 @@ const styles = StyleSheet.create({
     color: palette.muted,
     marginTop: 4,
     letterSpacing: 0.16 * 9,
-  },
-  hintRow: {
-    alignItems: 'center',
-    marginTop: 8,
   },
 });

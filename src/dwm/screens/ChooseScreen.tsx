@@ -123,7 +123,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   copyBlock: {
-    alignItems: 'center',
     gap: 6,
     paddingTop: 4,
   },
@@ -139,15 +138,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     letterSpacing: -0.035 * 28,
     color: palette.fg,
-    textAlign: 'center',
   },
   sub: {
     fontFamily: fontStack.body,
     fontSize: 13,
     lineHeight: 19,
     color: palette.muted,
-    textAlign: 'center',
-    maxWidth: 280,
+    maxWidth: 320,
   },
   cardList: {
     gap: 10,

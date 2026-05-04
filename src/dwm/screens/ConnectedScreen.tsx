@@ -16,7 +16,6 @@ export default function ConnectedScreen() {
 const styles = StyleSheet.create({
   well: {
     paddingHorizontal: layout.screenPaddingX,
-    alignItems: 'center',
     gap: 8,
   },
   eyebrow: {
@@ -31,6 +30,5 @@ const styles = StyleSheet.create({
     fontSize: 24,
     letterSpacing: -0.03 * 24,
     color: palette.fg,
-    textAlign: 'center',
   },
 });

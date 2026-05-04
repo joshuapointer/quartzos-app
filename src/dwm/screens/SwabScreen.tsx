@@ -32,8 +32,7 @@ export default function SwabScreen({ sessionElapsedS }: Props) {
 const styles = StyleSheet.create({
   well: {
     paddingHorizontal: layout.screenPaddingX,
-    alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   eyebrow: {
     fontFamily: fontStack.mono,
@@ -48,14 +47,13 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     letterSpacing: -0.035 * 26,
     color: palette.fg,
-    textAlign: 'center',
   },
   sub: {
     fontFamily: fontStack.body,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 19,
     color: palette.muted,
-    textAlign: 'center',
-    maxWidth: 280,
+    letterSpacing: -0.01 * 14,
+    marginTop: 2,
   },
 });

@@ -54,8 +54,6 @@ export default function WindowScreen({
   return (
     <View style={styles.well}>
       <PhaseStrip current={1} />
-      <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
-      <Text style={styles.headline}>{copy.headline}</Text>
 
       <View style={[styles.tempBanner, { borderColor, backgroundColor: bgColor }]}>
         <View style={styles.tempNumRow}>
@@ -83,6 +81,10 @@ export default function WindowScreen({
           </View>
         </View>
       </View>
+
+      <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
+      <Text style={styles.headline}>{copy.headline}</Text>
+      {copy.sub.length > 0 && <Text style={styles.sub}>{copy.sub}</Text>}
 
       {showStuckFallback && (
         <View style={styles.fallback}>
@@ -113,8 +115,17 @@ const styles = StyleSheet.create({
   headline: {
     fontFamily: fontStack.displayHeavy,
     fontSize: 24,
+    lineHeight: 26,
     letterSpacing: -0.035 * 24,
     color: palette.fg,
+  },
+  sub: {
+    fontFamily: fontStack.body,
+    fontSize: 14,
+    lineHeight: 19,
+    color: palette.muted,
+    letterSpacing: -0.01 * 14,
+    marginTop: 2,
   },
   tempBanner: {
     flexDirection: 'row',
@@ -129,7 +140,6 @@ const styles = StyleSheet.create({
     shadowRadius: 9,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
-    marginTop: 6,
   },
   tempNumRow: {
     flexDirection: 'row',
