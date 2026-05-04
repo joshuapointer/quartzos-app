@@ -22,13 +22,14 @@ const styles = StyleSheet.create({
     fontFamily: fontStack.mono,
     fontSize: 10,
     letterSpacing: 0.24 * 10,
-    color: palette.mint,
+    color: palette.muted,
     textTransform: 'uppercase',
   },
   headline: {
-    fontFamily: fontStack.display,
-    fontSize: 24,
-    letterSpacing: -0.03 * 24,
+    fontFamily: fontStack.displayHeavy,
+    fontSize: 26,
+    lineHeight: 28,
+    letterSpacing: -0.035 * 26,
     color: palette.fg,
   },
 });

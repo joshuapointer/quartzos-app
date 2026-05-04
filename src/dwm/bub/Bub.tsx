@@ -238,18 +238,16 @@ export function Bub({
   );
 
   // Tap-to-squish fires the squish curve every press, then forwards to onPress.
-  // Mirrors prototype `elBub.click` lines 2361-2365.
+  // Mirrors prototype `elBub.click` lines 2361-2365: every tap squishes Bub
+  // even when no phase-specific action is wired.
   const handlePress = useCallback(() => {
     fireSquish();
     onPress?.();
   }, [fireSquish, onPress]);
 
-  if (onPress != null) {
-    return (
-      <Pressable onPress={handlePress} hitSlop={12} style={{ width: px, height: px }}>
-        {inner}
-      </Pressable>
-    );
-  }
-  return <View style={{ width: px, height: px }}>{inner}</View>;
+  return (
+    <Pressable onPress={handlePress} hitSlop={12} style={{ width: px, height: px }}>
+      {inner}
+    </Pressable>
+  );
 }

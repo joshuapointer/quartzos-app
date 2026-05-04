@@ -103,23 +103,21 @@ function contentWellTopFor(phase: DwmPhase, screenH: number): number {
 type BubState = { mood: Mood; eye: Eye; extras: BubProps['extras']; size: BubSize };
 
 const BUB_BY_PHASE: Record<DwmPhase, BubState> = {
-  cold:        { mood: 'idle',    eye: 'open',           extras: [],                          size: 'lg' },
-  connecting:  { mood: 'curious', eye: 'wide',           extras: [],                          size: 'lg' },
-  connected:   { mood: 'eager',   eye: 'happy',          extras: [],                          size: 'lg' },
-  presets:     { mood: 'idle',    eye: 'open',           extras: [],                          size: 'sm' },
-  banger:      { mood: 'curious', eye: 'open',           extras: [],                          size: 'sm' },
-  concentrate: { mood: 'curious', eye: 'open',           extras: [],                          size: 'sm' },
-  wall:        { mood: 'curious', eye: 'open',           extras: [],                          size: 'sm' },
-  review:      { mood: 'eager',   eye: 'wide',           extras: [],                          size: 'xl' },
-  ready:       { mood: 'eager',   eye: 'wide',           extras: [],                          size: 'xl' },
-  heating:     { mood: 'heat',    eye: 'concentrating',  extras: ['flames', 'torch', 'sweat'], size: 'lg' },
-  window:      { mood: 'cool',    eye: 'wide',           extras: [],                          size: 'lg' },
-  dabbing:     { mood: 'dab',     eye: 'surprised',      extras: ['sparkles'],                size: 'lg' },
-  // Phase 4 (impl 'swab') — prototype's `dunk` phase: water + bubbles + wave, smiling
-  swab:        { mood: 'dunk',    eye: 'happy',          extras: ['bubbles', 'wave'],         size: 'lg' },
-  // Phase 5 (impl 'dunk') — prototype's `clean` phase: suds, tidy
-  dunk:        { mood: 'clean',   eye: 'tidy',           extras: ['suds'],                    size: 'lg' },
-  complete:    { mood: 'done',    eye: 'starry',         extras: ['sparkles'],                size: 'lg' },
+  cold:        { mood: 'idle',    eye: 'open',          extras: [],                          size: 'xl' },
+  connecting:  { mood: 'curious', eye: 'wide',          extras: [],                          size: 'xl' },
+  connected:   { mood: 'eager',   eye: 'happy',         extras: [],                          size: 'xl' },
+  presets:     { mood: 'curious', eye: 'wide',          extras: [],                          size: 'lg' },
+  banger:      { mood: 'curious', eye: 'wide',          extras: [],                          size: 'lg' },
+  concentrate: { mood: 'curious', eye: 'wide',          extras: [],                          size: 'lg' },
+  wall:        { mood: 'curious', eye: 'wide',          extras: [],                          size: 'lg' },
+  review:      { mood: 'eager',   eye: 'wide',          extras: [],                          size: 'xl' },
+  ready:       { mood: 'eager',   eye: 'wide',          extras: [],                          size: 'xl' },
+  heating:     { mood: 'heat',    eye: 'concentrating', extras: ['flames', 'torch', 'sweat'], size: 'lg' },
+  window:      { mood: 'cool',    eye: 'wide',          extras: [],                          size: 'lg' },
+  dabbing:     { mood: 'dab',     eye: 'surprised',     extras: ['sparkles'],                size: 'lg' },
+  swab:        { mood: 'dunk',    eye: 'happy',         extras: ['bubbles', 'wave'],         size: 'lg' },
+  dunk:        { mood: 'clean',   eye: 'tidy',          extras: ['suds'],                    size: 'lg' },
+  complete:    { mood: 'done',    eye: 'starry',        extras: ['sparkles'],                size: 'lg' },
 };
 
 // Phases where Bub is the hold-gesture target
@@ -129,17 +127,6 @@ const HOLD_HINT: Partial<Record<DwmPhase, string>> = {
   review: 'hold to light it up',
   ready:  'hold to light it up',
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatMmSs(ms: number): string {
-  const totalSec = Math.max(0, Math.round(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 // ---------------------------------------------------------------------------
 // Public props
@@ -173,7 +160,6 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
     selectPreset,
     selectRecent,
     clearSelections,
-    windowDurationMs,
   } = useDwmPhase();
 
   // Resolved entities
@@ -221,25 +207,16 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
   // ---------------------------------------------------------------------------
   // Torch listener — fires during 'review'/'ready' to auto-advance to heating
   // ---------------------------------------------------------------------------
-  const [torchFallback, setTorchFallback] = useState(false);
-
   useEffect(() => {
     const isReviewPhase = phase === 'review' || phase === 'ready';
-    if (!isReviewPhase) {
-      setTorchFallback(false);
-      return;
-    }
+    if (!isReviewPhase) return;
     let cancelled = false;
     void torchDetector.startListening(() => {
       if (cancelled) return;
       setPhase('heating');
     });
-    const fallbackTimer = setTimeout(() => {
-      if (!cancelled) setTorchFallback(true);
-    }, 4000);
     return () => {
       cancelled = true;
-      clearTimeout(fallbackTimer);
       void torchDetector.stopListening();
     };
   }, [phase, setPhase]);
@@ -503,9 +480,6 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
   // Derived display values
   // ---------------------------------------------------------------------------
 
-  const peakF = useSessionStore((s) => s.peakF);
-  const windowDurationLabel = windowDurationMs != null ? formatMmSs(windowDurationMs) : null;
-
   const bubStateBase = BUB_BY_PHASE[phase];
   const windowMood: Mood | null = phase === 'window'
     ? (liveTempF > optimalF + 40 ? 'heat' : liveTempF > optimalF + 15 ? 'dab' : 'cool')
@@ -578,8 +552,6 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             useCelsius={useCelsius}
             showWindowFallback={windowFallback}
             windowDwellPct={windowDwellPct}
-            peakF={peakF}
-            windowDurationLabel={windowDurationLabel}
             sessionElapsedS={sessionElapsedS}
             onHoldComplete={handleHoldComplete}
             onCancelScan={handleCancelScan}

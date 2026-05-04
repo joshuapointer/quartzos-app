@@ -44,9 +44,6 @@ export interface ScreenSlotProps {
   windowDwellPct: number;
   // running session timer (drives session-phase eyebrows)
   sessionElapsedS: number;
-  // complete phase
-  peakF: number;
-  windowDurationLabel: string | null;
   // callbacks
   onHoldComplete: () => void;
   onCancelScan: () => void;
@@ -83,8 +80,6 @@ export function ScreenSlot({
   showWindowFallback,
   windowDwellPct,
   sessionElapsedS,
-  peakF,
-  windowDurationLabel,
   onHoldComplete,
   onCancelScan,
   onPickPreset,
@@ -201,9 +196,9 @@ export function ScreenSlot({
     case 'complete':
       return (
         <CompleteScreen
-          peakF={peakF}
+          targetF={targetF}
           bangerName={banger?.name ?? 'Banger'}
-          durationLabel={windowDurationLabel}
+          sessionElapsedS={sessionElapsedS}
           onAgain={onAgain}
           onNew={onNew}
         />

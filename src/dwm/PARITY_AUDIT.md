@@ -288,3 +288,98 @@ $ npx tsc --noEmit
 (0 errors, exit 0)
 ```
 
+---
+
+## 2026-05-03 — Pass #2 (post-handoff parity sweep)
+
+Re-walked every screen file against the prototype. Prior audit covered the gross structural gaps; this pass surfaced finer-grained mismatches the previous walk missed (Bub sizing across the entire phase machine, per-screen typography, semantic tap-feedback gap).
+
+### NEW P0 — Broken / wrong-data
+
+- **N-P0-1 · CompleteScreen `DAB @` showed live peak temp, not target dab temp**
+  - Proto `renderComplete` (lines 3549, 3561) → `activeDabTemp()` = the *target* (concentrate's `surface_temp_optimal_f`).
+  - Impl `screens/CompleteScreen.tsx:111` was using `peakF` from session store (live banger peak, not target).
+  - Fix: changed `peakF` prop → `targetF`. Wired `optimalF` from `flow/DwmFlow.tsx` through `flow/ScreenSlot.tsx`.
+
+- **N-P0-2 · CompleteScreen `TIME ON RIG` showed cool-window duration, not full session time**
+  - Proto `renderComplete` (line 3548) → `state.sessionSeconds` (full session timer from heat → complete).
+  - Impl was using `windowDurationLabel` (only the cool-window dwell, ~1.7s).
+  - Fix: changed `durationLabel` prop → `sessionElapsedS`. Formats inline as `M:SS`.
+
+- **N-P0-3 · Bub size wrong for picker + connect phases**
+  - Proto: connect phases `setBubSize()` = default 220px (xl); picker phases `setBubSize('small')` = 170px (lg).
+  - Impl `flow/DwmFlow.tsx:BUB_BY_PHASE`: cold/connecting/connected were `lg` (170); presets/banger/concentrate/wall were `sm` (100). Picker orb at 100px reads as a tiny dot vs the prototype's commanding 170.
+  - Fix: cold/connecting/connected → `xl`; presets/banger/concentrate/wall → `lg`. Session phases (heating/window/dabbing/swab/dunk) left at `lg` — matching the prototype's `xl` here would require re-tuning `ORB_TARGET_Y_BY_PHASE` + content-well clearances; deferred (see N-P2-1).
+
+- **N-P0-4 · Picker Bub eye `open`, prototype `wide`**
+  - Proto build screens → `setBubMood('curious', 'wide')` (lines 2667, 2746). Impl had `eye: 'open'` for presets/banger/concentrate/wall. "Wide" eye gives Bub the alert curious look the prototype intends.
+  - Fix: presets/banger/concentrate/wall → `eye: 'wide'`.
+
+### NEW P1 — Visual regressions
+
+- **N-P1-1 · Build/connect screens eyebrow color was peach (`accentDeep`), prototype is muted**
+  - Proto `.eyebrow { color: var(--muted); }` (line 804) — the eyebrow is intentionally quiet, peach is reserved for the wordmark + accents.
+  - Impl `screens/BangerScreen.tsx:99`, `ConcentrateScreen.tsx:100`, `WallScreen.tsx:64`, `ConnectScreen.tsx:30` used `palette.accentDeep`. `ConnectedScreen.tsx:25` used `palette.mint`.
+  - Fix: all six eyebrow colors → `palette.muted`.
+
+- **N-P1-2 · Build/connect screens headline undersized with wrong weight**
+  - Proto `.h1 { font-size: 30px; font-weight: 800; }` (lines 806–814).
+  - Impl: BangerScreen/ConcentrateScreen/WallScreen used 22px `display` (700); ConnectScreen/ConnectedScreen used 24px `display`.
+  - Fix: all five → 26px `displayHeavy`, lineHeight 28, letterSpacing -0.035*26 (matching the headline scale already in use on Heat/Dab/Swab/Dunk).
+
+- **N-P1-3 · Tap-to-squish was disabled on every phase except heating**
+  - Proto `elBub.click` (lines 2361–2378) — every tap on Bub adds the `tapped` class (squish). Heat phase additionally advances.
+  - Impl `bub/Bub.tsx` only rendered the Pressable wrapper when `onPress` was passed; only the heat phase passed `onPress`. Result: tapping Bub on cold/picker/window/dab/dunk/complete did nothing — no haptic squish feedback.
+  - Fix: `bub/Bub.tsx` always wraps in Pressable; `handlePress` always fires `fireSquish()` then forwards `onPress?` if defined.
+
+### Verification of prior open follow-ups
+
+- **`torchFallback` unused setState** — deleted from `flow/DwmFlow.tsx` along with its setTimeout fallback. The torch listener effect is now ~10 lines shorter.
+- **Bub size for `dabbing`** — addressed for picker + connect phases. Session phases (including dabbing) deferred per N-P0-3 — would require ORB_TARGET_Y re-tuning.
+- **Heating fallback wait window 8s** — left at 8s; no signal it needs retuning.
+- **ChooseScreen preset card glyph** — data-driven (icons live in preset rows we don't own); deferred.
+
+### NEW P2 — Polish / deferred
+
+- **N-P2-1 · Session phases (heating/window/dabbing/swab/dunk) Bub size should be xl per prototype** — currently `lg`. Bumping to `xl` would push `contentWellTop` down by ~25px in each ORB_ABOVE phase, narrowing content area to ~158px on heating. Deferred until visual review on device confirms layout still works.
+- **N-P2-2 · Heat banner dot pulse animation missing** — prototype has `torch-pulse` (0.5s scale 0.85↔1.15) when on, `listen-pulse` (1.4s scale 0.85↔1.15) when listening. Impl renders a static dot. P2 polish.
+- **N-P2-3 · Heat banner backgrounds use solid tints not radial gradients** — prototype uses layered radial+linear gradients for cool blue (listening) and warm peach (torch on). Impl approximates with solid pastels. Acceptable.
+- **N-P2-4 · CompleteScreen `another one` navigates to `ready` (rerun same sesh) — prototype navigates to `choose`** — RN behavior is arguably better UX (one-tap restart vs. forcing re-pick); leaving as deliberate divergence.
+- **N-P2-5 · Review/ready Bub size is `xl`, prototype is `lg` (carried from previous picker step's `setBubSize('small')`)** — prior audit kept `xl` for emphasis at the commitment moment. Documented divergence.
+- **N-P2-6 · `peek-in` per-child stagger on session phase mount not implemented** — same as prior audit's P2-7. Defer.
+- **N-P2-7 · Carousel category chip taxonomy diverges (data-driven)** — same as prior audit's P1-4 / P2-2. Defer.
+- **N-P2-8 · Stepper height 4px (impl) vs 4px (prototype `.stepper .dot { height: 4px; }`)** — match. PhaseStrip is 3px both sides — match.
+- **N-P2-9 · Hold-hint on connect screen has dashed peach border + hint-pulse animation in prototype, impl uses HintLabel primitive** — visual approximation; defer.
+
+### Fixed (this pass)
+
+- **N-P0-1, N-P0-2** — `screens/CompleteScreen.tsx`: props refactored from `peakF`/`durationLabel` → `targetF`/`sessionElapsedS`; added local `fmtSession()` helper. `flow/ScreenSlot.tsx`: pass `targetF` + `sessionElapsedS` instead. `flow/DwmFlow.tsx`: removed unused `peakF` selector + `windowDurationLabel` derivation + `formatMmSs` helper + `windowDurationMs` destructure (the hook still computes it internally).
+- **N-P0-3** — `flow/DwmFlow.tsx:BUB_BY_PHASE`: cold/connecting/connected `lg→xl`; presets/banger/concentrate/wall `sm→lg`.
+- **N-P0-4** — `flow/DwmFlow.tsx:BUB_BY_PHASE`: presets/banger/concentrate/wall `eye: 'open'→'wide'`.
+- **N-P1-1** — Eyebrow color `palette.accentDeep|mint → palette.muted` in `BangerScreen.tsx`, `ConcentrateScreen.tsx`, `WallScreen.tsx`, `ConnectScreen.tsx`, `ConnectedScreen.tsx`.
+- **N-P1-2** — Headline → 26px `displayHeavy`, lineHeight 28, letterSpacing -0.035*26 in `BangerScreen.tsx`, `ConcentrateScreen.tsx`, `WallScreen.tsx`, `ConnectScreen.tsx`, `ConnectedScreen.tsx`.
+- **N-P1-3** — `bub/Bub.tsx`: always wraps in Pressable; tap fires squish even when no `onPress` is wired.
+- **Cleanup** — `torchFallback` useState + 4-second fallback timer removed from `flow/DwmFlow.tsx`.
+
+### Deferred (this pass)
+
+- N-P2-1: Session-phase Bub size bump `lg→xl` (needs `ORB_TARGET_Y_BY_PHASE` re-tuning + on-device visual check).
+- N-P2-2: Heat banner dot pulse animation.
+- N-P2-3: Heat banner radial-gradient backgrounds.
+- N-P2-4: CompleteScreen "another one" navigation difference (deliberate UX choice).
+- N-P2-5: Review/ready Bub size deliberate divergence.
+- N-P2-6: Per-child peek-in stagger on session screens.
+- N-P2-7: Carousel category chip taxonomy (data layer).
+- N-P2-9: Hold-hint visual treatment.
+
+### File count
+
+Started this pass: 85 files (84 `.ts`/`.tsx` + `PARITY_AUDIT.md`). Now: 85 files. No new files added, none deleted. 9 files modified: `bub/Bub.tsx`, `flow/DwmFlow.tsx`, `flow/ScreenSlot.tsx`, `screens/CompleteScreen.tsx`, `screens/BangerScreen.tsx`, `screens/ConcentrateScreen.tsx`, `screens/WallScreen.tsx`, `screens/ConnectScreen.tsx`, `screens/ConnectedScreen.tsx`.
+
+### Verified clean
+
+```
+$ npx tsc --noEmit
+(0 errors, exit 0)
+```
+

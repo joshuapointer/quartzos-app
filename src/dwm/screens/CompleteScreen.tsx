@@ -11,11 +11,17 @@ import { palette, fontStack, layout, radii, springs } from '../tokens';
 import { PHASE_COPY } from '../flow/copy';
 
 export interface CompleteScreenProps {
-  peakF: number;
+  targetF: number;
   bangerName: string;
-  durationLabel: string | null;
+  sessionElapsedS: number;
   onAgain: () => void;
   onNew: () => void;
+}
+
+function fmtSession(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -87,8 +93,8 @@ function FinishCard({
 }
 
 export default function CompleteScreen({
-  peakF,
-  durationLabel,
+  targetF,
+  sessionElapsedS,
   onAgain,
   onNew,
 }: CompleteScreenProps) {
@@ -104,11 +110,11 @@ export default function CompleteScreen({
 
       <View style={styles.statsRow}>
         <View style={styles.stat}>
-          <Text style={styles.statNum}>{durationLabel ?? '—'}</Text>
+          <Text style={styles.statNum}>{fmtSession(sessionElapsedS)}</Text>
           <Text style={styles.statLbl}>TIME ON RIG</Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.statNum}>{`${Math.round(peakF)}°`}</Text>
+          <Text style={styles.statNum}>{`${Math.round(targetF)}°`}</Text>
           <Text style={styles.statLbl}>DAB @</Text>
         </View>
       </View>
