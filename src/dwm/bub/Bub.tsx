@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -142,12 +142,8 @@ export function Bub({
   const hasSparkles = extras.includes('sparkles');
   const hasSweat    = extras.includes('sweat');
 
-  return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={12}
-      style={{ width: px, height: px }}
-    >
+  const inner = (
+    <>
       <BubHalo size={px} mood={mood} paused={paused} />
 
       {hasFlames && <Flames size={px} paused={paused} />}
@@ -173,6 +169,15 @@ export function Bub({
       {hasSuds     && <Suds     size={px} paused={paused} />}
       {hasSparkles && <Sparkles size={px} paused={paused} />}
       {hasTorch    && <Torch    lit={torchLit} paused={paused} />}
-    </Pressable>
+    </>
   );
+
+  if (onPress != null) {
+    return (
+      <Pressable onPress={onPress} hitSlop={12} style={{ width: px, height: px }}>
+        {inner}
+      </Pressable>
+    );
+  }
+  return <View style={{ width: px, height: px }}>{inner}</View>;
 }

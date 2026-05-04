@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { layout } from '../tokens';
+import { View, Text, StyleSheet } from 'react-native';
+import { layout, palette, fontStack } from '../tokens';
 import { Banner } from '../primitives/Banner';
 import { PressableButton } from '../primitives/PressableButton';
 import { PHASE_COPY } from '../flow/copy';
@@ -27,6 +27,7 @@ export default function HeatScreen({
 
   return (
     <View style={styles.well}>
+      <Text style={styles.headline}>{copy.headline}</Text>
       <Banner
         eyebrow={copy.eyebrow}
         primary={secondsLeft}
@@ -53,6 +54,13 @@ const styles = StyleSheet.create({
   well: {
     paddingHorizontal: layout.screenPaddingX,
     gap: 12,
+  },
+  headline: {
+    fontFamily: fontStack.display,
+    fontSize: 24,
+    letterSpacing: -0.03 * 24,
+    color: palette.fg,
+    textAlign: 'center',
   },
   fallback: {
     alignItems: 'center',

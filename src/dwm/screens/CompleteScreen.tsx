@@ -25,6 +25,7 @@ export default function CompleteScreen({
     <View style={styles.well}>
       <Text style={styles.eyebrow}>{copy.eyebrow.toUpperCase()}</Text>
       <Text style={styles.headline}>{copy.headline}</Text>
+      {copy.sub.length > 0 && <Text style={styles.sub}>{copy.sub}</Text>}
 
       <View style={styles.statsGrid}>
         <Card
@@ -88,6 +89,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.03 * 24,
     color: palette.fg,
     textAlign: 'center',
+  },
+  sub: {
+    fontFamily: fontStack.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: palette.muted,
+    textAlign: 'center',
+    maxWidth: 300,
+    alignSelf: 'center',
   },
   statsGrid: {
     flexDirection: 'row',

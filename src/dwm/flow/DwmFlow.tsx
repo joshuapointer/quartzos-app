@@ -112,7 +112,7 @@ const BUB_BY_PHASE: Record<DwmPhase, BubState> = {
   ready:       { mood: 'eager',   eye: 'wide',           extras: [],                          size: 'xl' },
   heating:     { mood: 'heat',    eye: 'concentrating',  extras: ['flames', 'torch', 'sweat'], size: 'lg' },
   window:      { mood: 'cool',    eye: 'wide',           extras: [],                          size: 'lg' },
-  dabbing:     { mood: 'dab',     eye: 'surprised',      extras: [],                          size: 'lg' },
+  dabbing:     { mood: 'dab',     eye: 'surprised',      extras: ['sparkles'],                size: 'lg' },
   swab:        { mood: 'clean',   eye: 'tidy',           extras: ['suds'],                    size: 'lg' },
   dunk:        { mood: 'dunk',    eye: 'happy',          extras: ['bubbles', 'wave'],          size: 'lg' },
   complete:    { mood: 'done',    eye: 'starry',         extras: ['sparkles'],                size: 'lg' },
@@ -122,8 +122,8 @@ const BUB_BY_PHASE: Record<DwmPhase, BubState> = {
 const HOLD_BUB_PHASES = new Set<DwmPhase>(['cold', 'review', 'ready']);
 const HOLD_HINT: Partial<Record<DwmPhase, string>> = {
   cold:   'hold to find your dabrite',
-  review: 'hold to start the sesh',
-  ready:  'hold to start the sesh',
+  review: 'hold to light it up',
+  ready:  'hold to light it up',
 };
 
 // ---------------------------------------------------------------------------
@@ -424,7 +424,13 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
   const peakF = useSessionStore((s) => s.peakF);
   const windowDurationLabel = windowDurationMs != null ? formatMmSs(windowDurationMs) : null;
 
-  const bubState = BUB_BY_PHASE[phase];
+  const bubStateBase = BUB_BY_PHASE[phase];
+  const windowMood: Mood | null = phase === 'window'
+    ? (liveTempF > optimalF + 40 ? 'heat' : liveTempF > optimalF + 15 ? 'dab' : 'cool')
+    : null;
+  const bubState = windowMood != null
+    ? { ...bubStateBase, mood: windowMood }
+    : bubStateBase;
   const bubPx = BUB_SIZE_PX[bubState.size];
   const isHoldPhase = HOLD_BUB_PHASES.has(phase);
   const holdHint = HOLD_HINT[phase] ?? 'hold';

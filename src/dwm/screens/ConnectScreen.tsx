@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { palette, fontStack, layout } from '../tokens';
-import { HintLabel } from '../primitives/HintLabel';
 import { PHASE_COPY } from '../flow/copy';
 
 export interface ConnectScreenProps {
@@ -15,9 +14,6 @@ export default function ConnectScreen(_props: ConnectScreenProps) {
       <Text style={styles.eyebrow}>{copy.eyebrow.toUpperCase()}</Text>
       <Text style={styles.headline}>{copy.headline}</Text>
       <Text style={styles.sub}>{copy.sub}</Text>
-      <View style={styles.hint}>
-        <HintLabel label="hold me to find your dabrite" />
-      </View>
     </View>
   );
 }
@@ -49,8 +45,5 @@ const styles = StyleSheet.create({
     color: palette.muted,
     textAlign: 'center',
     maxWidth: 280,
-  },
-  hint: {
-    marginTop: 8,
   },
 });

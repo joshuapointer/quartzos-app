@@ -26,8 +26,9 @@ const RENDER_H = 132;
 export function Torch({ lit = true, paused = false }: Props) {
   const flameOpacity = useSharedValue(lit ? 1 : 0);
   const bodyTranslateY = useSharedValue(lit ? 0 : 8);
-  // Subtle pulse on flame when lit
   const flameScale = useSharedValue(1);
+  // Second flutter axis: rotation ±4° offset from scale cycle for organic look
+  const flameRotate = useSharedValue(0);
 
   useEffect(() => {
     flameOpacity.value = withTiming(lit ? 1 : 0, { duration: 240 });
@@ -37,22 +38,36 @@ export function Torch({ lit = true, paused = false }: Props) {
   useEffect(() => {
     if (paused || !lit) {
       cancelAnimation(flameScale);
+      cancelAnimation(flameRotate);
       return;
     }
+    // Faster scale pulse (300 ms vs old 400 ms) for snappier flicker
     flameScale.value = withRepeat(
       withSequence(
-        withTiming(1.08, { duration: 180, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.94, { duration: 220, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.10, { duration: 140, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.92, { duration: 160, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
       false,
     );
-    return () => cancelAnimation(flameScale);
+    // Rotation flutter offset by ~half cycle so it peaks between scale pulses
+    flameRotate.value = withRepeat(
+      withSequence(
+        withTiming( 4, { duration: 180, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-4, { duration: 180, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(flameScale);
+      cancelAnimation(flameRotate);
+    };
   }, [paused, lit]);
 
   const flameAnimStyle = useAnimatedStyle(() => ({
     opacity: flameOpacity.value,
-    transform: [{ scale: flameScale.value }],
+    transform: [{ scale: flameScale.value }, { rotate: `${flameRotate.value}deg` }],
   }));
 
   const bodyAnimStyle = useAnimatedStyle(() => ({

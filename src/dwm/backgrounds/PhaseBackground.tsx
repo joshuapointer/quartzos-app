@@ -5,6 +5,7 @@ import { VaporBg } from './VaporBg';
 import { WaterBg } from './WaterBg';
 import { SudsBg } from './SudsBg';
 import { CompleteBg } from './CompleteBg';
+import { DabBg } from './DabBg';
 
 export type DwmPhase =
   | 'cold' | 'connecting' | 'connected'
@@ -30,7 +31,7 @@ export function PhaseBackground({ phase, heatProgress = 0, torchOn = 0 }: PhaseB
     case 'swab':
       return <SudsBg />;
     case 'dabbing':
-      return <AmbientBg intensity="warm" />;
+      return <DabBg />;
     case 'complete':
       return <CompleteBg />;
     default:

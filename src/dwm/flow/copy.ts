@@ -16,12 +16,12 @@ export const PHASE_COPY: Record<DwmPhase, PhaseCopy> = {
   wall:        { eyebrow: 'step 3 of 3',     headline: 'how thick are the walls?',        sub: '' },
   review:      { eyebrow: 'all set',         headline: 'ready when you are.',             sub: 'hold me down to start the sesh.' },
   ready:       { eyebrow: 'all set',         headline: 'ready when you are.',             sub: 'hold me down to start the sesh.' },
-  heating:     { eyebrow: 'phase 1 · heat',  headline: 'torch your banger.',         sub: "i've got my eyes closed — focus." },
-  window:      { eyebrow: 'phase 2 · cool',  headline: 'place it on the dabrite.',   sub: "i'll yell when you're in the window. lift the second i do." },
-  dabbing:     { eyebrow: 'phase 3 · dab',   headline: 'lift, dab, breathe in.',     sub: 'keep it gentle — slow inhale beats a hot rip.' },
+  heating:     { eyebrow: 'phase 1 · heat',  headline: 'torch your banger.',         sub: 'low & even sweeps until the timer hits zero. tap me to skip.' },
+  window:      { eyebrow: 'phase 2 · cool',  headline: 'let me cool. lift when i turn green.',   sub: "red → orange → yellow → green. lift it and i'll feel it leave the pad." },
+  dabbing:     { eyebrow: 'phase 3 · dab',   headline: 'lift, dab, breathe in.',     sub: "slow inhale beats a hot rip. place it back when you're done — i'll catch it." },
   swab:        { eyebrow: 'phase 4 · swab',  headline: 'swab the q-tip.',            sub: 'one swipe, no scrubbing. residue lifts when the quartz is still warm.' },
   dunk:        { eyebrow: 'phase 5 · dunk',  headline: 'final swab. cap it.',        sub: 'last pass. drop the cap. the next sesh starts cleaner this way.' },
-  complete:    { eyebrow: 'that was nice',   headline: 'see you soon.',                   sub: '' },
+  complete:    { eyebrow: 'sesh logged',     headline: 'that was nice.',             sub: "i saved it. you can pull up this exact sesh from the home screen any time — or tweak it." },
 };
 
 // Per-banger torch duration in seconds — ported verbatim from MoltenSurface.tsx
