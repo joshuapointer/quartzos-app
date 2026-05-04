@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { layout, palette, fontStack, radii } from '../tokens';
 import { PressableButton } from '../primitives/PressableButton';
 import { PhaseStrip } from '../primitives/PhaseStrip';
+import { BackChip } from '../primitives/BackChip';
 import { PHASE_COPY } from '../flow/copy';
 import { useReducedMotion } from '../../design/hooks/useReducedMotion';
 import { PeekIn } from '../primitives/PeekIn';
@@ -33,6 +34,8 @@ export interface HeatScreenProps {
   onTorchSChange: (s: number) => void;
   onDabFChange: (f: number) => void;
   onDunkFChange: (f: number) => void;
+  /** Back button target — null hides the chip (e.g. session already past torch). */
+  onBack: (() => void) | null;
 }
 
 const TORCH_MIN_S = 10;
@@ -62,6 +65,7 @@ export default function HeatScreen({
   onTorchSChange,
   onDabFChange,
   onDunkFChange,
+  onBack,
 }: HeatScreenProps) {
   const reduced = useReducedMotion();
   const copy = PHASE_COPY.heating;
@@ -139,6 +143,7 @@ export default function HeatScreen({
   return (
     <View style={styles.well}>
       <PeekIn delay={0}><PhaseStrip current={0} /></PeekIn>
+      {onBack != null && <BackChip onPress={onBack} />}
       <PeekIn delay={80}><Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text></PeekIn>
       <PeekIn delay={140}><Text style={styles.headline}>{copy.headline}</Text></PeekIn>
       <PeekIn delay={200}><Text style={styles.sub}>{copy.sub}</Text></PeekIn>

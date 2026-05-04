@@ -193,6 +193,18 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
 
   const torchDurationS = heatTorchS;
 
+  // Back-nav target for the heat screen. Hidden once the torch has been
+  // heard (session is in flight). Picker path returns to wall; preset/recent
+  // path returns to the picker root since no banger/concentrate were chosen.
+  const handleHeatBack = useCallback(() => {
+    if (selections.presetId != null) {
+      clearSelections();
+      setPhase('presets');
+    } else {
+      setPhase('wall');
+    }
+  }, [selections.presetId, clearSelections, setPhase]);
+
   const handleHeatTorchSChange = useCallback((s: number) => {
     setHeatTorchSState(s);
     sliderAdjustedRef.current = true;
@@ -627,6 +639,7 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             onHeatTorchSChange={handleHeatTorchSChange}
             onHeatDabFChange={handleHeatDabFChange}
             onHeatDunkFChange={handleHeatDunkFChange}
+            onHeatBack={torchOn ? null : handleHeatBack}
             liveTempF={liveTempF}
             targetF={optimalF}
             useCelsius={useCelsius}

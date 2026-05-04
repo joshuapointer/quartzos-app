@@ -43,6 +43,9 @@ export interface ScreenSlotProps {
   onHeatTorchSChange: (s: number) => void;
   onHeatDabFChange: (f: number) => void;
   onHeatDunkFChange: (f: number) => void;
+  /** Back-out target for the heat screen — null hides the chip (e.g. once
+   *  the torch has been heard the session is in flight, no back). */
+  onHeatBack: (() => void) | null;
   // window phase
   liveTempF: number;
   targetF: number;
@@ -86,6 +89,7 @@ export function ScreenSlot({
   onHeatTorchSChange,
   onHeatDabFChange,
   onHeatDunkFChange,
+  onHeatBack,
   liveTempF,
   targetF,
   useCelsius,
@@ -184,6 +188,7 @@ export function ScreenSlot({
           onTorchSChange={onHeatTorchSChange}
           onDabFChange={onHeatDabFChange}
           onDunkFChange={onHeatDunkFChange}
+          onBack={onHeatBack}
         />
       );
 
