@@ -54,6 +54,7 @@ export interface ScreenSlotProps {
   onSkipHeat: () => void;
   onForceAdvanceHeat: () => void;
   onForceAdvanceWindow: () => void;
+  onForceAdvanceDunk: () => void;
   onAgain: () => void;
   onNew: () => void;
   // Free-form phase navigation — used for build-stepper back-tap and back-chip
@@ -87,6 +88,7 @@ export function ScreenSlot({
   onSkipHeat,
   onForceAdvanceHeat,
   onForceAdvanceWindow,
+  onForceAdvanceDunk,
   onAgain,
   onNew,
   onSetPhase,
@@ -186,7 +188,7 @@ export function ScreenSlot({
       return <SwabScreen sessionElapsedS={sessionElapsedS} />;
 
     case 'dunk':
-      return <DunkScreen sessionElapsedS={sessionElapsedS} />;
+      return <DunkScreen sessionElapsedS={sessionElapsedS} onForceAdvance={onForceAdvanceDunk} />;
 
     case 'complete':
       return (

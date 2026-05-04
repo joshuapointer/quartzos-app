@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { palette, fontStack, layout } from '../tokens';
 import { PhaseStrip } from '../primitives/PhaseStrip';
+import { PressableButton } from '../primitives/PressableButton';
 import { PHASE_COPY } from '../flow/copy';
 import { PeekIn } from '../primitives/PeekIn';
 
 interface Props {
   sessionElapsedS: number;
+  onForceAdvance: () => void;
 }
 
 function fmtSession(s: number): string {
@@ -17,7 +19,7 @@ function fmtSession(s: number): string {
 
 // Phase 5 (`dunk`) renders prototype's `clean` phase content per parity audit
 // — see PHASE_COPY.dunk and BUB_BY_PHASE.dunk.
-export default function DunkScreen({ sessionElapsedS }: Props) {
+export default function DunkScreen({ sessionElapsedS, onForceAdvance }: Props) {
   const copy = PHASE_COPY.dunk;
   const eyebrow = `${copy.eyebrow} · ${fmtSession(sessionElapsedS)}`;
   return (
@@ -26,6 +28,16 @@ export default function DunkScreen({ sessionElapsedS }: Props) {
       <PeekIn delay={80}><Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text></PeekIn>
       <PeekIn delay={140}><Text style={styles.headline}>{copy.headline}</Text></PeekIn>
       {copy.sub.length > 0 && <PeekIn delay={200}><Text style={styles.sub}>{copy.sub}</Text></PeekIn>}
+      <PeekIn delay={260}>
+        <View style={styles.fallback}>
+          <PressableButton
+            label="all done"
+            variant="ghost"
+            fullWidth={false}
+            onPress={onForceAdvance}
+          />
+        </View>
+      </PeekIn>
     </View>
   );
 }
@@ -56,5 +68,9 @@ const styles = StyleSheet.create({
     color: palette.muted,
     letterSpacing: -0.01 * 14,
     marginTop: 2,
+  },
+  fallback: {
+    alignItems: 'center',
+    marginTop: 10,
   },
 });

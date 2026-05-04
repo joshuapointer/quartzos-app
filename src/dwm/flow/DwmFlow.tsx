@@ -508,7 +508,11 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
                 size={bubState.size}
                 extras={bubState.extras}
                 torchLit={torchOn}
-                onPress={phase === 'heating' ? () => setPhase('window') : undefined}
+                onPress={
+                  phase === 'heating' ? () => setPhase('window')
+                  : phase === 'dunk' ? () => setPhase('complete')
+                  : undefined
+                }
               />
             </HoldBub>
           </View>
@@ -543,6 +547,7 @@ export default function DwmFlow({ presets, recents, onApplyPreset }: DwmFlowProp
             onSkipHeat={() => setPhase('window')}
             onForceAdvanceHeat={() => setPhase('window')}
             onForceAdvanceWindow={() => setPhase('dabbing')}
+            onForceAdvanceDunk={() => setPhase('complete')}
             onAgain={handleAgain}
             onNew={handleNew}
             onSetPhase={setPhase}
