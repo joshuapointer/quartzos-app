@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useRef } from 'react';
+import React, { ReactNode, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -34,7 +34,7 @@ export function HoldBub({ onComplete, hintLabel, size, children, enabled = true 
   const holdProgress = useSharedValue(0);
   const ringOpacity = useSharedValue(0);
   const squish = useSharedValue(1);
-  const firedRef = useRef(false);
+  const fired = useSharedValue(false);
 
   const ringSize = size + RING_INSET * 2;
   const radius = ringSize / 2 - STROKE_WIDTH / 2;
@@ -49,7 +49,7 @@ export function HoldBub({ onComplete, hintLabel, size, children, enabled = true 
     .maxDistance(999)
     .onBegin(() => {
       'worklet';
-      firedRef.current = false;
+      fired.value = false;
       ringOpacity.value = withTiming(1, { duration: 150 });
       squish.value = withSpring(0.92, springs.squish);
       if (reduced) {
@@ -59,8 +59,8 @@ export function HoldBub({ onComplete, hintLabel, size, children, enabled = true 
           duration: HOLD_DURATION,
           easing: Easing.linear,
         }, (finished) => {
-          if (finished && !firedRef.current) {
-            firedRef.current = true;
+          if (finished && !fired.value) {
+            fired.value = true;
             runOnJS(fire)();
           }
         });
