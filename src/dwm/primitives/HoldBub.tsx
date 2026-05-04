@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback } from 'react';
+import React, { ReactNode, useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -34,7 +34,6 @@ export function HoldBub({ onComplete, hintLabel, size, children, enabled = true 
   const holdProgress = useSharedValue(0);
   const ringOpacity = useSharedValue(0);
   const squish = useSharedValue(1);
-  const fired = useSharedValue(false);
 
   const ringSize = size + RING_INSET * 2;
   const radius = ringSize / 2 - STROKE_WIDTH / 2;
@@ -44,43 +43,50 @@ export function HoldBub({ onComplete, hintLabel, size, children, enabled = true 
     onComplete();
   }, [onComplete]);
 
-  const gesture = Gesture.LongPress()
-    .minDuration(0)
-    .maxDistance(999)
-    .onBegin(() => {
-      'worklet';
-      fired.value = false;
-      ringOpacity.value = withTiming(1, { duration: 150 });
-      squish.value = withSpring(0.92, springs.squish);
-      if (reduced) {
-        holdProgress.value = 1;
-      } else {
-        holdProgress.value = withTiming(1, {
-          duration: HOLD_DURATION,
-          easing: Easing.linear,
-        }, (finished) => {
-          if (finished && !fired.value) {
-            fired.value = true;
-            runOnJS(fire)();
-          }
-        });
-      }
-    })
-    .onFinalize((_, success) => {
-      'worklet';
-      if (!success || holdProgress.value < 1) {
-        holdProgress.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.quad) });
-        ringOpacity.value = withTiming(0, { duration: 200 });
-        squish.value = withSpring(1, springs.squish);
-      } else {
-        // completed — brief squish handoff then reset
-        squish.value = withSpring(1.08, springs.squish, () => {
-          squish.value = withSpring(1, springs.gentle);
-        });
-        holdProgress.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) });
-        ringOpacity.value = withTiming(0, { duration: 400 });
-      }
-    });
+  // RNGH's LongPress fires onStart exactly once when minDuration is met.
+  // Driving the fire from onStart (not a withTiming callback) is the standard
+  // pattern; minDuration(0) on iOS makes UILongPressGestureRecognizer
+  // BEGAN→ENDED in the same frame as touch-down, which silently kills the
+  // hold visual.
+  const gesture = useMemo(
+    () => Gesture.LongPress()
+      .minDuration(reduced ? 0 : HOLD_DURATION)
+      .maxDistance(999)
+      .shouldCancelWhenOutside(false)
+      .onBegin(() => {
+        'worklet';
+        ringOpacity.value = withTiming(1, { duration: 150 });
+        squish.value = withSpring(0.92, springs.squish);
+        if (reduced) {
+          holdProgress.value = 1;
+        } else {
+          holdProgress.value = withTiming(1, {
+            duration: HOLD_DURATION,
+            easing: Easing.linear,
+          });
+        }
+      })
+      .onStart(() => {
+        'worklet';
+        runOnJS(fire)();
+      })
+      .onFinalize((_, success) => {
+        'worklet';
+        if (!success) {
+          holdProgress.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.quad) });
+          ringOpacity.value = withTiming(0, { duration: 200 });
+          squish.value = withSpring(1, springs.squish);
+        } else {
+          // completed — brief squish handoff then reset
+          squish.value = withSpring(1.08, springs.squish, () => {
+            squish.value = withSpring(1, springs.gentle);
+          });
+          holdProgress.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) });
+          ringOpacity.value = withTiming(0, { duration: 400 });
+        }
+      }),
+    [fire, reduced, holdProgress, ringOpacity, squish],
+  );
 
   const animatedProps = useAnimatedProps(() => {
     const offset = circumference * (1 - holdProgress.value);
