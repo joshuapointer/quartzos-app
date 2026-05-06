@@ -1,10 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '../tokens';
+import { colors, radius } from '../tokens';
 import { useThemeColors } from '../ThemeContext';
 import { QWordmark } from './QWordmark';
 
@@ -17,11 +16,11 @@ export function FloatingHeader({ connectionState = '' }: FloatingHeaderProps) {
   const tc = useThemeColors();
   return (
     <View style={[styles.container, { top: 16 + insets.top, borderColor: tc.glassBorder }]} pointerEvents="none">
-      <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={[styles.overlay, { backgroundColor: tc.bgDeep + 'BF' }]} />
+      {/* Matte ink fill — no BlurView in shatterbox register */}
+      <View style={[styles.overlay, { backgroundColor: tc.bgDeep }]} />
       <View style={styles.row}>
         {/* Left: icon */}
-        <MaterialIcons name="blur-on" size={24} color={tc.primaryContainer} />
+        <MaterialIcons name="blur-on" size={24} color={colors.firedAmber} />
 
         {/* Center: wordmark */}
         <View style={styles.wordmarkWrap} pointerEvents="none">
@@ -40,7 +39,7 @@ function StatusPill({ connectionState, tc }: FloatingHeaderProps & { tc: ReturnT
   let label = 'OFFLINE';
 
   if (connectionState === 'READY') {
-    dotColor = colors.success;
+    dotColor = colors.firedAmber;
     label = 'LIVE';
   } else if (connectionState === 'RECONNECTING' || connectionState === 'SCANNING' || connectionState === 'CONNECTING' || connectionState === 'DISCOVERING') {
     dotColor = colors.warning;
@@ -48,7 +47,7 @@ function StatusPill({ connectionState, tc }: FloatingHeaderProps & { tc: ReturnT
   }
 
   return (
-    <View style={[styles.pill, { backgroundColor: tc.bgDeep + '99', borderColor: tc.glassBorder }]}>
+    <View style={[styles.pill, { backgroundColor: tc.surface3, borderColor: tc.glassBorder }]}>
       <View style={[styles.dot, { backgroundColor: dotColor }]} />
       <Text style={[styles.pillLabel, { color: tc.onSurfaceVariant }]}>{label}</Text>
     </View>
@@ -62,14 +61,14 @@ const styles = StyleSheet.create({
     right: 16,
     zIndex: 50,
     height: 64,
-    borderRadius: 16,
+    borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 1,
-    shadowColor: 'rgba(5,4,3,0.9)',
+    shadowColor: '#000000',
     shadowOpacity: 0.5,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 20,
+    shadowRadius: 36,
+    shadowOffset: { width: 0, height: 18 },
+    elevation: 12,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -85,23 +84,27 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
+  // Engraved chip (2px) — was a 9999px pill in the molten refresh register
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: radius.full,
     borderWidth: 1,
   },
+  // Status dot stays round — small enough that the engraved geometry rule
+  // would read as a square pixel.
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 9999,
+    borderRadius: 4,
   },
   pillLabel: {
+    fontFamily: 'JetBrainsMono_500Medium',
     fontSize: 11,
-    fontWeight: '600',
     letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 });

@@ -1,82 +1,93 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 2532" role="img" aria-label="dabwith.me — iOS splash">
-  <title>dabwith.me — iOS launch screen (1170×2532)</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 2532" role="img" aria-label="dabwith.me · Shatterbox · iOS splash">
+  <title>DABWITH.ME · Shatterbox · iOS splash 1170×2532</title>
+  
   <defs>
-    <radialGradient id="sp_bg1" cx="30%" cy="14%" r="55%">
-      <stop offset="0" stop-color="oklch(94% 0.06 320)" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="oklch(94% 0.06 320)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_bg2" cx="80%" cy="92%" r="55%">
-      <stop offset="0" stop-color="oklch(92% 0.08 30)" stop-opacity="0.45"/>
-      <stop offset="1" stop-color="oklch(92% 0.08 30)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_bg3" cx="50%" cy="55%" r="50%">
-      <stop offset="0" stop-color="oklch(95% 0.05 165)" stop-opacity="0.30"/>
-      <stop offset="1" stop-color="oklch(95% 0.05 165)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_halo" cx="50%" cy="50%" r="50%">
-      <stop offset="0"    stop-color="oklch(85% 0.10 30)" stop-opacity="0.55"/>
-      <stop offset="0.65" stop-color="oklch(85% 0.10 30)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_body" cx="65%" cy="72%" r="62%">
-      <stop offset="0"   stop-color="oklch(80% 0.14 30)"/>
-      <stop offset="0.7" stop-color="oklch(88% 0.06 320)"/>
-      <stop offset="1"   stop-color="oklch(85% 0.04 320)"/>
-    </radialGradient>
-    <radialGradient id="sp_hi" cx="32%" cy="28%" r="36%">
-      <stop offset="0" stop-color="oklch(99% 0.02 320)" stop-opacity="0.95"/>
-      <stop offset="1" stop-color="oklch(99% 0.02 320)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_innershadow" cx="50%" cy="100%" r="65%">
-      <stop offset="0"    stop-color="oklch(60% 0.10 320)" stop-opacity="0.30"/>
-      <stop offset="0.55" stop-color="oklch(60% 0.10 320)" stop-opacity="0.08"/>
-      <stop offset="1"    stop-color="oklch(60% 0.10 320)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_cheek">
-      <stop offset="0"   stop-color="oklch(80% 0.16 25)" stop-opacity="0.55"/>
-      <stop offset="0.7" stop-color="oklch(80% 0.16 25)" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="sp_eyehi" cx="40%" cy="30%" r="30%">
-      <stop offset="0" stop-color="oklch(99% 0.005 320)" stop-opacity="0.92"/>
-      <stop offset="1" stop-color="oklch(99% 0.005 320)" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="sp_blur" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="11"/>
-    </filter>
-    <clipPath id="sp_clip"><circle cx="585" cy="1080" r="320"/></clipPath>
+    <linearGradient id="sbg_gA" x1="0" y1="0" x2="100%" y2="100%">
+      <stop offset="0" stop-color="oklch(78% 0.18 70)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(40% 0.10 55)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sbg_gB" x1="0" y1="0" x2="100%" y2="0">
+      <stop offset="0" stop-color="oklch(70% 0.18 65)" stop-opacity="0.40"/>
+      <stop offset="1" stop-color="oklch(70% 0.18 65)" stop-opacity="0"/>
+    </linearGradient>
   </defs>
-
-  <!-- Paper background -->
-  <rect width="1170" height="2532" fill="oklch(97% 0.025 320)"/>
-  <rect width="1170" height="2532" fill="url(#sp_bg1)"/>
-  <rect width="1170" height="2532" fill="url(#sp_bg2)"/>
-  <rect width="1170" height="2532" fill="url(#sp_bg3)"/>
-
-  <!-- Bub — centered horizontally, slightly above middle vertically -->
-  <circle cx="585" cy="1080" r="400" fill="url(#sp_halo)"/>
-  <circle cx="585" cy="1080" r="320" fill="url(#sp_body)"/>
-  <circle cx="585" cy="1080" r="320" fill="url(#sp_hi)"/>
-  <circle cx="585" cy="1080" r="320" fill="url(#sp_innershadow)"/>
-  <g clip-path="url(#sp_clip)">
-    <ellipse cx="388" cy="1170" rx="55" ry="36" fill="url(#sp_cheek)" filter="url(#sp_blur)"/>
-    <ellipse cx="782" cy="1170" rx="55" ry="36" fill="url(#sp_cheek)" filter="url(#sp_blur)"/>
+  <rect x="0" y="0" width="1170" height="2532" fill="oklch(15% 0.014 60)"/>
+  <polygon points="0,0 546.0,67.52 156.0,438.88 0,303.84" fill="url(#sbg_gA)"/>
+  <polygon points="546.0,67.52 1170.0,0 1170.0,236.32 682.5,303.84" fill="url(#sbg_gB)" opacity="0.7"/>
+  <polygon points="156.0,438.88 682.5,303.84 390.0,877.76" fill="oklch(58% 0.16 60)" opacity="0.18"/>
+  <polygon points="682.5,303.84 1170.0,236.32 936.0,877.76 546.0,844.0" fill="oklch(46% 0.12 58)" opacity="0.22"/>
+  <polygon points="0,303.84 156.0,438.88 0,877.76" fill="oklch(38% 0.10 55)" opacity="0.35"/>
+  <polygon points="0,877.76 390.0,877.76 546.0,844.0 429.0,1384.1599999999999 0,1451.68" fill="oklch(30% 0.07 55)" opacity="0.5"/>
+  <polygon points="546.0,844.0 936.0,877.76 1170.0,236.32 1170.0,1586.72 741.0,1823.04" fill="oklch(22% 0.05 55)" opacity="0.55"/>
+  <polygon points="0,1451.68 429.0,1384.1599999999999 741.0,1823.04 390.0,2532.0 0,2532.0" fill="oklch(18% 0.04 55)" opacity="0.7"/>
+  <polygon points="741.0,1823.04 1170.0,1586.72 1170.0,2532.0 390.0,2532.0" fill="oklch(15% 0.03 55)" opacity="0.75"/>
+  <g stroke="oklch(85% 0.14 70)" stroke-width="0.6" fill="none" opacity="0.30">
+    <path d="M 0 303.84 L 546.0 67.52"/>
+    <path d="M 156.0 438.88 L 682.5 303.84"/>
+    <path d="M 0 877.76 L 390.0 877.76 L 546.0 844.0 L 936.0 877.76 L 1170.0 236.32"/>
+    <path d="M 429.0 1384.1599999999999 L 741.0 1823.04 L 1170.0 1586.72"/>
+    <path d="M 0 1451.68 L 429.0 1384.1599999999999"/>
+    <path d="M 741.0 1823.04 L 390.0 2532.0"/>
+    <path d="M 682.5 303.84 L 936.0 877.76"/>
   </g>
-  <ellipse cx="494" cy="1107" rx="46" ry="59" fill="oklch(28% 0.04 290)"/>
-  <ellipse cx="676" cy="1107" rx="46" ry="59" fill="oklch(28% 0.04 290)"/>
-  <ellipse cx="481" cy="1082" rx="14" ry="19" fill="url(#sp_eyehi)"/>
-  <ellipse cx="663" cy="1082" rx="14" ry="19" fill="url(#sp_eyehi)"/>
-
-  <!-- Wordmark below -->
-  <text x="585" y="1640" text-anchor="middle"
-        font-family="'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Hubot Sans', system-ui, sans-serif"
-        font-weight="700"
-        font-size="124"
-        letter-spacing="-4.3"
-        fill="oklch(30% 0.04 300)">dabwith<tspan fill="oklch(75% 0.18 30)" font-weight="800">.me</tspan></text>
-
-  <!-- Mono uppercase eyebrow -->
-  <text x="585" y="1745" text-anchor="middle"
-        font-family="'SF Mono', ui-monospace, Menlo, monospace"
-        font-size="22"
-        letter-spacing="6"
-        fill="oklch(55% 0.04 300)">CONCENTRATE · CONNECTED · CALM</text>
+  <defs>
+    <radialGradient id="sios_halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="oklch(75% 0.18 68)" stop-opacity="0.55"/>
+      <stop offset="0.65" stop-color="oklch(75% 0.18 68)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sios_body" cx="62%" cy="70%" r="68%">
+      <stop offset="0"   stop-color="oklch(82% 0.20 75)"/>
+      <stop offset="0.4" stop-color="oklch(64% 0.18 60)"/>
+      <stop offset="1"   stop-color="oklch(28% 0.07 50)"/>
+    </radialGradient>
+    <radialGradient id="sios_hi" cx="34%" cy="24%" r="34%">
+      <stop offset="0" stop-color="oklch(99% 0.04 90)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(99% 0.04 90)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sios_inner" cx="50%" cy="100%" r="70%">
+      <stop offset="0"   stop-color="oklch(15% 0.04 50)" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="oklch(15% 0.04 50)" stop-opacity="0.15"/>
+      <stop offset="1"   stop-color="oklch(15% 0.04 50)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sios_cheek">
+      <stop offset="0"   stop-color="oklch(82% 0.20 70)" stop-opacity="0.70"/>
+      <stop offset="0.7" stop-color="oklch(82% 0.20 70)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sios_eyehi" cx="40%" cy="30%" r="30%">
+      <stop offset="0" stop-color="oklch(85% 0.16 70)" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="oklch(85% 0.16 70)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sios_specA" x1="20%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0" stop-color="oklch(99% 0.04 88)" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="oklch(99% 0.04 88)" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="sios_blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  <defs><clipPath id="sios_clip"><circle cx="585.0" cy="1114.08" r="210.6"/></clipPath></defs>
+  
+  <circle cx="585.0" cy="1114.08" r="252.71999999999997" fill="url(#sios_halo)"/>
+  <circle cx="585.0" cy="1114.08" r="210.6" fill="url(#sios_body)"/>
+  <circle cx="585.0" cy="1114.08" r="210.6" fill="url(#sios_hi)"/>
+  <circle cx="585.0" cy="1114.08" r="210.6" fill="url(#sios_inner)"/>
+  <g clip-path="url(#sios_clip)">
+    <polygon points="439.68600000000004,947.7059999999999 528.138,922.434 673.452,1293.09 606.06,1309.9379999999999" fill="url(#sios_specA)" opacity="0.55"/>
+    <ellipse cx="454.428" cy="1173.048" rx="35.802" ry="23.166" fill="url(#sios_cheek)" filter="url(#sios_blur)"/>
+    <ellipse cx="715.572" cy="1173.048" rx="35.802" ry="23.166" fill="url(#sios_cheek)" filter="url(#sios_blur)"/>
+  </g>
+  <ellipse cx="535.509" cy="1129.875" rx="29.484" ry="37.907999999999994" fill="oklch(15% 0.04 50)"/>
+  <ellipse cx="634.491" cy="1129.875" rx="29.484" ry="37.907999999999994" fill="oklch(15% 0.04 50)"/>
+  <ellipse cx="527.085" cy="1111.974" rx="9.266399999999999" ry="12.636" fill="url(#sios_eyehi)"/>
+  <ellipse cx="626.067" cy="1111.974" rx="9.266399999999999" ry="12.636" fill="url(#sios_eyehi)"/>
+  <circle cx="585.0" cy="1114.08" r="210.6" fill="none" stroke="oklch(75% 0.18 68)" stroke-opacity="0.5" stroke-width="2.106"/>
+  <text x="585.0" y="1524.6799999999998" text-anchor="middle"
+        font-family="'SF Pro Display','SF Pro','Helvetica Neue Condensed',Helvetica,Arial,sans-serif"
+        font-weight="900" font-stretch="condensed"
+        font-size="117.0" letter-spacing="1.404"
+        fill="oklch(96% 0.024 78)">DABWITH<tspan fill="oklch(75% 0.18 68)">.ME</tspan></text>
+  <text x="585.0" y="1624.6799999999998" text-anchor="middle"
+        font-family="'JetBrains Mono','SF Mono',ui-monospace,Menlo,monospace"
+        font-size="25.74" letter-spacing="4.68"
+        fill="oklch(70% 0.05 70)">CRACK · DAB · GO</text>
 </svg>

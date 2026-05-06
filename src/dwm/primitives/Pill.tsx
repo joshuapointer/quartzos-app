@@ -2,6 +2,9 @@ import React from 'react';
 import { Text, StyleSheet, View } from 'react-native';
 import { palette, fontStack, radii } from '../tokens';
 
+// Variant API preserved for back-compat. In the shatterbox register all
+// non-amber variants collapse to the same engraved-chip styling — the
+// single-accent rule means only `peach` (now amber) carries colour.
 type Variant = 'peach' | 'mint' | 'butter' | 'lilac' | 'neutral';
 
 interface Props {
@@ -9,12 +12,15 @@ interface Props {
   variant?: Variant;
 }
 
+const NEUTRAL_CHIP = { bg: palette.surface, fg: palette.muted } as const;
+const ACCENT_CHIP  = { bg: palette.surface, fg: palette.accent } as const;
+
 const VARIANT_STYLES: Record<Variant, { bg: string; fg: string }> = {
-  peach:   { bg: '#FDE8DF', fg: palette.accentDeep },
-  mint:    { bg: '#D9F4E8', fg: '#2D7A52' },
-  butter:  { bg: '#FAF0C0', fg: '#7A6020' },
-  lilac:   { bg: '#EDE0F5', fg: '#6B3FA0' },
-  neutral: { bg: '#F2EBF4', fg: palette.muted },
+  peach:   ACCENT_CHIP,
+  mint:    NEUTRAL_CHIP,
+  butter:  NEUTRAL_CHIP,
+  lilac:   NEUTRAL_CHIP,
+  neutral: NEUTRAL_CHIP,
 };
 
 export function Pill({ label, variant = 'neutral' }: Props) {
@@ -31,7 +37,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: radii.pill,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: palette.border,
   },
   text: {
     fontFamily: fontStack.mono,

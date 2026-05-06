@@ -41,11 +41,12 @@ type MoodAnimSpec = {
   translateY?: number;
 };
 
+// Spec: ±2° wobble at 4.5s — the orb is the only thing in the system
+// allowed to be soft. Mood-specific overrides are preserved for the
+// dunk swim only, since translation is part of that screen's choreography.
 const ANIM_SPECS: Record<string, MoodAnimSpec> = {
-  default: { wobbleMs: 4500, breatheMs: 3200, rotMin: -2.5, rotMax: 2.5 },
-  heat:    { wobbleMs: 3600, breatheMs: 1400, rotMin: -2.5, rotMax: 2.5 },
-  // 'dunk' mood = phase position 4 (impl 'swab') after the parity swap. Bub
-  // is in water, swimming side-to-side.
+  default: { wobbleMs: 4500, breatheMs: 3200, rotMin: -2, rotMax: 2 },
+  heat:    { wobbleMs: 4500, breatheMs: 3200, rotMin: -2, rotMax: 2 },
   dunk:    { wobbleMs: 2600, breatheMs: 3200, rotMin: -7, rotMax: 7, translateX: 4, translateY: 2 },
 };
 

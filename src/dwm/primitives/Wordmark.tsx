@@ -51,8 +51,9 @@ function OnlineDot({ reduced }: { reduced: boolean }) {
           width: 6,
           height: 6,
           borderRadius: 3,
-          backgroundColor: palette.mint,
-          shadowColor: palette.mint,
+          // Single accent — amber dot replaces the legacy mint pulse
+          backgroundColor: palette.accent,
+          shadowColor: palette.accent,
           shadowOpacity: 0.7,
           shadowRadius: 4,
           shadowOffset: { width: 0, height: 0 },
@@ -87,7 +88,7 @@ function DisconnectChip({ reduced, onPress }: { reduced: boolean; onPress: () =>
       style={[styles.chip, animStyle]}
     >
       <OnlineDot reduced={reduced} />
-      <Text style={styles.chipLabel}>{'disconnect'}</Text>
+      <Text style={styles.chipLabel}>{'DISCONNECT'}</Text>
     </AnimatedPressable>
   );
 }
@@ -106,9 +107,9 @@ export function Wordmark({
     <View style={styles.row}>
       <Pressable onLongPress={onLongPressBrand} accessibilityRole="header">
         <Text style={[styles.brand, { fontSize: tokens.size, letterSpacing: tokens.letterSpacing }]}>
-          <Text style={{ color: palette.fg }}>{'dabwith'}</Text>
+          <Text style={{ color: palette.fg }}>{'DABWITH'}</Text>
           <Text style={styles.dot}>{'.'}</Text>
-          <Text style={styles.me}>{'me'}</Text>
+          <Text style={styles.me}>{'ME'}</Text>
         </Text>
       </Pressable>
 
@@ -121,7 +122,7 @@ export function Wordmark({
           ) : (
             <View style={styles.offlineDot} />
           )}
-          <Text style={styles.chipLabel}>{connectionLabel}</Text>
+          <Text style={styles.chipLabel}>{connectionLabel.toUpperCase()}</Text>
         </View>
       )}
     </View>
@@ -141,6 +142,8 @@ const styles = StyleSheet.create({
     fontFamily: fontStack.display,
     color: palette.fg,
   },
+  // The .ME suffix and the kerning dot are the two amber stops in the
+  // wordmark — single-accent budget per spec.
   dot: {
     color: palette.accent,
     fontFamily: fontStack.displayHeavy,
@@ -156,8 +159,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingLeft: 8,
     paddingRight: 10,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(251,241,244,0.7)',
+    borderRadius: radii.chip,
+    backgroundColor: palette.surface,
     borderWidth: 1,
     borderColor: palette.border,
   },
@@ -172,6 +175,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#CCC4CC',
+    backgroundColor: palette.muted,
   },
 });
